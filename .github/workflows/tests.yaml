@@ -1,0 +1,91 @@
+name: Tests
+
+# Run this workflow every time a new commit pushed to your repository
+on:
+  push:
+    branches:
+    - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  # Set the job key. The key is displayed as the job name
+  # when a job name is not provided
+  lint:
+    name: Lint code
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [ '3.8' ]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+           python-version: ${{ matrix.python-version }}
+
+      - name: Cache pip dir
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: pip-cache-${{ matrix.python-version }}-lint
+
+      - name: Install required packages
+        run: pip install tox
+
+      - name: Run tox
+        run: tox -e lint
+
+  py38:
+    # Name the Job
+    name: Tox tests
+    needs: lint
+    # Set the type of machine to run on
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.8']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+           python-version: ${{ matrix.python-version }}
+
+      - name: Cache pip dir
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: pip-cache-${{ matrix.python-version }}-${{ hashFiles('**/setup.py', '**/requirements.txt', '**/requirements_test.txt') }}
+
+      - name: Install required packages
+        run: pip install tox
+
+      - name: Run tox
+        run: tox -e py${{ matrix.python-version }}
+        env:
+          PYTHONUNBUFFERED: "True"
+
+      - name: Coveralls
+        uses: AndreMiras/coveralls-python-action@develop
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          flag-name: run-${{ matrix.python-version }}
+          parallel: true
+
+  finish:
+    needs: py38
+    runs-on: ubuntu-latest
+    steps:
+    - name: Coveralls Finished
+      uses: AndreMiras/coveralls-python-action@develop
+      with:
+        github-token: ${{ secrets.github_token }}
+        parallel-finished: true
