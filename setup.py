@@ -21,6 +21,7 @@ REQS_FULL = [
 ]
 
 REQS_TEST = ([
+    'nose',
     'tox>=2.9.1',
     'coverage>=4.4.1',
     'flake8>=3.4.1',
