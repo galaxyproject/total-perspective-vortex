@@ -1,9 +1,9 @@
 import os
-from collections import namedtuple
+
 from galaxy.job_metrics import JobMetrics
 from galaxy.jobs import JobConfiguration
 from galaxy.util import bunch
-from galaxy.web_stack import ApplicationStack, UWSGIApplicationStack
+from galaxy.web_stack import ApplicationStack
 
 
 # Job mock and helpers=======================================

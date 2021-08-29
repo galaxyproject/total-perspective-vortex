@@ -80,7 +80,8 @@ class TagSetManager(object):
         return new_tag_set
 
     def match(self, tags):
-        return all(required in tags for required in self.required_tags) and not any(rejected in tags for rejected in self.rejected_tags)
+        return (all(required in tags for required in self.required_tags) and
+                not any(rejected in tags for rejected in self.rejected_tags))
 
     @staticmethod
     def from_dict(tags):
@@ -114,7 +115,7 @@ class ResourceWithRules(Resource):
         for rule in rules or []:
             try:
                 validated.append(Rule.from_dict(rule))
-            except Exception as e:
+            except Exception:
                 log.exception(f"Could not load rule for resource: {self.__class__} with id: {self.id} and data: {rule}")
         return validated
 
@@ -195,7 +196,7 @@ class ResourceDestinationParser(object):
             try:
                 resource_dict[id] = resource_id
                 validated[resource_id] = resource_class.from_dict(resource_dict)
-            except Exception as e:
+            except Exception:
                 log.exception(f"Could not load resource of type: {resource_class} with data: {resource_dict}")
         return validated
 
