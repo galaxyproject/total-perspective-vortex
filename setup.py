@@ -20,6 +20,15 @@ REQS_FULL = [
     "galaxy-app"
 ]
 
+REQS_TEST = ([
+    'tox>=2.9.1',
+    'coverage>=4.4.1',
+    'flake8>=3.4.1',
+    'flake8-import-order>=0.13'] + REQS_FULL
+)
+
+REQS_DEV = (['sphinx', 'sphinx_rtd_theme'] + REQS_TEST)
+
 setuptools.setup(
     name="total-perspective-vortex",
     description="A library for mapping resources to destinations in Galaxy",
@@ -33,7 +42,8 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     install_requires=REQS_FULL,
     extras_require={
-        'dev': (['sphinx', 'sphinx_rtd_theme'] + REQS_FULL)
+        'dev': REQS_DEV,
+        'test': REQS_TEST
     },
     classifiers=[
         "Development Status :: 3 - Alpha",
@@ -47,4 +57,5 @@ setuptools.setup(
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.6"
     ],
+    test_suite="tests"
 )

@@ -1,11 +1,1 @@
-galaxy-util@git+https://github.com/galaxyproject/galaxy.git#subdirectory=packages/util
-galaxy-objectstore@git+https://github.com/galaxyproject/galaxy.git#subdirectory=packages/objectstore
-galaxy-data@git+https://github.com/galaxyproject/galaxy.git#subdirectory=packages/data
-galaxy-auth@git+https://github.com/galaxyproject/galaxy.git#subdirectory=packages/auth
-galaxy-containers@git+https://github.com/galaxyproject/galaxy.git#subdirectory=packages/containers
-galaxy-job-execution@git+https://github.com/galaxyproject/galaxy.git#subdirectory=packages/job_execution
-galaxy-job-metrics@git+https://github.com/galaxyproject/galaxy.git#subdirectory=packages/job_metrics
-galaxy-tool-util@git+https://github.com/galaxyproject/galaxy.git#subdirectory=packages/tool_util
-galaxy-web-framework@git+https://github.com/galaxyproject/galaxy.git#subdirectory=packages/web_framework
-galaxy-web-stack@git+https://github.com/galaxyproject/galaxy.git#subdirectory=packages/web_stack
-galaxy-app@git+https://github.com/galaxyproject/galaxy.git#subdirectory=packages/app
+-e "."
