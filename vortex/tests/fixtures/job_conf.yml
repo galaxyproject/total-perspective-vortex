@@ -1,0 +1,29 @@
+runners:
+  local:
+    load: galaxy.jobs.runners.local:LocalJobRunner
+    workers: 4
+  drmaa:
+    load: galaxy.jobs.runners.drmaa:DRMAAJobRunner
+  k8s:
+    load: galaxy.jobs.runners.kubernetes:KubernetesJobRunner
+
+handling:
+  assign:
+    - db-skip-locked
+
+execution:
+  default: local
+  environments:
+    local:
+      runner: local
+      vortex_cores: 4
+      vortex_memory: 16
+      vortex_tags:
+        - general
+    k8s_environment:
+      runner: k8s
+      docker_enabled: true
+      vortex_cores: 16
+      vortex_memory: 64
+      vortex_tags:
+        - pulsar

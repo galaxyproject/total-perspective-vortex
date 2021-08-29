@@ -1,0 +1,6 @@
+dist/
+build/
+.vscode/
+*.pyc
+activate.sh
+__pycache__
