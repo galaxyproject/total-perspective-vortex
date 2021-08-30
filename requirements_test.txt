@@ -1,6 +1,6 @@
 galaxy-util@git+https://github.com/galaxyproject/galaxy.git#subdirectory=packages/util
 galaxy-objectstore@git+https://github.com/galaxyproject/galaxy.git#subdirectory=packages/objectstore
-galaxy-data@git+https://github.com/galaxyproject/galaxy.git#subdirectory=packages/data
+galaxy-data@git+https://github.com/nuwang/galaxy.git@add_missing_package#subdirectory=packages/data
 galaxy-auth@git+https://github.com/galaxyproject/galaxy.git#subdirectory=packages/auth
 galaxy-containers@git+https://github.com/galaxyproject/galaxy.git#subdirectory=packages/containers
 galaxy-job-execution@git+https://github.com/galaxyproject/galaxy.git#subdirectory=packages/job_execution
