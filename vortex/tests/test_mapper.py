@@ -47,3 +47,23 @@ class TestResourceParser(unittest.TestCase):
 
         destination = mapper.map_tool_to_destination(galaxy_app, job, tool, user, mapper_config_file=mapper_config)
         self.assertIsNone(destination)
+
+    def test_map_tool_by_regex(self):
+        galaxy_app = mock_galaxy.App()
+        job = mock_galaxy.Job()
+        tool = mock_galaxy.Tool('regex_tool_test')
+        user = mock_galaxy.User('gargravarr', 'fairy_cake@totalperspectivevortex.galaxy')
+        mapper_config = os.path.join(os.path.dirname(__file__), 'fixtures/rules-initial.yml')
+
+        destination = mapper.map_tool_to_destination(galaxy_app, job, tool, user, mapper_config_file=mapper_config)
+        self.assertEqual(destination.id, "k8s_environment")
+
+    def test_map_tool_by_regex_mismatch(self):
+        galaxy_app = mock_galaxy.App()
+        job = mock_galaxy.Job()
+        tool = mock_galaxy.Tool('regex_t_test')
+        user = mock_galaxy.User('gargravarr', 'fairy_cake@totalperspectivevortex.galaxy')
+        mapper_config = os.path.join(os.path.dirname(__file__), 'fixtures/rules-initial.yml')
+
+        destination = mapper.map_tool_to_destination(galaxy_app, job, tool, user, mapper_config_file=mapper_config)
+        self.assertEqual(destination.id, "local")

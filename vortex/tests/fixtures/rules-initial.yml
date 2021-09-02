@@ -35,3 +35,9 @@ tools:
         - general
       rejected:
         - general
+  regex_tool.*:
+    tags:
+      required:
+        - pulsar
+      rejected:
+        - general
