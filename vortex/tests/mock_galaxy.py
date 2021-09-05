@@ -92,13 +92,6 @@ class JobMappingException(Exception):
     pass
 
 
-class JobDestination:
-    def __init__(self, **kwd):
-        self.id = kwd.get('id')
-        self.nativeSpec = kwd.get('params')['nativeSpecification']
-        self.runner = kwd.get('runner')
-
-
 class User:
     def __init__(self, username, email, roles=[]):
         self.username = username

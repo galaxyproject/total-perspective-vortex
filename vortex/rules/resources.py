@@ -3,6 +3,7 @@ from __future__ import annotations
 from enum import Enum
 import logging
 import yaml
+import copy
 
 
 log = logging.getLogger(__name__)
@@ -18,7 +19,7 @@ class TagType(Enum):
 class IncompatibleTagsException(Exception):
 
     def __init__(self, first_set, second_set):
-        super.__init__(
+        super().__init__(
             f"Cannot merge tag sets because required and rejected tags mismatch. First tag set requires:"
             f" {first_set.required_tags} and rejects: {first_set.rejected_tags}. Second tag set requires:"
             f" {second_set.required_tags} and rejects: {second_set.rejected_tags}.")
@@ -34,10 +35,10 @@ class TagSetManager(object):
 
     def add_tag_override(self, tag: str, tag_type: TagType):
         # pop the tag if it exists, as a tag can only belong to one category
-        self.required_tags.pop(tag)
-        self.preferred_tags.pop(tag)
-        self.tolerated_tags.pop(tag)
-        self.rejected_tags.pop(tag)
+        self.required_tags = list(filter(lambda x: x != tag, self.required_tags))
+        self.preferred_tags = list(filter(lambda x: x != tag, self.preferred_tags))
+        self.tolerated_tags = list(filter(lambda x: x != tag, self.tolerated_tags))
+        self.rejected_tags = list(filter(lambda x: x != tag, self.rejected_tags))
 
         if tag_type == TagType.REQUIRED:
             self.required_tags.append(tag)
@@ -62,21 +63,34 @@ class TagSetManager(object):
         else:
             return True
 
+    def extend(self, other):
+        assert type(self) == type(other)
+        new_tag_set = TagSetManager()
+        new_tag_set.add_tag_overrides(other.tolerated_tags, TagType.TOLERATED)
+        new_tag_set.add_tag_overrides(other.preferred_tags, TagType.PREFERRED)
+        new_tag_set.add_tag_overrides(other.required_tags, TagType.REQUIRED)
+        new_tag_set.add_tag_overrides(other.rejected_tags, TagType.REJECTED)
+        new_tag_set.add_tag_overrides(self.tolerated_tags, TagType.TOLERATED)
+        new_tag_set.add_tag_overrides(self.preferred_tags, TagType.PREFERRED)
+        new_tag_set.add_tag_overrides(self.required_tags, TagType.REQUIRED)
+        new_tag_set.add_tag_overrides(self.rejected_tags, TagType.REJECTED)
+        return new_tag_set
+
     def merge(self, other: TagSetManager):
         if not self.can_merge(other):
             raise IncompatibleTagsException(self, other)
         new_tag_set = TagSetManager()
         # Add tolerated tags first, as they should be overridden by preferred, required and rejected tags
-        new_tag_set.add_tag_overrides(other.tolerated_tags)
-        new_tag_set.add_tag_overrides(self.tolerated_tags)
+        new_tag_set.add_tag_overrides(other.tolerated_tags, TagType.TOLERATED)
+        new_tag_set.add_tag_overrides(self.tolerated_tags, TagType.TOLERATED)
         # Next add preferred, as they should be overridden by required and rejected tags
-        new_tag_set.add_tag_overrides(other.preferred_tags)
-        new_tag_set.add_tag_overrides(self.preferred_tags)
+        new_tag_set.add_tag_overrides(other.preferred_tags, TagType.PREFERRED)
+        new_tag_set.add_tag_overrides(self.preferred_tags, TagType.PREFERRED)
         # Required and rejected tags can be added in either order, as there's no overlap
-        new_tag_set.add_tag_overrides(other.required_tags)
-        new_tag_set.add_tag_overrides(self.required_tags)
-        new_tag_set.add_tag_overrides(other.rejected_tags)
-        new_tag_set.add_tag_overrides(self.rejected_tags)
+        new_tag_set.add_tag_overrides(other.required_tags, TagType.REQUIRED)
+        new_tag_set.add_tag_overrides(self.required_tags, TagType.REQUIRED)
+        new_tag_set.add_tag_overrides(other.rejected_tags, TagType.REJECTED)
+        new_tag_set.add_tag_overrides(self.rejected_tags, TagType.REJECTED)
         return new_tag_set
 
     def match(self, tags):
@@ -100,7 +114,51 @@ class Resource(object):
     def __repr__(self):
         return f"{self.__class__} id={self.id}, cores={self.cores}, mem={self.mem}, env={self.env}, tags={self.tags}"
 
+    def extend(self, resource):
+        new_resource = copy.copy(resource)
+        new_resource.id = self.id if self.id else resource.id
+        new_resource.cores = self.cores if resource.cores else resource.cores
+        new_resource.mem = self.mem if self.mem else resource.mem
+        new_resource.env = self.env if self.env else resource.env
+        new_resource.tags = self.tags.extend(resource.tags)
+        return new_resource
+
+    def merge(self, resource):
+        """
+        The merge operation takes a resource and merges its requirements with a second resource, with
+        the second resource overriding the requirements of the first resource.
+        For example, a User resource and a Tool resource can be merged to create a combined resource that contain
+        both their mutual requirements, as long as they do not define mutually incompatible requirements.
+        For example, the User requires the "pulsar" tag, but the tool rejects the "pulsar" tag.
+        In this case, an IncompatibleTagsException will be thrown.
+
+        The general hierarchy of resources in vortex is Tool > User > Group and therefore, these resources
+        are usually merged as: group.merge(user).merge(tool), to produce a final set of tool requirements.
+
+        The merged requirements can then be matched against the destination, through the match operation.
+
+        :param resource:
+        :return:
+        """
+        new_resource = copy.copy(self)
+        new_resource.id = resource.id if resource.id else self.id
+        new_resource.cores = resource.cores if resource.cores else self.cores
+        new_resource.mem = resource.mem if resource.mem else self.mem
+        new_resource.env = resource.env if resource.env else self.env
+        new_resource.tags = self.tags.merge(resource.tags)
+        return new_resource
+
     def matches_destination(self, destination):
+        """
+        The match operation checks whether all of the required tags in a resource are present
+        in the destination resource, and none of the rejected tags in the first resource are
+        present in the second resource.
+
+        This is used to check compatibility of a final set of merged tool requirements with its destination.
+
+        :param destination:
+        :return:
+        """
         return self.tags.match(destination.params.get('vortex_tags') or {})
 
 
@@ -129,6 +187,16 @@ class ResourceWithRules(Resource):
             tags=resource_dict.get('tags'),
             rules=resource_dict.get('rules')
         )
+
+    def extend(self, resource):
+        new_resource = super().extend(resource)
+        new_resource.rules = (self.rules or []) + (resource.rules or [])
+        return new_resource
+
+    def merge(self, resource):
+        new_resource = super().merge(resource)
+        new_resource.rules = (self.rules or []) + (resource.rules or [])
+        return new_resource
 
     def __repr__(self):
         return super().__repr__() + f", rules={self.rules}"
@@ -194,7 +262,7 @@ class ResourceDestinationParser(object):
         validated = {}
         for resource_id, resource_dict in resource_list.items():
             try:
-                resource_dict[id] = resource_id
+                resource_dict['id'] = resource_id
                 validated[resource_id] = resource_class.from_dict(resource_dict)
             except Exception:
                 log.exception(f"Could not load resource of type: {resource_class} with data: {resource_dict}")
