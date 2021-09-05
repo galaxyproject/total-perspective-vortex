@@ -74,7 +74,7 @@ jobs:
           PYTHONUNBUFFERED: "True"
 
       - name: Coveralls
-        uses: coverallsapp/github-action@v1.1.3
+        uses: AndreMiras/coveralls-python-action@develop
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           flag-name: run-${{ matrix.python-version }}
