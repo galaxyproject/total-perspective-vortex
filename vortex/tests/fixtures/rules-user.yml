@@ -1,0 +1,48 @@
+tools:
+  default:
+    cores: 2
+    mem: GB(8)
+    env: []
+    tags:
+      required: []
+      preferred:
+        - general
+      tolerated:
+      rejected:
+        - pulsar
+    rules: []
+  bwa:
+    tags:
+      required:
+        - pulsar
+users:
+  default:
+    cores: 3
+    mem: GB(8)
+    env: []
+    tags:
+      required: []
+      preferred:
+        - general
+      tolerated:
+      rejected:
+        - pulsar
+    rules: []
+  fairycake@vortex.org:
+    tags:
+      required:
+        - pulsar
+  arthur@vortex.org:
+    tags:
+      required:
+        - earth
+  improbable@vortex.org:
+    tags:
+      required:
+        - pulsar
+      rejected:
+        - pulsar
+  .*@vortex.org:
+    tags:
+      required:
+        - pulsar
