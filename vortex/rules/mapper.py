@@ -48,7 +48,7 @@ class ResourceToDestinationMapper(object):
     def map_to_destination(self, tool, user, job):
         tool_resource = self._find_resource_by_id_regex(self.tools, tool.id)
         user_resource = self._find_resource_by_id_regex(self.users, user.email)
-        role_resources = [self._find_resource_by_id_regex(self.roles, role)
+        role_resources = [self._find_resource_by_id_regex(self.roles, role.name)
                           for role in user.all_roles() if not role.deleted]
         # trim empty
         user_role_resources = [role for role in role_resources if role]

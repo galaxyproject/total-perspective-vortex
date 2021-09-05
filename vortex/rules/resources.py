@@ -281,14 +281,3 @@ class ResourceDestinationParser(object):
         with open(path, 'r') as f:
             dest_data = yaml.safe_load(f)
             return ResourceDestinationParser(dest_data)
-
-    def print_destinations(self):
-        print("TOOLS")
-        print("-----------------")
-        print(self.tools)
-        print("\nUSERS")
-        print("-----------------")
-        print(self.users)
-        print("\nROLES")
-        print("-----------------")
-        print(self.roles)

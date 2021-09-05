@@ -96,10 +96,16 @@ class User:
     def __init__(self, username, email, roles=[]):
         self.username = username
         self.email = email
-        self.roles = roles
+        self.roles = [Role(name) for name in roles]
 
     def all_roles(self):
         """
         Return a unique list of Roles associated with this user or any of their groups.
         """
         return self.roles
+
+
+class Role:
+    def __init__(self, name):
+        self.name = name
+        self.deleted = False
