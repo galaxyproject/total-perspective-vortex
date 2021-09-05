@@ -1,15 +1,15 @@
 import re
 from typing import Dict
 
-from .resources import Tool, User, Group, ResourceDestinationParser
+from .resources import Tool, User, Role, ResourceDestinationParser
 
 
 class ResourceToDestinationMapper(object):
 
-    def __init__(self, tools: Dict[str, Tool], users: Dict[str, User], groups: Dict[str, Group], destinations):
+    def __init__(self, tools: Dict[str, Tool], users: Dict[str, User], roles: Dict[str, Role], destinations):
         self.tools = tools
         self.users = users
-        self.groups = groups
+        self.roles = roles
         self.destinations = destinations
 
     def _find_resource_by_id_regex(self, resource_list, resource_name):
@@ -48,7 +48,7 @@ class ResourceToDestinationMapper(object):
     def map_to_destination(self, tool, user, job):
         tool_resource = self._find_resource_by_id_regex(self.tools, tool.id)
         user_resource = self._find_resource_by_id_regex(self.users, user.email)
-        role_resources = [self._find_resource_by_id_regex(self.groups, role)
+        role_resources = [self._find_resource_by_id_regex(self.roles, role)
                           for role in user.all_roles() if not role.deleted]
         # trim empty
         user_role_resources = [role for role in role_resources if role]
@@ -68,6 +68,6 @@ def map_tool_to_destination(app, job, tool, user, mapper_config_file):
     global ACTIVE_DESTINATION_MAPPER
     if not ACTIVE_DESTINATION_MAPPER:
         parser = ResourceDestinationParser.from_file_path(mapper_config_file)
-        ACTIVE_DESTINATION_MAPPER = ResourceToDestinationMapper(parser.tools, parser.users, parser.groups,
+        ACTIVE_DESTINATION_MAPPER = ResourceToDestinationMapper(parser.tools, parser.users, parser.roles,
                                                                 app.job_config.destinations)
     return ACTIVE_DESTINATION_MAPPER.map_to_destination(tool, user, job)

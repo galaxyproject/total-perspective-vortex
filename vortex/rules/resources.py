@@ -132,8 +132,8 @@ class Resource(object):
         For example, the User requires the "pulsar" tag, but the tool rejects the "pulsar" tag.
         In this case, an IncompatibleTagsException will be thrown.
 
-        The general hierarchy of resources in vortex is Tool > User > Group and therefore, these resources
-        are usually merged as: group.merge(user).merge(tool), to produce a final set of tool requirements.
+        The general hierarchy of resources in vortex is Tool > User > Role and therefore, these resources
+        are usually merged as: role.merge(user).merge(tool), to produce a final set of tool requirements.
 
         The merged requirements can then be matched against the destination, through the match operation.
 
@@ -214,7 +214,7 @@ class User(ResourceWithRules):
         super().__init__(id, cores, mem, env, tags, rules)
 
 
-class Group(ResourceWithRules):
+class Role(ResourceWithRules):
 
     def __init__(self, id=None, cores=None, mem=None, env=None, tags=None, rules=None):
         super().__init__(id, cores, mem, env, tags, rules)
@@ -255,7 +255,7 @@ class ResourceDestinationParser(object):
         validated = self.validate(destination_data)
         self.tools = validated.get('tools')
         self.users = validated.get('users')
-        self.groups = validated.get('groups')
+        self.roles = validated.get('roles')
 
     @staticmethod
     def validate_resources(resource_class: type, resource_list: dict) -> dict:
@@ -272,7 +272,7 @@ class ResourceDestinationParser(object):
         validated = {
          'tools': self.validate_resources(Tool, destination_data.get('tools', {})),
          'users': self.validate_resources(User, destination_data.get('users', {})),
-         'groups': self.validate_resources(Group, destination_data.get('groups', {}))
+         'roles': self.validate_resources(Role, destination_data.get('roles', {}))
         }
         return validated
 
@@ -289,6 +289,6 @@ class ResourceDestinationParser(object):
         print("\nUSERS")
         print("-----------------")
         print(self.users)
-        print("\nGROUPS")
+        print("\nROLES")
         print("-----------------")
-        print(self.groups)
+        print(self.roles)
