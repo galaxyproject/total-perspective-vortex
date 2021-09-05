@@ -11,7 +11,7 @@ class TestResourceParserBasic(unittest.TestCase):
         galaxy_app = mock_galaxy.App()
         job = mock_galaxy.Job()
         user = mock_galaxy.User('gargravarr', 'fairycake@vortex.org')
-        mapper_config = os.path.join(os.path.dirname(__file__), 'fixtures/rules-basic.yml')
+        mapper_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-basic.yml')
         mapper.ACTIVE_DESTINATION_MAPPER = None
         return mapper.map_tool_to_destination(galaxy_app, job, tool, user, mapper_config_file=mapper_config)
 

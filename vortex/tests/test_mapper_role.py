@@ -10,7 +10,7 @@ class TestResourceParserRole(unittest.TestCase):
     def _map_to_destination(tool, user):
         galaxy_app = mock_galaxy.App()
         job = mock_galaxy.Job()
-        mapper_config = os.path.join(os.path.dirname(__file__), 'fixtures/rules-role.yml')
+        mapper_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-role.yml')
         mapper.ACTIVE_DESTINATION_MAPPER = None
         return mapper.map_tool_to_destination(galaxy_app, job, tool, user, mapper_config_file=mapper_config)
 
