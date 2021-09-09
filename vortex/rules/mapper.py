@@ -41,24 +41,51 @@ class ResourceToDestinationMapper(object):
     def rank(self, resource, destinations):
         return destinations
 
-    def find_best_match(self, resource, destinations):
-        matches = (dest[0] for dest in destinations.values() if resource.matches_destination(dest[0]))
+    def find_best_match(self, resource, destinations, context):
+        matches = (dest[0] for dest in destinations.values() if resource.matches_destination(dest[0], context))
         return next(self.rank(resource, matches), None)
 
-    def map_to_destination(self, tool, user, job):
+    def _find_matching_resources(self, tool, user):
         tool_resource = self._find_resource_by_id_regex(self.tools, tool.id)
-        user_resource = self._find_resource_by_id_regex(self.users, user.email)
-        role_resources = [self._find_resource_by_id_regex(self.roles, role.name)
-                          for role in user.all_roles() if not role.deleted]
-        # trim empty
-        user_role_resources = [role for role in role_resources if role]
 
-        resource_list = [tool_resource, user_resource]
-        if user_role_resources:
-            resource_list += [user_role_resources[0]]
+        resource_list = [tool_resource]
+
+        if user:
+            user_resource = self._find_resource_by_id_regex(self.users, user.email)
+            if user_resource:
+                resource_list += [user_resource]
+
+            role_resources = (self._find_resource_by_id_regex(self.roles, role.name)
+                              for role in user.all_roles() if not role.deleted)
+            # trim empty
+            user_role_resources = (role for role in role_resources if role)
+            user_role_resource = next(user_role_resources, None)
+            if user_role_resource:
+                resource_list += [user_role_resource]
+
+        return resource_list
+
+    def map_to_destination(self, app, tool, user, job):
+        # 1. Find the resources relevant to this job
+        resource_list = self._find_matching_resources(tool, user)
+
+        # 2. Create context
+        context = {
+            'app': app,
+            'tool': tool,
+            'user': user,
+            'job': job
+        }
+
+        # 3. Evaluate resource rules
+        for resource in resource_list:
+            resource.evaluate_rules(context)
+
+        # 4. Merge resource requirements
         merged = self.merge_resources(resource_list)
 
-        return self.find_best_match(merged, self.destinations)
+        # 5. Find best matching destination
+        return self.find_best_match(merged, self.destinations, context)
 
 
 ACTIVE_DESTINATION_MAPPER = None
@@ -70,4 +97,4 @@ def map_tool_to_destination(app, job, tool, user, mapper_config_file):
         parser = ResourceDestinationParser.from_file_path(mapper_config_file)
         ACTIVE_DESTINATION_MAPPER = ResourceToDestinationMapper(parser.tools, parser.users, parser.roles,
                                                                 app.job_config.destinations)
-    return ACTIVE_DESTINATION_MAPPER.map_to_destination(tool, user, job)
+    return ACTIVE_DESTINATION_MAPPER.map_to_destination(app, tool, user, job)

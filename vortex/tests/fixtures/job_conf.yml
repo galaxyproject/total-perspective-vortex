@@ -17,13 +17,14 @@ execution:
     local:
       runner: local
       vortex_cores: 4
-      vortex_memory: 16
+      vortex_mem: 16
       vortex_tags:
         - general
     k8s_environment:
       runner: k8s
       docker_enabled: true
       vortex_cores: 16
-      vortex_memory: 64
+      vortex_mem: 64
+      vortex_gpus: 2
       vortex_tags:
         - pulsar

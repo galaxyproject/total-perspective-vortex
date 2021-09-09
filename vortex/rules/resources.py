@@ -148,7 +148,7 @@ class Resource(object):
         new_resource.tags = self.tags.merge(resource.tags)
         return new_resource
 
-    def matches_destination(self, destination):
+    def matches_destination(self, destination, context):
         """
         The match operation checks whether all of the required tags in a resource are present
         in the destination resource, and none of the rejected tags in the first resource are
@@ -197,6 +197,9 @@ class ResourceWithRules(Resource):
         new_resource = super().merge(resource)
         new_resource.rules = (self.rules or []) + (resource.rules or [])
         return new_resource
+
+    def evaluate_rules(self, context):
+        pass
 
     def __repr__(self):
         return super().__repr__() + f", rules={self.rules}"
