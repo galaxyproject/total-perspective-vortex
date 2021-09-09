@@ -31,11 +31,10 @@ class ResourceToDestinationMapper(object):
                         return resource
             return default_resource
 
-    def merge_resources(self, resources):
+    def merge_evaluated(self, resources):
         merged_resource = resources[0]
         for resource in resources[1:]:
-            if resource:
-                merged_resource = merged_resource.merge(resource)
+            merged_resource = merged_resource.merge(resource)
         return merged_resource
 
     def rank(self, resource, destinations):
@@ -77,12 +76,11 @@ class ResourceToDestinationMapper(object):
             'job': job
         }
 
-        # 3. Evaluate resource rules
-        for resource in resource_list:
-            resource.evaluate_rules(context)
+        # 3. Evaluate resource expressions
+        evaluated_resource = [resource.evaluate(context) for resource in resource_list if resource]
 
         # 4. Merge resource requirements
-        merged = self.merge_resources(resource_list)
+        merged = self.merge_evaluated(evaluated_resource)
 
         # 5. Find best matching destination
         return self.find_best_match(merged, self.destinations, context)

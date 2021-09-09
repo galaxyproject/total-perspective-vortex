@@ -2,7 +2,7 @@ tools:
   default:
     cores: 2
     mem: GB(8)
-    env: []
+    env: {}
     tags:
       required: []
       preferred:
@@ -16,14 +16,14 @@ tools:
       required:
         - pulsar
     rules:
-      - match: file_size>MB(0) and file_size<MB(20)
-        cores: file_size*2
-        mem: GB(file_size*4)
-      - match: file_size>=MB(20) and file_size<GB(10)
+      - match: helpers.calculate_dataset_total(job.input_datasets)==0
+        cores: 4
+        mem: GB(8)
+      - match: helpers.calculate_dataset_total(job.input_datasets)>=GB(10)
         tags:
           required:
             - highmem
-      - match: file_size>=GB(10)
+      - match: helpers.calculate_dataset_total(job.input_datasets)>=GB(20)
         fail_message: Too much data, shouldn't run
   unschedulable_tool:
     tags:

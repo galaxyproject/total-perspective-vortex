@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import ast
 from enum import Enum
+import functools
 import logging
 import yaml
 import copy
+from . import helpers
 
 
 log = logging.getLogger(__name__)
@@ -14,6 +17,26 @@ class TagType(Enum):
     PREFERRED = "preferred"
     TOLERATED = "tolerated"
     REJECTED = "rejected"
+
+
+@functools.lru_cache(maxsize=8192)
+def compile_exec_then_eval(code):
+    block = ast.parse(code, mode='exec')
+    # assumes last node is an expression
+    last = ast.Expression(block.body.pop().value)
+    return compile(block, '<string>', mode='exec'), compile(last, '<string>', mode='eval')
+
+
+# https://stackoverflow.com/a/39381428
+def exec_then_eval(code, context):
+    exec_block, eval_block = compile_exec_then_eval(str(code))
+    _globals = context
+    _locals = {
+        'GB': lambda x: x*1024,
+        'helpers': helpers
+    }
+    exec(exec_block, _globals, _locals)
+    return eval(eval_block, _globals, _locals)
 
 
 class IncompatibleTagsException(Exception):
@@ -198,8 +221,20 @@ class ResourceWithRules(Resource):
         new_resource.rules = (self.rules or []) + (resource.rules or [])
         return new_resource
 
-    def evaluate_rules(self, context):
-        pass
+    def evaluate(self, context):
+        new_resource = copy.copy(self)
+        if self.cores:
+            new_resource.cores = exec_then_eval(self.cores, context)
+        if self.mem:
+            new_resource.mem = exec_then_eval(self.mem, context)
+        for rule in new_resource.rules:
+            evaluated = rule.evaluate(context)
+            if evaluated:
+                new_resource.cores = evaluated.get('cores') or self.cores
+                new_resource.mem = evaluated.get('mem') or self.cores
+                new_resource.tags = evaluated['tags'].extend(self.tags)
+                new_resource.env.update(evaluated.get('env') or {})
+        return new_resource
 
     def __repr__(self):
         return super().__repr__() + f", rules={self.rules}"
@@ -250,6 +285,20 @@ class Rule(Resource):
 
     def __repr__(self):
         return super().__repr__() + f", match={self.match}, fail={self.fail}"
+
+    def evaluate(self, context):
+        try:
+            if exec_then_eval(self.match, context):
+                return {
+                    'cores': exec_then_eval(self.cores, context) if self.cores else None,
+                    'mem': exec_then_eval(self.mem, context) if self.mem else None,
+                    'env': self.env or {},
+                    'tags': self.tags,
+                }
+            else:
+                return {}
+        except Exception as e:
+            raise Exception(f"Error evaluating rule: {self.match}") from e
 
 
 class ResourceDestinationParser(object):

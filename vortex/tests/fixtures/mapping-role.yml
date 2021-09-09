@@ -2,7 +2,7 @@ tools:
   default:
     cores: 2
     mem: GB(8)
-    env: []
+    env: {}
     tags:
       required: []
       preferred:
@@ -19,7 +19,7 @@ users:
   default:
     cores: 3
     mem: GB(8)
-    env: []
+    env: {}
     tags:
       required: []
       preferred:
