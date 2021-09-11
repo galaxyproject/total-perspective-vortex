@@ -1,7 +1,7 @@
 tools:
   default:
     cores: 2
-    mem: GB(8)
+    mem: 8
     env: {}
     tags:
       required: []
@@ -18,7 +18,7 @@ tools:
 users:
   default:
     cores: 3
-    mem: GB(8)
+    mem: 8
     env: {}
     tags:
       required: []
@@ -48,7 +48,7 @@ users:
 roles:
   default:
     cores: 8
-    mem: GB(8)
+    mem: 8
     env: []
     tags:
       required:

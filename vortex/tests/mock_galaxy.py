@@ -27,22 +27,16 @@ class Job:
         return self.parameters
 
 
-class InputDataset:
+class DatasetAssociation:
     def __init__(self, name, dataset):
         self.name = name
         self.dataset = dataset
 
 
 class Dataset:
-    def __init__(self, file_name, file_ext, value):
+    def __init__(self, file_name, file_size):
         self.file_name = file_name
-        self.datatype = Datatype(file_ext)
-        self.ext = file_ext
-        self.metadata = dict()
-        self.metadata['sequences'] = value
-
-    def get_metadata(self):
-        return self.metadata
+        self.file_size = file_size
 
 
 class Datatype:
@@ -85,11 +79,6 @@ class App:
         self.application_stack = ApplicationStack()
         self.job_metrics = JobMetrics()
         self.job_config = JobConfiguration(self)
-
-
-# JobMappingException mock=======================================
-class JobMappingException(Exception):
-    pass
 
 
 class User:

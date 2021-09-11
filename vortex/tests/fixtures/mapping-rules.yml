@@ -1,7 +1,7 @@
 tools:
   default:
     cores: 2
-    mem: 8
+    mem: cores * 3
     env: {}
     tags:
       required: []
@@ -10,24 +10,24 @@ tools:
       tolerated:
       rejected:
         - pulsar
-    rules: []
+    rules:
+      - match: input_size < 5
+        fail: We don't run piddling datasets
   bwa:
     tags:
       required:
         - pulsar
+    rules:
+      - match: input_size <= 10
+        cores: 4
+        mem: cores * 4
+      - match: input_size > 10 and input_size < 20
+        tags:
+          required:
+            - highmem
+      - match: input_size >= 20
+        fail: Too much data, shouldn't run
 users:
-  default:
-    cores: 3
-    mem: 8
-    env: {}
-    tags:
-      required: []
-      preferred:
-        - general
-      tolerated:
-      rejected:
-        - pulsar
-    rules: []
   fairycake@vortex.org:
     tags:
       required:
@@ -36,6 +36,12 @@ users:
     tags:
       required:
         - earth
+    rules:
+      - match: True
+        cores: 6
+        mem: cores * 6
+      - match: input_size >= 5
+        fail: Just because
   improbable@vortex.org:
     tags:
       required:

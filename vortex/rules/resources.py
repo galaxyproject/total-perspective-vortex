@@ -7,6 +7,7 @@ import logging
 import yaml
 import copy
 from . import helpers
+from galaxy.jobs.mapper import JobMappingException
 
 
 log = logging.getLogger(__name__)
@@ -30,11 +31,14 @@ def compile_exec_then_eval(code):
 # https://stackoverflow.com/a/39381428
 def exec_then_eval(code, context):
     exec_block, eval_block = compile_exec_then_eval(str(code))
-    _globals = context
-    _locals = {
-        'GB': lambda x: x*1024,
-        'helpers': helpers
-    }
+    _globals = globals()
+    _locals = context
+
+    _locals.update({
+        'helpers': helpers,
+        # Don't unnecessarily compute input_size unless it's referred to
+        'input_size': helpers.input_size(context['job']) if 'input_size' in str(code) else 0
+    })
     exec(exec_block, _globals, _locals)
     return eval(eval_block, _globals, _locals)
 
@@ -139,10 +143,10 @@ class Resource(object):
 
     def extend(self, resource):
         new_resource = copy.copy(resource)
-        new_resource.id = self.id if self.id else resource.id
-        new_resource.cores = self.cores if resource.cores else resource.cores
-        new_resource.mem = self.mem if self.mem else resource.mem
-        new_resource.env = self.env if self.env else resource.env
+        new_resource.id = self.id or resource.id
+        new_resource.cores = self.cores or resource.cores
+        new_resource.mem = self.mem or resource.mem
+        new_resource.env = self.env or resource.env
         new_resource.tags = self.tags.extend(resource.tags)
         return new_resource
 
@@ -164,10 +168,10 @@ class Resource(object):
         :return:
         """
         new_resource = copy.copy(self)
-        new_resource.id = resource.id if resource.id else self.id
-        new_resource.cores = resource.cores if resource.cores else self.cores
-        new_resource.mem = resource.mem if resource.mem else self.mem
-        new_resource.env = resource.env if resource.env else self.env
+        new_resource.id = resource.id or self.id
+        new_resource.cores = resource.cores or self.cores
+        new_resource.mem = resource.mem or self.mem
+        new_resource.env = resource.env or self.env
         new_resource.tags = self.tags.merge(resource.tags)
         return new_resource
 
@@ -225,14 +229,17 @@ class ResourceWithRules(Resource):
         new_resource = copy.copy(self)
         if self.cores:
             new_resource.cores = exec_then_eval(self.cores, context)
+            context['cores'] = new_resource.cores
         if self.mem:
             new_resource.mem = exec_then_eval(self.mem, context)
+            context['mem'] = new_resource.mem
         for rule in new_resource.rules:
             evaluated = rule.evaluate(context)
             if evaluated:
                 new_resource.cores = evaluated.get('cores') or self.cores
                 new_resource.mem = evaluated.get('mem') or self.cores
                 new_resource.tags = evaluated['tags'].extend(self.tags)
+                new_resource.env = new_resource.env or {}
                 new_resource.env.update(evaluated.get('env') or {})
         return new_resource
 
@@ -289,14 +296,26 @@ class Rule(Resource):
     def evaluate(self, context):
         try:
             if exec_then_eval(self.match, context):
+                if self.fail:
+                    raise JobMappingException(self.fail)
+                cores = None
+                mem = None
+                if self.cores:
+                    cores = exec_then_eval(self.cores, context)
+                    context['cores'] = cores
+                if self.mem:
+                    mem = exec_then_eval(self.mem, context)
+                    context['mem'] = mem
                 return {
-                    'cores': exec_then_eval(self.cores, context) if self.cores else None,
-                    'mem': exec_then_eval(self.mem, context) if self.mem else None,
+                    'cores': cores,
+                    'mem': mem,
                     'env': self.env or {},
                     'tags': self.tags,
                 }
             else:
                 return {}
+        except JobMappingException:
+            raise
         except Exception as e:
             raise Exception(f"Error evaluating rule: {self.match}") from e
 

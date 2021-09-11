@@ -15,3 +15,7 @@ def calculate_dataset_total(datasets):
                       map(get_dataset_size, datasets))
     else:
         return 0
+
+
+def input_size(job):
+    return calculate_dataset_total(job.input_datasets)
