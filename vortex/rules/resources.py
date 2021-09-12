@@ -131,15 +131,16 @@ class TagSetManager(object):
 
 class Resource(object):
 
-    def __init__(self, id=None, cores=None, mem=None, env=None, tags=None):
+    def __init__(self, id=None, cores=None, mem=None, env=None, params=None, tags=None):
         self.id = id
         self.cores = cores
         self.mem = mem
         self.env = env
+        self.params = params
         self.tags = TagSetManager.from_dict(tags or {})
 
     def __repr__(self):
-        return f"{self.__class__} id={self.id}, cores={self.cores}, mem={self.mem}, env={self.env}, tags={self.tags}"
+        return f"{self.__class__} id={self.id}, cores={self.cores}, mem={self.mem}, env={self.env}, params={self.params}, tags={self.tags}"
 
     def extend(self, resource):
         new_resource = copy.copy(resource)
@@ -147,6 +148,7 @@ class Resource(object):
         new_resource.cores = self.cores or resource.cores
         new_resource.mem = self.mem or resource.mem
         new_resource.env = self.env or resource.env
+        new_resource.params = self.params or resource.params
         new_resource.tags = self.tags.extend(resource.tags)
         return new_resource
 
@@ -172,6 +174,7 @@ class Resource(object):
         new_resource.cores = resource.cores or self.cores
         new_resource.mem = resource.mem or self.mem
         new_resource.env = resource.env or self.env
+        new_resource.params = resource.params or self.params
         new_resource.tags = self.tags.merge(resource.tags)
         return new_resource
 
@@ -191,8 +194,8 @@ class Resource(object):
 
 class ResourceWithRules(Resource):
 
-    def __init__(self, id=None, cores=None, mem=None, env=None, tags=None, rules=None):
-        super().__init__(id, cores, mem, env, tags)
+    def __init__(self, id=None, cores=None, mem=None, env=None, params=None, tags=None, rules=None):
+        super().__init__(id, cores, mem, env, params, tags)
         self.rules = self.validate(rules)
 
     def validate(self, rules: list) -> list:
@@ -211,6 +214,7 @@ class ResourceWithRules(Resource):
             cores=resource_dict.get('cores'),
             mem=resource_dict.get('mem'),
             env=resource_dict.get('env'),
+            params=resource_dict.get('params'),
             tags=resource_dict.get('tags'),
             rules=resource_dict.get('rules')
         )
@@ -241,6 +245,8 @@ class ResourceWithRules(Resource):
                 new_resource.tags = evaluated['tags'].extend(self.tags)
                 new_resource.env = new_resource.env or {}
                 new_resource.env.update(evaluated.get('env') or {})
+                new_resource.params = new_resource.params or {}
+                new_resource.params.update(evaluated.get('params') or {})
         return new_resource
 
     def __repr__(self):
@@ -249,32 +255,32 @@ class ResourceWithRules(Resource):
 
 class Tool(ResourceWithRules):
 
-    def __init__(self, id=None, cores=None, mem=None, env=None, tags=None, rules=None):
-        super().__init__(id, cores, mem, env, tags, rules)
+    def __init__(self, id=None, cores=None, mem=None, env=None, params=None, tags=None, rules=None):
+        super().__init__(id, cores, mem, env, params, tags, rules)
 
 
 class User(ResourceWithRules):
 
-    def __init__(self, id=None, cores=None, mem=None, env=None, tags=None, rules=None):
-        super().__init__(id, cores, mem, env, tags, rules)
+    def __init__(self, id=None, cores=None, mem=None, env=None, params=None, tags=None, rules=None):
+        super().__init__(id, cores, mem, env, params, tags, rules)
 
 
 class Role(ResourceWithRules):
 
-    def __init__(self, id=None, cores=None, mem=None, env=None, tags=None, rules=None):
-        super().__init__(id, cores, mem, env, tags, rules)
+    def __init__(self, id=None, cores=None, mem=None, env=None, params=None, tags=None, rules=None):
+        super().__init__(id, cores, mem, env, params, tags, rules)
 
 
 class Destination(ResourceWithRules):
 
-    def __init__(self, id=None, cores=None, mem=None, env=None, tags=None, rules=None):
-        super().__init__(id, cores, mem, env, tags, rules)
+    def __init__(self, id=None, cores=None, mem=None, env=None, params=None, tags=None, rules=None):
+        super().__init__(id, cores, mem, env, params, tags, rules)
 
 
 class Rule(Resource):
 
-    def __init__(self, id=None, cores=None, mem=None, env=None, tags=None, match=None, fail=None):
-        super().__init__(id, cores, mem, env, tags)
+    def __init__(self, id=None, cores=None, mem=None, env=None, params=None, tags=None, match=None, fail=None):
+        super().__init__(id, cores, mem, env, params, tags)
         self.match = match
         self.fail = fail
 
@@ -285,6 +291,7 @@ class Rule(Resource):
             cores=resource_dict.get('cores'),
             mem=resource_dict.get('mem'),
             env=resource_dict.get('env'),
+            params=resource_dict.get('params'),
             tags=resource_dict.get('tags'),
             match=resource_dict.get('match'),
             fail=resource_dict.get('fail')
@@ -310,6 +317,7 @@ class Rule(Resource):
                     'cores': cores,
                     'mem': mem,
                     'env': self.env or {},
+                    'params': self.params or {},
                     'tags': self.tags,
                 }
             else:
