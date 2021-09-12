@@ -3,7 +3,7 @@ import time
 import tempfile
 import shutil
 import unittest
-from vortex.rules import mapper
+from vortex.rules import gateway
 from . import mock_galaxy
 from galaxy.jobs.mapper import JobMappingException
 
@@ -17,8 +17,8 @@ class TestResourceParserUser(unittest.TestCase):
         for d in datasets:
             job.add_input_dataset(d)
         mapper_config = mapping_rules_path or os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rules.yml')
-        mapper.ACTIVE_DESTINATION_MAPPER = None
-        return mapper.map_tool_to_destination(galaxy_app, job, tool, user, mapper_config_file=mapper_config)
+        gateway.ACTIVE_DESTINATION_MAPPER = None
+        return gateway.map_tool_to_destination(galaxy_app, job, tool, user, mapper_config_file=mapper_config)
 
     def test_map_rule_size_small(self):
         tool = mock_galaxy.Tool('bwa')

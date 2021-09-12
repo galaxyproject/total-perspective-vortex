@@ -1,6 +1,6 @@
 import os
 import unittest
-from vortex.rules import mapper
+from vortex.rules import gateway
 from . import mock_galaxy
 
 
@@ -11,8 +11,8 @@ class TestResourceParserRole(unittest.TestCase):
         galaxy_app = mock_galaxy.App()
         job = mock_galaxy.Job()
         mapper_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-role.yml')
-        mapper.ACTIVE_DESTINATION_MAPPER = None
-        return mapper.map_tool_to_destination(galaxy_app, job, tool, user, mapper_config_file=mapper_config)
+        gateway.ACTIVE_DESTINATION_MAPPER = None
+        return gateway.map_tool_to_destination(galaxy_app, job, tool, user, mapper_config_file=mapper_config)
 
     def test_map_default_role(self):
         tool = mock_galaxy.Tool('bwa')

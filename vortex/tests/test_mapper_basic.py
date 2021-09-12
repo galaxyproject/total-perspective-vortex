@@ -1,6 +1,6 @@
 import os
 import unittest
-from vortex.rules import mapper
+from vortex.rules import gateway
 from . import mock_galaxy
 
 
@@ -12,8 +12,8 @@ class TestResourceParserBasic(unittest.TestCase):
         job = mock_galaxy.Job()
         user = mock_galaxy.User('gargravarr', 'fairycake@vortex.org')
         mapper_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-basic.yml')
-        mapper.ACTIVE_DESTINATION_MAPPER = None
-        return mapper.map_tool_to_destination(galaxy_app, job, tool, user, mapper_config_file=mapper_config)
+        gateway.ACTIVE_DESTINATION_MAPPER = None
+        return gateway.map_tool_to_destination(galaxy_app, job, tool, user, mapper_config_file=mapper_config)
 
     def test_map_default_tool(self):
         tool = mock_galaxy.Tool('sometool')
