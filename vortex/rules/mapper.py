@@ -110,10 +110,10 @@ def load_destination_mapper(mapper_config_file):
     return ResourceToDestinationMapper(parser.tools, parser.users, parser.roles, parser.destinations)
 
 
-def reload_destination_mapper(mapper_config_file):
-    log.info(f"reloading vortex rules from: {mapper_config_file}")
+def reload_destination_mapper(path=None):
+    log.info(f"reloading vortex rules from: {path}")
     global ACTIVE_DESTINATION_MAPPER
-    ACTIVE_DESTINATION_MAPPER = load_destination_mapper(mapper_config_file)
+    ACTIVE_DESTINATION_MAPPER = load_destination_mapper(path)
 
 
 def setup_destination_mapper(app, mapper_config_file):
