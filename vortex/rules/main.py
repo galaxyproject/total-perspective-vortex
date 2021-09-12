@@ -1,7 +1,7 @@
 import argparse
 import sys
 
-from resources import ResourceDestinationParser
+from .resources import ResourceDestinationParser
 
 
 def create_parser():
