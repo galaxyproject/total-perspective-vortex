@@ -1,0 +1,61 @@
+tools:
+  default:
+    cores: 2
+    mem: cores * 3
+    env:
+      TEST_JOB_SLOTS: "{cores}"
+    params:
+      NATIVE_SPEC: "--mem {mem} --cores {cores}"
+    tags:
+      required: []
+      preferred:
+        - general
+      tolerated:
+      rejected:
+        - pulsar
+    rules:
+      - match: input_size < 5
+        fail: We don't run piddling datasets
+  bwa:
+    tags:
+      required:
+        - pulsar
+    rules:
+      - match: input_size <= 10
+        cores: 4
+        mem: cores * 4
+      - match: input_size > 10 and input_size < 20
+        tags:
+          required:
+            - highmem
+      - match: input_size >= 20
+        fail: Too much data, shouldn't run
+users:
+  fairycake@vortex.org:
+    env:
+      TEST_JOB_SLOTS_USER: "{cores*2}"
+    params:
+      NATIVE_SPEC_USER: "--mem {mem} --cores {cores}"
+    tags:
+      required:
+        - pulsar
+  arthur@vortex.org:
+    tags:
+      required:
+        - earth
+    rules:
+      - match: True
+        cores: 6
+        mem: cores * 6
+      - match: input_size >= 5
+        fail: Just because
+  improbable@vortex.org:
+    tags:
+      required:
+        - pulsar
+      rejected:
+        - pulsar
+  .*@vortex.org:
+    tags:
+      required:
+        - pulsar
