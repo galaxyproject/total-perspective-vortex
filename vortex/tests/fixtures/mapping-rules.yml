@@ -2,7 +2,10 @@ tools:
   default:
     cores: 2
     mem: cores * 3
-    env: {}
+    env:
+      TEST_JOB_SLOTS: "{cores}"
+    params:
+      NATIVE_SPEC: "--mem {mem} --cores {cores}"
     tags:
       required: []
       preferred:
@@ -29,6 +32,10 @@ tools:
         fail: Too much data, shouldn't run
 users:
   fairycake@vortex.org:
+    env:
+      TEST_JOB_SLOTS_USER: "{cores}"
+    params:
+      NATIVE_SPEC_USER: "--mem {mem} --cores {cores}"
     tags:
       required:
         - pulsar

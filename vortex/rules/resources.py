@@ -140,7 +140,8 @@ class Resource(object):
         self.tags = TagSetManager.from_dict(tags or {})
 
     def __repr__(self):
-        return f"{self.__class__} id={self.id}, cores={self.cores}, mem={self.mem}, env={self.env}, params={self.params}, tags={self.tags}"
+        return f"{self.__class__} id={self.id}, cores={self.cores}, mem={self.mem}, " \
+               f"env={self.env}, params={self.params}, tags={self.tags}"
 
     def extend(self, resource):
         new_resource = copy.copy(resource)
@@ -173,8 +174,10 @@ class Resource(object):
         new_resource.id = resource.id or self.id
         new_resource.cores = resource.cores or self.cores
         new_resource.mem = resource.mem or self.mem
-        new_resource.env = resource.env or self.env
-        new_resource.params = resource.params or self.params
+        new_resource.env = self.env or {}
+        new_resource.env.update(resource.env or {})
+        new_resource.params = self.params or {}
+        new_resource.params.update(resource.params or {})
         new_resource.tags = self.tags.merge(resource.tags)
         return new_resource
 
@@ -190,6 +193,33 @@ class Resource(object):
         :return:
         """
         return self.tags.match(destination.params.get('vortex_tags') or {})
+
+    def evaluate(self, context):
+        new_resource = copy.copy(self)
+        if self.cores:
+            new_resource.cores = exec_then_eval(self.cores, context)
+            context['cores'] = new_resource.cores
+        if self.mem:
+            new_resource.mem = exec_then_eval(self.mem, context)
+            context['mem'] = new_resource.mem
+        if self.env:
+            evaluated_env = {}
+            for key, entry in self.env.items():
+                # evaluate as an f-string
+                entry = "f'''" + str(entry) + "'''"
+
+                evaluated_env[key] = exec_then_eval(entry, context)
+            new_resource.env = evaluated_env
+            context['env'] = new_resource.env
+        if self.params:
+            evaluated_params = {}
+            for key, param in self.params.items():
+                # evaluate as an f-string
+                param = "f'''" + str(param) + "'''"
+                evaluated_params[key] = exec_then_eval(param, context)
+            new_resource.params = evaluated_params
+            context['params'] = new_resource.params
+        return new_resource
 
 
 class ResourceWithRules(Resource):
@@ -230,23 +260,17 @@ class ResourceWithRules(Resource):
         return new_resource
 
     def evaluate(self, context):
-        new_resource = copy.copy(self)
-        if self.cores:
-            new_resource.cores = exec_then_eval(self.cores, context)
-            context['cores'] = new_resource.cores
-        if self.mem:
-            new_resource.mem = exec_then_eval(self.mem, context)
-            context['mem'] = new_resource.mem
+        new_resource = super().evaluate(context)
         for rule in new_resource.rules:
             evaluated = rule.evaluate(context)
             if evaluated:
-                new_resource.cores = evaluated.get('cores') or self.cores
-                new_resource.mem = evaluated.get('mem') or self.cores
-                new_resource.tags = evaluated['tags'].extend(self.tags)
+                new_resource.cores = evaluated.cores or new_resource.cores
+                new_resource.mem = evaluated.mem or new_resource.cores
+                new_resource.tags = evaluated.tags.extend(new_resource.tags)
                 new_resource.env = new_resource.env or {}
-                new_resource.env.update(evaluated.get('env') or {})
+                new_resource.env.update(evaluated.env or {})
                 new_resource.params = new_resource.params or {}
-                new_resource.params.update(evaluated.get('params') or {})
+                new_resource.params.update(evaluated.params or {})
         return new_resource
 
     def __repr__(self):
@@ -305,21 +329,7 @@ class Rule(Resource):
             if exec_then_eval(self.match, context):
                 if self.fail:
                     raise JobMappingException(self.fail)
-                cores = None
-                mem = None
-                if self.cores:
-                    cores = exec_then_eval(self.cores, context)
-                    context['cores'] = cores
-                if self.mem:
-                    mem = exec_then_eval(self.mem, context)
-                    context['mem'] = mem
-                return {
-                    'cores': cores,
-                    'mem': mem,
-                    'env': self.env or {},
-                    'params': self.params or {},
-                    'tags': self.tags,
-                }
+                return super().evaluate(context)
             else:
                 return {}
         except JobMappingException:

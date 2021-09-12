@@ -6,11 +6,10 @@ from .resources import Tool, User, Role, ResourceDestinationParser
 
 class ResourceToDestinationMapper(object):
 
-    def __init__(self, tools: Dict[str, Tool], users: Dict[str, User], roles: Dict[str, Role], destinations):
+    def __init__(self, tools: Dict[str, Tool], users: Dict[str, User], roles: Dict[str, Role]):
         self.tools = tools
         self.users = users
         self.roles = roles
-        self.destinations = destinations
 
     def _find_resource_by_id_regex(self, resource_list, resource_name):
         default_resource = resource_list.get('default')
@@ -83,7 +82,16 @@ class ResourceToDestinationMapper(object):
         merged = self.merge_evaluated(evaluated_resource)
 
         # 5. Find best matching destination
-        return self.find_best_match(merged, self.destinations, context)
+        destination = self.find_best_match(merged, app.job_config.destinations, context)
+
+        # 6. Return destination with params
+        if destination:
+            destination = app.job_config.get_destination(destination.id)
+            destination.env += [dict(name=k, value=v) for (k, v) in merged.env.items()]
+            destination.params.update(merged.params or {})
+            return destination
+        else:
+            return None
 
 
 ACTIVE_DESTINATION_MAPPER = None
@@ -93,6 +101,5 @@ def map_tool_to_destination(app, job, tool, user, mapper_config_file):
     global ACTIVE_DESTINATION_MAPPER
     if not ACTIVE_DESTINATION_MAPPER:
         parser = ResourceDestinationParser.from_file_path(mapper_config_file)
-        ACTIVE_DESTINATION_MAPPER = ResourceToDestinationMapper(parser.tools, parser.users, parser.roles,
-                                                                app.job_config.destinations)
+        ACTIVE_DESTINATION_MAPPER = ResourceToDestinationMapper(parser.tools, parser.users, parser.roles)
     return ACTIVE_DESTINATION_MAPPER.map_to_destination(app, tool, user, job)
