@@ -3,7 +3,7 @@ tools:
     cores: 2
     mem: 8
     env: {}
-    tags:
+    scheduling:
       required: []
       preferred:
         - general
@@ -12,21 +12,21 @@ tools:
         - pulsar
     rules: []
   bwa:
-    tags:
+    scheduling:
       required:
         - pulsar
   unschedulable_tool:
-    tags:
+    scheduling:
       required:
         - non_existent
   invalidly_tagged_tool:
-    tags:
+    scheduling:
       required:
         - general
       rejected:
         - general
   regex_tool.*:
-    tags:
+    scheduling:
       required:
         - pulsar
       rejected:
@@ -37,12 +37,10 @@ destinations:
     cores: 4
     mem: 16
     tags:
-      required:
-        - general
+      - general
   k8s_environment:
     cores: 16
     mem: 64
     gpus: 2
     tags:
-      required:
-        - pulsar
+      - pulsar

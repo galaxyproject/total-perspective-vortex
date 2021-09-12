@@ -6,7 +6,7 @@ tools:
       TEST_JOB_SLOTS: "{cores}"
     params:
       NATIVE_SPEC: "--mem {mem} --cores {cores}"
-    tags:
+    scheduling:
       required: []
       preferred:
         - general
@@ -17,7 +17,7 @@ tools:
       - match: input_size < 5
         fail: We don't run piddling datasets
   bwa:
-    tags:
+    scheduling:
       required:
         - pulsar
     rules:
@@ -25,7 +25,7 @@ tools:
         cores: 4
         mem: cores * 4
       - match: input_size > 10 and input_size < 20
-        tags:
+        scheduling:
           required:
             - highmem
       - match: input_size >= 20
@@ -36,11 +36,11 @@ users:
       TEST_JOB_SLOTS_USER: "{cores}"
     params:
       NATIVE_SPEC_USER: "--mem {mem} --cores {cores}"
-    tags:
+    scheduling:
       required:
         - pulsar
   arthur@vortex.org:
-    tags:
+    scheduling:
       required:
         - earth
     rules:
@@ -50,13 +50,13 @@ users:
       - match: input_size >= 5
         fail: Just because
   improbable@vortex.org:
-    tags:
+    scheduling:
       required:
         - pulsar
       rejected:
         - pulsar
   .*@vortex.org:
-    tags:
+    scheduling:
       required:
         - pulsar
 
@@ -65,12 +65,10 @@ destinations:
     cores: 4
     mem: 16
     tags:
-      required:
-        - general
+      - general
   k8s_environment:
     cores: 16
     mem: 64
     gpus: 2
     tags:
-      required:
-        - pulsar
+      - pulsar

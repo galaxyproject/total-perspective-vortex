@@ -246,7 +246,7 @@ class ResourceWithRules(Resource):
             mem=resource_dict.get('mem'),
             env=resource_dict.get('env'),
             params=resource_dict.get('params'),
-            tags=resource_dict.get('tags'),
+            tags=resource_dict.get('scheduling'),
             rules=resource_dict.get('rules')
         )
 
@@ -301,6 +301,18 @@ class Destination(ResourceWithRules):
     def __init__(self, id=None, cores=None, mem=None, env=None, params=None, tags=None, rules=None):
         super().__init__(id, cores, mem, env, params, tags, rules)
 
+    @staticmethod
+    def from_dict(resource_dict):
+        return Destination(
+            id=resource_dict.get('id'),
+            cores=resource_dict.get('cores'),
+            mem=resource_dict.get('mem'),
+            env=resource_dict.get('env'),
+            params=resource_dict.get('params'),
+            tags={'required': resource_dict.get('tags') or []},
+            rules=resource_dict.get('rules')
+        )
+
 
 class Rule(Resource):
 
@@ -317,7 +329,7 @@ class Rule(Resource):
             mem=resource_dict.get('mem'),
             env=resource_dict.get('env'),
             params=resource_dict.get('params'),
-            tags=resource_dict.get('tags'),
+            tags=resource_dict.get('scheduling'),
             match=resource_dict.get('match'),
             fail=resource_dict.get('fail')
         )

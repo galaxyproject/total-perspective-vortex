@@ -3,7 +3,7 @@ tools:
     cores: 2
     mem: 8
     env: {}
-    tags:
+    scheduling:
       required: []
       preferred:
         - general
@@ -12,7 +12,7 @@ tools:
         - pulsar
     rules: []
   bwa:
-    tags:
+    scheduling:
       required:
         - pulsar
 users:
@@ -20,28 +20,28 @@ users:
     cores: 3
     mem: 8
     env: {}
-    tags:
+    scheduling:
       required: []
       preferred:
         - general
       tolerated:
     rules: []
   fairycake@vortex.org:
-    tags:
+    scheduling:
       required:
         - pulsar
   arthur@vortex.org:
-    tags:
+    scheduling:
       required:
         - earth
   improbable@vortex.org:
-    tags:
+    scheduling:
       required:
         - pulsar
       rejected:
         - pulsar
   .*@vortex.org:
-    tags:
+    scheduling:
       required:
         - pulsar
 
@@ -50,16 +50,16 @@ roles:
     cores: 8
     mem: 8
     env: []
-    tags:
+    scheduling:
       required:
         - general
     rules: []
   training:
-    tags:
+    scheduling:
       required:
         - pulsar
   newtraining2021.*:
-    tags:
+    scheduling:
       preferred:
         - pulsar
       rejected:
@@ -71,12 +71,10 @@ destinations:
     cores: 4
     mem: 16
     tags:
-      required:
-        - general
+      - general
   k8s_environment:
     cores: 16
     mem: 64
     gpus: 2
     tags:
-      required:
-        - pulsar
+      - pulsar
