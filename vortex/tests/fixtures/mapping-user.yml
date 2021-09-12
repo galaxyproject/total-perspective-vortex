@@ -46,3 +46,19 @@ users:
     tags:
       required:
         - pulsar
+
+
+destinations:
+  local:
+    cores: 4
+    mem: 16
+    tags:
+      required:
+        - general
+  k8s_environment:
+    cores: 16
+    mem: 64
+    gpus: 2
+    tags:
+      required:
+        - pulsar

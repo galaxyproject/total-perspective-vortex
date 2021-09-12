@@ -4,17 +4,19 @@ from typing import Dict
 
 from galaxy.util.watcher import get_watcher
 
-from .resources import Tool, User, Role, ResourceDestinationParser
+from .resources import Tool, User, Role, Destination, ResourceDestinationParser
 
 log = logging.getLogger(__name__)
 
 
 class ResourceToDestinationMapper(object):
 
-    def __init__(self, tools: Dict[str, Tool], users: Dict[str, User], roles: Dict[str, Role]):
+    def __init__(self, tools: Dict[str, Tool], users: Dict[str, User], roles: Dict[str, Role],
+                 destinations: Dict[str, Destination]):
         self.tools = tools
         self.users = users
         self.roles = roles
+        self.destinations = destinations
 
     def _find_resource_by_id_regex(self, resource_list, resource_name):
         default_resource = resource_list.get('default')
@@ -45,7 +47,7 @@ class ResourceToDestinationMapper(object):
         return destinations
 
     def find_best_match(self, resource, destinations, context):
-        matches = (dest[0] for dest in destinations.values() if resource.matches_destination(dest[0], context))
+        matches = (dest for dest in destinations.values() if resource.matches_destination(dest, context))
         return next(self.rank(resource, matches), None)
 
     def _find_matching_resources(self, tool, user):
@@ -87,7 +89,7 @@ class ResourceToDestinationMapper(object):
         merged = self.merge_evaluated(evaluated_resource)
 
         # 5. Find best matching destination
-        destination = self.find_best_match(merged, app.job_config.destinations, context)
+        destination = self.find_best_match(merged, self.destinations, context)
 
         # 6. Return destination with params
         if destination:
@@ -103,8 +105,9 @@ ACTIVE_DESTINATION_MAPPER = None
 
 
 def load_destination_mapper(mapper_config_file):
+    log.info(f"loading vortex rules from: {mapper_config_file}")
     parser = ResourceDestinationParser.from_file_path(mapper_config_file)
-    return ResourceToDestinationMapper(parser.tools, parser.users, parser.roles)
+    return ResourceToDestinationMapper(parser.tools, parser.users, parser.roles, parser.destinations)
 
 
 def reload_destination_mapper(mapper_config_file):

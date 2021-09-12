@@ -120,9 +120,10 @@ class TagSetManager(object):
         new_tag_set.add_tag_overrides(self.rejected_tags, TagType.REJECTED)
         return new_tag_set
 
-    def match(self, tags):
-        return (all(required in tags for required in self.required_tags) and
-                not any(rejected in tags for rejected in self.rejected_tags))
+    def match(self, other: TagSetManager):
+        all_tags = other.required_tags + other.preferred_tags + other.tolerated_tags + other.rejected_tags
+        return (all(required in all_tags for required in self.required_tags) and
+                not any(rejected in all_tags for rejected in self.rejected_tags))
 
     @staticmethod
     def from_dict(tags):
@@ -192,7 +193,7 @@ class Resource(object):
         :param destination:
         :return:
         """
-        return self.tags.match(destination.params.get('vortex_tags') or {})
+        return self.tags.match(destination.tags or {})
 
     def evaluate(self, context):
         new_resource = copy.copy(self)
@@ -345,6 +346,7 @@ class ResourceDestinationParser(object):
         self.tools = validated.get('tools')
         self.users = validated.get('users')
         self.roles = validated.get('roles')
+        self.destinations = validated.get('destinations')
 
     @staticmethod
     def validate_resources(resource_class: type, resource_list: dict) -> dict:
@@ -359,9 +361,10 @@ class ResourceDestinationParser(object):
 
     def validate(self, destination_data: dict) -> dict:
         validated = {
-         'tools': self.validate_resources(Tool, destination_data.get('tools', {})),
-         'users': self.validate_resources(User, destination_data.get('users', {})),
-         'roles': self.validate_resources(Role, destination_data.get('roles', {}))
+            'tools': self.validate_resources(Tool, destination_data.get('tools', {})),
+            'users': self.validate_resources(User, destination_data.get('users', {})),
+            'roles': self.validate_resources(Role, destination_data.get('roles', {})),
+            'destinations': self.validate_resources(Destination, destination_data.get('destinations', {}))
         }
         return validated
 
