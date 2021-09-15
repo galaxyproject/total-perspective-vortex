@@ -145,7 +145,7 @@ class Resource(object):
         return f"{self.__class__} id={self.id}, cores={self.cores}, mem={self.mem}, " \
                f"env={self.env}, params={self.params}, tags={self.tags}, rank={self.rank}"
 
-    def _inherit(self, resource):
+    def override(self, resource):
         new_resource = copy.copy(resource)
         new_resource.id = self.id or resource.id
         new_resource.cores = self.cores or resource.cores
@@ -158,7 +158,7 @@ class Resource(object):
         return new_resource
 
     def extend(self, resource):
-        new_resource = self._inherit(resource)
+        new_resource = self.override(resource)
         new_resource.tags = self.tags.extend(resource.tags)
         return new_resource
 
@@ -179,7 +179,7 @@ class Resource(object):
         :param resource:
         :return:
         """
-        new_resource = resource._inherit(self)
+        new_resource = resource.override(self)
         new_resource.tags = self.tags.merge(resource.tags)
         return new_resource
 

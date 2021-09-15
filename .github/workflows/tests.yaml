@@ -31,7 +31,13 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/.cache/pip
-          key: pip-cache-${{ matrix.python-version }}-lint
+          key: pip-cache-${{ matrix.python-version }}-${{ hashFiles('**/setup.py', '**/requirements.txt', '**/requirements_test.txt') }}-lint
+
+      - name: Cache tox dir
+        uses: actions/cache@v2
+        with:
+          path: .tox
+          key: tox-cache-${{ matrix.python-version }}-${{ hashFiles('**/setup.py', '**/requirements.txt', '**/requirements_test.txt') }}-lint
 
       - name: Install required packages
         run: pip install tox
@@ -63,7 +69,13 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/.cache/pip
-          key: pip-cache-${{ matrix.python-version }}-${{ hashFiles('**/setup.py', '**/requirements.txt', '**/requirements_test.txt') }}
+          key: pip-cache-${{ matrix.python-version }}-${{ hashFiles('**/setup.py', '**/requirements.txt', '**/requirements_test.txt') }}-py38
+
+      - name: Cache tox dir
+        uses: actions/cache@v2
+        with:
+          path: .tox
+          key: tox-cache-${{ matrix.python-version }}-${{ hashFiles('**/setup.py', '**/requirements.txt', '**/requirements_test.txt') }}-py38
 
       - name: Install required packages
         run: pip install tox
