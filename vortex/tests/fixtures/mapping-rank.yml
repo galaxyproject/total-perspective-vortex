@@ -11,6 +11,9 @@ tools:
       rejected:
         - pulsar
     rules: []
+    rank: |
+      helpers.weighted_random_sampling(candidate_destinations)
+
   bwa:
     scheduling:
       required:

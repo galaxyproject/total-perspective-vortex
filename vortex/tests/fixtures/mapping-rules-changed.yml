@@ -60,7 +60,6 @@ users:
       required:
         - pulsar
 
-
 destinations:
   local:
     cores: 4

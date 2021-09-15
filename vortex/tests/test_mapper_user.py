@@ -5,7 +5,7 @@ from vortex.core.resources import IncompatibleTagsException
 from . import mock_galaxy
 
 
-class TestResourceParserUser(unittest.TestCase):
+class TestMapperUser(unittest.TestCase):
 
     @staticmethod
     def _map_to_destination(tool, user):

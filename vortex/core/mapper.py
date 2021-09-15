@@ -41,12 +41,13 @@ class ResourceToDestinationMapper(object):
             merged_resource = merged_resource.merge(resource)
         return merged_resource
 
-    def rank(self, resource, destinations):
-        return destinations
+    def rank(self, resource, destinations, context):
+        return resource.rank_destinations(destinations, context)
 
     def find_best_match(self, resource, destinations, context):
-        matches = (dest for dest in destinations.values() if resource.matches_destination(dest, context))
-        return next(self.rank(resource, matches), None)
+        matches = [dest for dest in destinations.values() if resource.match(dest, context)]
+        rankings = self.rank(resource, matches, context)
+        return rankings[0] if rankings else None
 
     def _find_matching_resources(self, tool, user):
         tool_resource = self._find_resource_by_id_regex(self.tools, tool.id)
@@ -72,7 +73,7 @@ class ResourceToDestinationMapper(object):
         # 1. Find the resources relevant to this job
         resource_list = self._find_matching_resources(tool, user)
 
-        # 2. Create context
+        # 2. Create evaluation context
         context = {
             'app': app,
             'tool': tool,

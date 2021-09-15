@@ -1,0 +1,24 @@
+tools:
+  default:
+    cores: 2
+    mem: 8
+    env: {}
+    scheduling:
+      required: []
+      preferred:
+        - general
+      tolerated:
+      rejected:
+        - offline
+    rules: []
+destinations:
+  local:
+    cores: 4
+    mem: 16
+    tags:
+      - general
+      - offline
+  k8s_environment:
+    cores: 16
+    mem: 64
+    gpus: 2

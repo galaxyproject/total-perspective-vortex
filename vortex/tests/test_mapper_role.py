@@ -4,7 +4,7 @@ from vortex.rules import gateway
 from . import mock_galaxy
 
 
-class TestResourceParserRole(unittest.TestCase):
+class TestMapperRole(unittest.TestCase):
 
     @staticmethod
     def _map_to_destination(tool, user):

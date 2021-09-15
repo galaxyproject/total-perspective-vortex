@@ -1,3 +1,4 @@
+import random
 from functools import reduce
 
 
@@ -19,3 +20,8 @@ def calculate_dataset_total(datasets):
 
 def input_size(job):
     return calculate_dataset_total(job.input_datasets)
+
+
+def weighted_random_sampling(destinations):
+    rankings = [(d.params.get('weight', 1) if d.params else 1) for d in destinations]
+    return random.choices(destinations, weights=rankings, k=len(destinations))

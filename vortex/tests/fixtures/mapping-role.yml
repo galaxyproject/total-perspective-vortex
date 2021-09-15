@@ -65,7 +65,6 @@ roles:
       rejected:
         - general
 
-
 destinations:
   local:
     cores: 4

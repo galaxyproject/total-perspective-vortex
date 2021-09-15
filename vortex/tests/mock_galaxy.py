@@ -39,11 +39,6 @@ class Dataset:
         self.file_size = file_size
 
 
-class Datatype:
-    def __init__(self, file_ext):
-        self.file_ext = file_ext
-
-
 # Tool mock and helpers=========================================
 class Tool:
     def __init__(self, id):

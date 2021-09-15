@@ -8,7 +8,7 @@ from . import mock_galaxy
 from galaxy.jobs.mapper import JobMappingException
 
 
-class TestResourceParserUser(unittest.TestCase):
+class TestMapperRules(unittest.TestCase):
 
     @staticmethod
     def _map_to_destination(tool, user, datasets, mapping_rules_path=None):
@@ -81,7 +81,7 @@ class TestResourceParserUser(unittest.TestCase):
             shutil.copy2(updated_rule_file, tmp_file.name)
 
             # wait for reload
-            time.sleep(1)
+            time.sleep(0.5)
 
             # should have loaded the new rules
             destination = self._map_to_destination(tool, user, datasets, mapping_rules_path=tmp_file.name)
