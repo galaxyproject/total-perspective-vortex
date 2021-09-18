@@ -5,7 +5,7 @@ tools:
     env:
       TEST_JOB_SLOTS: "{cores}"
     params:
-      NATIVE_SPEC: "--mem {mem} --cores {cores}"
+      native_spec: "--mem {mem} --cores {cores}"
     scheduling:
       required: []
       preferred:
@@ -35,7 +35,7 @@ users:
     env:
       TEST_JOB_SLOTS_USER: "{cores}"
     params:
-      NATIVE_SPEC_USER: "--mem {mem} --cores {cores}"
+      native_spec_user: "--mem {mem} --cores {cores}"
     scheduling:
       required:
         - pulsar
