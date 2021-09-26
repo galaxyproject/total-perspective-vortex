@@ -13,9 +13,11 @@ from . import mock_galaxy
 class TestScenarios(unittest.TestCase):
 
     @staticmethod
-    def _map_to_destination(tool, user, datasets=[], mapping_rules_path=None, job_conf=None):
+    def _map_to_destination(tool, user, datasets=[], mapping_rules_path=None, job_conf=None, app=None):
         if job_conf:
             galaxy_app = mock_galaxy.App(job_conf=job_conf)
+        elif app:
+            galaxy_app = app
         else:
             galaxy_app = mock_galaxy.App()
         job = mock_galaxy.Job()
@@ -196,3 +198,49 @@ class TestScenarios(unittest.TestCase):
         destination = self._map_to_destination(tool, user, datasets=datasets, mapping_rules_path=rules_file,
                                                job_conf='fixtures/job_conf_scenario_usegalaxy_au.yml')
         self.assertEqual(destination.id, "highmem_pulsar_2")
+
+    @responses.activate
+    def test_scenario_too_many_highmem_jobs(self):
+        """
+        User can only have up to X high-mem jobs scheduled at one time
+        """
+        responses.add(
+            method=responses.GET,
+            url="http://stats.genome.edu.au:8086/query",
+            body=pathlib.Path(
+                os.path.join(os.path.dirname(__file__), 'fixtures/response-admin-group-user.yml')).read_text(),
+            match_querystring=False,
+        )
+
+        def create_job(app, destination):
+            sa_session = app.model.context
+
+            u = app.model.User(email="highmemuser@unimelb.edu.au", password="password")
+            j = app.model.Job()
+            j.user = u
+            j.tool_id = "trinity"
+            j.state = "running"
+            j.destination_id = destination
+
+            sa_session.add(j)
+            sa_session.flush()
+
+        app = mock_galaxy.App(job_conf='fixtures/job_conf_scenario_usegalaxy_au.yml', create_model=True)
+        create_job(app, "highmem_pulsar_1")
+        create_job(app, "highmem_pulsar_2")
+        create_job(app, "highmem_pulsar_1")
+        create_job(app, "highmem_pulsar_2")
+
+        tool = mock_galaxy.Tool('trinity')
+        user = mock_galaxy.User('highmemuser', 'highmemuser@unimelb.edu.au', roles=["ga_admins"])
+        datasets = [mock_galaxy.DatasetAssociation("input", mock_galaxy.Dataset("input.fastq", file_size=1000))]
+        rules_file = os.path.join(os.path.dirname(__file__), 'fixtures/scenario-too-many-highmem-jobs.yml')
+        destination = self._map_to_destination(tool, user, datasets=datasets, mapping_rules_path=rules_file, app=app)
+        self.assertEqual(destination.id, "highmem_pulsar_1")
+
+        # exceed the limit
+        create_job(app, "highmem_pulsar_1")
+
+        with self.assertRaisesRegex(
+                JobMappingException, "You cannot have more than 4 high-mem jobs running concurrently"):
+            self._map_to_destination(tool, user, datasets=datasets, mapping_rules_path=rules_file, app=app)

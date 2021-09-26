@@ -35,7 +35,7 @@ class ResourceToDestinationMapper(object):
                         return resource
             return default_resource
 
-    def merge_evaluated(self, resources):
+    def merge_resources(self, resources):
         merged_resource = resources[0]
         for resource in resources[1:]:
             merged_resource = merged_resource.merge(resource)
@@ -73,28 +73,30 @@ class ResourceToDestinationMapper(object):
         # 1. Find the resources relevant to this job
         resource_list = self._find_matching_resources(tool, user)
 
-        # 2. Create evaluation context
+        # 2. Merge resource requirements
+        merged_resource = self.merge_resources(resource_list)
+
+        # 3. Create evaluation context
         context = {
             'app': app,
             'tool': tool,
             'user': user,
-            'job': job
+            'job': job,
+            'resource': merged_resource,
+            'self': merged_resource
         }
 
-        # 3. Evaluate resource expressions
-        evaluated_resource = [resource.evaluate(context) for resource in resource_list if resource]
-
-        # 4. Merge resource requirements
-        merged = self.merge_evaluated(evaluated_resource)
+        # 4. Evaluate resource expressions
+        evaluated_resource = merged_resource.evaluate(context)
 
         # 5. Find best matching destination
-        destination = self.find_best_match(merged, self.destinations, context)
+        destination = self.find_best_match(evaluated_resource, self.destinations, context)
 
         # 6. Return destination with params
         if destination:
             destination = app.job_config.get_destination(destination.id)
-            destination.env += [dict(name=k, value=v) for (k, v) in merged.env.items()]
-            destination.params.update(merged.params or {})
+            destination.env += [dict(name=k, value=v) for (k, v) in evaluated_resource.env.items()]
+            destination.params.update(evaluated_resource.params or {})
             return destination
         else:
             return None

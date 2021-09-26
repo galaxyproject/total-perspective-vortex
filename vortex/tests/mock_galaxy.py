@@ -1,5 +1,6 @@
 import os
 
+from galaxy.model import mapping
 from galaxy.job_metrics import JobMetrics
 from galaxy.jobs import JobConfiguration
 from galaxy.util import bunch
@@ -61,7 +62,7 @@ class ToolDependency:
 
 # App mock=======================================================
 class App:
-    def __init__(self, job_conf='fixtures/job_conf.yml'):
+    def __init__(self, job_conf='fixtures/job_conf.yml', create_model=False):
         self.config = bunch.Bunch(
             job_config_file=os.path.join(os.path.dirname(__file__), job_conf),
             use_tasked_jobs=False,
@@ -74,6 +75,12 @@ class App:
         self.application_stack = ApplicationStack()
         self.job_metrics = JobMetrics()
         self.job_config = JobConfiguration(self)
+        if create_model:
+            self.model = mapping.init(
+                "/tmp",
+                "sqlite:///:memory:",
+                create_tables=True
+            )
 
 
 class User:

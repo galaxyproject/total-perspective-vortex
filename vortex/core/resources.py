@@ -146,6 +146,14 @@ class TagSetManager(object):
         """
         return any(t for t in self.tags if t.name == tag.name and t.value == tag.value)
 
+    def contains_tag_value(self, value) -> bool:
+        """
+        Returns true if the value of the tag matches. Ignores name and tag_type.
+        :param tag:
+        :return:
+        """
+        return any(t for t in self.tags if t.value == value)
+
     def score(self, other: TagSetManager) -> bool:
         """
         Computes a compatibility score between tag sets.
@@ -273,7 +281,6 @@ class Resource(object):
     def rank_destinations(self, destinations, context):
         if self.rank:
             context['candidate_destinations'] = destinations
-            context['resource'] = self
             return exec_then_eval(self.rank, context)
         else:
             # Just return in whatever order the destinations
