@@ -48,6 +48,10 @@ class TestScenarios(unittest.TestCase):
 
     @responses.activate
     def test_scenario_job_too_small_for_high_memory_node(self):
+        """
+        Job gets scheduled to gp2 as not enough data for high memory pulsar.
+        :return:
+        """
         responses.add(
             method=responses.GET,
             url="http://stats.genome.edu.au:8086/query",
@@ -60,6 +64,28 @@ class TestScenarios(unittest.TestCase):
         user = mock_galaxy.User('simon', 'simon@unimelb.edu.au')
         datasets = [mock_galaxy.DatasetAssociation("input", mock_galaxy.Dataset("input.fastq", file_size=10))]
         rules_file = os.path.join(os.path.dirname(__file__), 'fixtures/scenario-job-too-small-for-highmem.yml')
+        destination = self._map_to_destination(tool, user, datasets=datasets, mapping_rules_path=rules_file,
+                                               job_conf='fixtures/job_conf_scenario_usegalaxy_au.yml')
+        self.assertEqual(destination.id, "general_pulsar_2")
+
+    @responses.activate
+    def test_scenario_node_offline_high_cpu(self):
+        """
+        Marking destination as offline will prevent jobs from being scheduled there. So this job will be scheduled
+        to gp2 even though it has high utilisation as gp1 is offline
+        """
+        responses.add(
+            method=responses.GET,
+            url="http://stats.genome.edu.au:8086/query",
+            body=pathlib.Path(
+                os.path.join(os.path.dirname(__file__), 'fixtures/response-node-offline-high-cpu.yml')).read_text(),
+            match_querystring=False,
+        )
+
+        tool = mock_galaxy.Tool('bwa-mem')
+        user = mock_galaxy.User('steve', 'steve@unimelb.edu.au')
+        datasets = [mock_galaxy.DatasetAssociation("input", mock_galaxy.Dataset("input.fastq", file_size=0.1))]
+        rules_file = os.path.join(os.path.dirname(__file__), 'fixtures/scenario-node-offline-high-cpu.yml')
         destination = self._map_to_destination(tool, user, datasets=datasets, mapping_rules_path=rules_file,
                                                job_conf='fixtures/job_conf_scenario_usegalaxy_au.yml')
         self.assertEqual(destination.id, "general_pulsar_2")
