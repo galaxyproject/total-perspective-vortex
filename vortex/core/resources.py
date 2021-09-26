@@ -14,10 +14,39 @@ log = logging.getLogger(__name__)
 
 
 class TagType(Enum):
-    REQUIRED = "required"
-    PREFERRED = "preferred"
-    TOLERATED = "tolerated"
-    REJECTED = "rejected"
+    REQUIRED = 2
+    PREFERRED = 1
+    TOLERATED = 0
+    REJECTED = -1
+
+    @classmethod
+    def contains(cls, key):
+        try:
+            cls(key)
+        except ValueError:
+            return False
+        return True
+
+    def __int__(self):
+        return self.value
+
+
+class Tag:
+
+    def __init__(self, name, value, tag_type: Enum):
+        self.name = name
+        self.value = value
+        self.tag_type = tag_type
+
+    def __eq__(self, other):
+        if not isinstance(other, Tag):
+            # don't attempt to compare against unrelated types
+            return NotImplemented
+
+        return self.name == other.name and self.value == other.value and self.tag_type == other.tag_type
+
+    def __repr__(self):
+        return f"<Tag: name={self.name}, value={self.value}, type={self.tag_type}>"
 
 
 @functools.lru_cache(maxsize=8192)
@@ -31,16 +60,15 @@ def compile_exec_then_eval(code):
 # https://stackoverflow.com/a/39381428
 def exec_then_eval(code, context):
     exec_block, eval_block = compile_exec_then_eval(str(code))
-    _globals = globals()
-    _locals = context
-
-    _locals.update({
+    locals = dict(globals())
+    locals.update(context)
+    locals.update({
         'helpers': helpers,
         # Don't unnecessarily compute input_size unless it's referred to
         'input_size': helpers.input_size(context['job']) if 'input_size' in str(code) else 0
     })
-    exec(exec_block, _globals, _locals)
-    return eval(eval_block, _globals, _locals)
+    exec(exec_block, locals)
+    return eval(eval_block, locals)
 
 
 class IncompatibleTagsException(Exception):
@@ -48,86 +76,108 @@ class IncompatibleTagsException(Exception):
     def __init__(self, first_set, second_set):
         super().__init__(
             f"Cannot merge tag sets because required and rejected tags mismatch. First tag set requires:"
-            f" {first_set.required_tags} and rejects: {first_set.rejected_tags}. Second tag set requires:"
-            f" {second_set.required_tags} and rejects: {second_set.rejected_tags}.")
+            f" {first_set.filter(TagType.REQUIRED)} and rejects: {first_set.filter(TagType.REJECTED)}."
+            f" Second tag set requires: {second_set.filter(TagType.REQUIRED)} and rejects:"
+            f" {second_set.filter(TagType.REJECTED)}.")
 
 
 class TagSetManager(object):
 
-    def __init__(self, required=[], preferred=[], tolerated=[], rejected=[]):
-        self.required_tags = required or []
-        self.preferred_tags = preferred or []
-        self.tolerated_tags = tolerated or []
-        self.rejected_tags = rejected or []
+    def __init__(self, tags=[]):
+        self.tags = tags or []
 
-    def add_tag_override(self, tag: str, tag_type: TagType):
-        # pop the tag if it exists, as a tag can only belong to one category
-        self.required_tags = list(filter(lambda x: x != tag, self.required_tags))
-        self.preferred_tags = list(filter(lambda x: x != tag, self.preferred_tags))
-        self.tolerated_tags = list(filter(lambda x: x != tag, self.tolerated_tags))
-        self.rejected_tags = list(filter(lambda x: x != tag, self.rejected_tags))
+    def add_tag_override(self, tag: Tag):
+        # pop the tag if it exists, as a tag can only belong to one type
+        self.tags = list(filter(lambda t: t.value != tag.value, self.tags))
+        self.tags.append(tag)
 
-        if tag_type == TagType.REQUIRED:
-            self.required_tags.append(tag)
-        elif tag_type == TagType.PREFERRED:
-            self.preferred_tags.append(tag)
-        elif tag_type == TagType.TOLERATED:
-            self.tolerated_tags.append(tag)
-        elif tag_type == TagType.REJECTED:
-            self.rejected_tags.append(tag)
-        else:
-            raise Exception(f"Unrecognized tag type: {tag_type} for tag: {tag}")
+    def filter(self, tag_type: TagType) -> list[Tag]:
+        return (tag for tag in self.tags if tag.tag_type == tag_type)
 
-    def add_tag_overrides(self, tags: list[str], tag_type: TagType):
+    def add_tag_overrides(self, tags: list[Tag]):
         for tag in tags:
-            self.add_tag_override(tag, tag_type)
+            self.add_tag_override(tag)
 
-    def can_merge(self, other: TagSetManager):
-        if set(self.required_tags).intersection(set(other.rejected_tags)):
+    def can_merge(self, other: TagSetManager) -> bool:
+        self_required = ((t.name, t.value) for t in self.filter(TagType.REQUIRED))
+        other_required = ((t.name, t.value) for t in other.filter(TagType.REQUIRED))
+        self_rejected = ((t.name, t.value) for t in self.filter(TagType.REJECTED))
+        other_rejected = ((t.name, t.value) for t in other.filter(TagType.REJECTED))
+        if set(self_required).intersection(set(other_rejected)):
             return False
-        elif set(self.rejected_tags).intersection(set(other.required_tags)):
+        elif set(self_rejected).intersection(set(other_required)):
             return False
         else:
             return True
 
-    def extend(self, other):
+    def extend(self, other) -> TagSetManager:
         assert type(self) == type(other)
         new_tag_set = TagSetManager()
-        new_tag_set.add_tag_overrides(other.tolerated_tags, TagType.TOLERATED)
-        new_tag_set.add_tag_overrides(other.preferred_tags, TagType.PREFERRED)
-        new_tag_set.add_tag_overrides(other.required_tags, TagType.REQUIRED)
-        new_tag_set.add_tag_overrides(other.rejected_tags, TagType.REJECTED)
-        new_tag_set.add_tag_overrides(self.tolerated_tags, TagType.TOLERATED)
-        new_tag_set.add_tag_overrides(self.preferred_tags, TagType.PREFERRED)
-        new_tag_set.add_tag_overrides(self.required_tags, TagType.REQUIRED)
-        new_tag_set.add_tag_overrides(self.rejected_tags, TagType.REJECTED)
+        new_tag_set.add_tag_overrides(other.filter(TagType.TOLERATED))
+        new_tag_set.add_tag_overrides(other.filter(TagType.PREFERRED))
+        new_tag_set.add_tag_overrides(other.filter(TagType.REQUIRED))
+        new_tag_set.add_tag_overrides(other.filter(TagType.REJECTED))
+        new_tag_set.add_tag_overrides(self.filter(TagType.TOLERATED))
+        new_tag_set.add_tag_overrides(self.filter(TagType.PREFERRED))
+        new_tag_set.add_tag_overrides(self.filter(TagType.REQUIRED))
+        new_tag_set.add_tag_overrides(self.filter(TagType.REJECTED))
         return new_tag_set
 
-    def merge(self, other: TagSetManager):
+    def merge(self, other: TagSetManager) -> TagSetManager:
         if not self.can_merge(other):
             raise IncompatibleTagsException(self, other)
         new_tag_set = TagSetManager()
         # Add tolerated tags first, as they should be overridden by preferred, required and rejected tags
-        new_tag_set.add_tag_overrides(other.tolerated_tags, TagType.TOLERATED)
-        new_tag_set.add_tag_overrides(self.tolerated_tags, TagType.TOLERATED)
+        new_tag_set.add_tag_overrides(other.filter(TagType.TOLERATED))
+        new_tag_set.add_tag_overrides(self.filter(TagType.TOLERATED))
         # Next add preferred, as they should be overridden by required and rejected tags
-        new_tag_set.add_tag_overrides(other.preferred_tags, TagType.PREFERRED)
-        new_tag_set.add_tag_overrides(self.preferred_tags, TagType.PREFERRED)
+        new_tag_set.add_tag_overrides(other.filter(TagType.PREFERRED))
+        new_tag_set.add_tag_overrides(self.filter(TagType.PREFERRED))
         # Required and rejected tags can be added in either order, as there's no overlap
-        new_tag_set.add_tag_overrides(other.required_tags, TagType.REQUIRED)
-        new_tag_set.add_tag_overrides(self.required_tags, TagType.REQUIRED)
-        new_tag_set.add_tag_overrides(other.rejected_tags, TagType.REJECTED)
-        new_tag_set.add_tag_overrides(self.rejected_tags, TagType.REJECTED)
+        new_tag_set.add_tag_overrides(other.filter(TagType.REQUIRED))
+        new_tag_set.add_tag_overrides(self.filter(TagType.REQUIRED))
+        new_tag_set.add_tag_overrides(other.filter(TagType.REJECTED))
+        new_tag_set.add_tag_overrides(self.filter(TagType.REJECTED))
         return new_tag_set
 
-    def match(self, other: TagSetManager):
-        all_tags = other.required_tags + other.preferred_tags + other.tolerated_tags + other.rejected_tags
-        return (all(required in all_tags for required in self.required_tags) and
-                not any(rejected in all_tags for rejected in self.rejected_tags))
+    def match(self, other: TagSetManager) -> bool:
+        return (all(other.contains_tag(required) for required in self.filter(TagType.REQUIRED)) and
+                not any(other.contains_tag(rejected) for rejected in self.filter(TagType.REJECTED)))
+
+    def contains_tag(self, tag) -> bool:
+        """
+        Returns true if the name and value of the tag match. Ignores tag_type.
+        :param tag:
+        :return:
+        """
+        return any(t for t in self.tags if t.name == tag.name and t.value == tag.value)
+
+    def score(self, other: TagSetManager) -> bool:
+        """
+        Computes a compatibility score between tag sets.
+        :param other:
+        :return:
+        """
+        return (sum(int(tag.tag_type) * int(o.tag_type) for tag in self.tags for o in other.tags
+                    if tag.name == o.name and tag.value == o.value)
+                # penalize tags that don't exist in the other
+                - sum(int(tag.tag_type) for tag in self.tags if not other.contains_tag(tag)))
+
+    def __repr__(self):
+        return f"{self.__class__} tags={[tag for tag in self.tags]}"
 
     @staticmethod
-    def from_dict(tags):
-        return TagSetManager(tags.get('required'), tags.get('preferred'), tags.get('tolerated'), tags.get('rejected'))
+    def from_dict(tags: list[dict]) -> TagSetManager:
+        tag_list = []
+        for tag_val in tags.get('required') or []:
+            tag_list.append(Tag(name="scheduling", value=tag_val, tag_type=TagType.REQUIRED))
+        for tag_val in tags.get('preferred') or []:
+            tag_list.append(Tag(name="scheduling", value=tag_val, tag_type=TagType.PREFERRED))
+        for tag_val in tags.get('tolerated') or []:
+            tag_list.append(Tag(name="scheduling", value=tag_val, tag_type=TagType.TOLERATED))
+        for tag_val in tags.get('rejected') or []:
+            tag_list.append(Tag(name="scheduling", value=tag_val, tag_type=TagType.REJECTED))
+        return TagSetManager(tags=tag_list)
 
 
 class Resource(object):
@@ -143,7 +193,7 @@ class Resource(object):
 
     def __repr__(self):
         return f"{self.__class__} id={self.id}, cores={self.cores}, mem={self.mem}, " \
-               f"env={self.env}, params={self.params}, tags={self.tags}, rank={self.rank}"
+               f"env={self.env}, params={self.params}, tags={self.tags}, rank={self.rank[:10] if self.rank else ''}"
 
     def override(self, resource):
         new_resource = copy.copy(resource)
@@ -194,6 +244,10 @@ class Resource(object):
         :param destination:
         :return:
         """
+        if destination.cores and destination.cores < self.cores:
+            return False
+        if destination.mem and destination.mem < self.mem:
+            return False
         return self.tags.match(destination.tags or {})
 
     def evaluate(self, context):
@@ -225,11 +279,17 @@ class Resource(object):
     def rank_destinations(self, destinations, context):
         if self.rank:
             context['candidate_destinations'] = destinations
+            context['resource'] = self
             return exec_then_eval(self.rank, context)
         else:
             # Just return in whatever order the destinations
             # were originally found
             return destinations
+
+    def score(self, resource):
+        score = self.tags.score(resource.tags)
+        print("\n\n$$$ Scoring resource", self, "=======>", resource, "with score", score)
+        return score
 
 
 class ResourceWithRules(Resource):
