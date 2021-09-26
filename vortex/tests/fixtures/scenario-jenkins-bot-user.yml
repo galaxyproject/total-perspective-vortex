@@ -1,0 +1,107 @@
+tools:
+  default:
+    cores: 2
+    mem: 8
+    env: {}
+    scheduling:
+      required: []
+      preferred:
+        - general
+      tolerated:
+      rejected:
+        - offline
+    rules: []
+    rank: |
+      import requests
+
+      params = {
+        'pretty': 'true',
+        'db': 'pulsar-test',
+        'q': 'SELECT last("percent_allocated") from "sinfo" group by "host"'
+      }
+
+      try:
+        response = requests.get('http://stats.genome.edu.au:8086/query', params=params)
+        data = response.json()
+        cpu_by_destination = {s['tags']['host']:s['values'][0][1] for s in data.get('results')[0].get('series', [])}
+        candidate_destinations.sort(key=lambda d: (-1 * d.score(resource), cpu_by_destination.get(d.id)))
+        final_destinations = candidate_destinations
+      except Exception:
+        log.exception("An error occurred while querying influxdb. Using a weighted random candidate destination")
+        final_destinations = helpers.weighted_random_sampling(candidate_destinations)
+      final_destinations
+  trinity:
+    cores: 2
+    mem: cores * 4
+    env: {}
+    scheduling:
+      required: []
+      preferred:
+        - pulsar
+      tolerated:
+      rejected:
+        - offline
+    rules:
+      - match: input_size >= 0.1
+        scheduling:
+          required:
+            - highmem
+
+users:
+  jenkinsbot@unimelb.edu.au:
+    scheduling:
+      required:
+        - slurm
+
+destinations:
+  slurm:
+    cores: 16
+    mem: 64
+    scheduling:
+      tolerated:
+        - slurm
+  general_pulsar_1:
+    cores: 8
+    mem: 32
+    scheduling:
+      tolerated:
+        - general
+      required:
+        - pulsar
+  general_pulsar_2:
+    cores: 32
+    mem: 128
+    scheduling:
+      tolerated:
+        - general
+      required:
+        - pulsar
+  highmem_pulsar_1:
+    cores: 128
+    mem: 4096
+    scheduling:
+      preferred:
+        - highmem
+      required:
+        - pulsar
+  highmem_pulsar_2:
+    cores: 128
+    mem: 4096
+    scheduling:
+      preferred:
+        - highmem
+      required:
+        - pulsar
+  training_slurm:
+    cores: 16
+    mem: 64
+    scheduling:
+      required:
+        - training
+  training_pulsar:
+    cores: 8
+    mem: 32
+    scheduling:
+      required:
+        - training
+        - pulsar

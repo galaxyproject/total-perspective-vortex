@@ -153,3 +153,46 @@ class TestScenarios(unittest.TestCase):
         destination = self._map_to_destination(tool, user, datasets=datasets, mapping_rules_path=rules_file,
                                                job_conf='fixtures/job_conf_scenario_usegalaxy_au.yml')
         self.assertEqual(destination.id, "slurm")
+
+    @responses.activate
+    def test_scenario_jenkins_bot_user(self):
+        """
+        jenkins' jobs will run on slurm with minimal core/mem specs
+        """
+        responses.add(
+            method=responses.GET,
+            url="http://stats.genome.edu.au:8086/query",
+            body=pathlib.Path(
+                os.path.join(os.path.dirname(__file__), 'fixtures/response-trinity-job-with-rules.yml')).read_text(),
+            match_querystring=False,
+        )
+
+        tool = mock_galaxy.Tool('fastp')
+        user = mock_galaxy.User('jenkinsbot', 'jenkinsbot@unimelb.edu.au')
+        datasets = [mock_galaxy.DatasetAssociation("input", mock_galaxy.Dataset("input.fastq", file_size=1000))]
+        rules_file = os.path.join(os.path.dirname(__file__), 'fixtures/scenario-jenkins-bot-user.yml')
+        destination = self._map_to_destination(tool, user, datasets=datasets, mapping_rules_path=rules_file,
+                                               job_conf='fixtures/job_conf_scenario_usegalaxy_au.yml')
+        self.assertEqual(destination.id, "slurm")
+
+    @responses.activate
+    def test_scenario_admin_group_user(self):
+        """
+        pulsar-hm2-user is a user to specifically run jobs on hm2 with a minimum spec. Regardless of anything else.
+        Each endpoint will have a user that does this.
+        """
+        responses.add(
+            method=responses.GET,
+            url="http://stats.genome.edu.au:8086/query",
+            body=pathlib.Path(
+                os.path.join(os.path.dirname(__file__), 'fixtures/response-admin-group-user.yml')).read_text(),
+            match_querystring=False,
+        )
+
+        tool = mock_galaxy.Tool('trinity')
+        user = mock_galaxy.User('pulsar-hm2-user', 'pulsar-hm2-user@unimelb.edu.au', roles=["ga_admins"])
+        datasets = [mock_galaxy.DatasetAssociation("input", mock_galaxy.Dataset("input.fastq", file_size=1000))]
+        rules_file = os.path.join(os.path.dirname(__file__), 'fixtures/scenario-admin-group-user.yml')
+        destination = self._map_to_destination(tool, user, datasets=datasets, mapping_rules_path=rules_file,
+                                               job_conf='fixtures/job_conf_scenario_usegalaxy_au.yml')
+        self.assertEqual(destination.id, "highmem_pulsar_2")
