@@ -132,3 +132,24 @@ class TestScenarios(unittest.TestCase):
         with self.assertRaisesRegex(JobMappingException, "Input file size of 1000GB is > maximum allowed 200GB limit"):
             self._map_to_destination(tool, user, datasets=datasets, mapping_rules_path=rules_file,
                                      job_conf='fixtures/job_conf_scenario_usegalaxy_au.yml')
+
+    @responses.activate
+    def test_scenario_non_pulsar_enabled_job(self):
+        """
+        Jobs are scheduled to Slurm even though gps are at lower utilisation as fastp is not pulsar enabled
+        """
+        responses.add(
+            method=responses.GET,
+            url="http://stats.genome.edu.au:8086/query",
+            body=pathlib.Path(
+                os.path.join(os.path.dirname(__file__), 'fixtures/response-non-pulsar-enabled-job.yml')).read_text(),
+            match_querystring=False,
+        )
+
+        tool = mock_galaxy.Tool('fastp')
+        user = mock_galaxy.User('kate', 'kate@unimelb.edu.au')
+        datasets = [mock_galaxy.DatasetAssociation("input", mock_galaxy.Dataset("input.fastq", file_size=1000))]
+        rules_file = os.path.join(os.path.dirname(__file__), 'fixtures/scenario-non-pulsar-enabled-job.yml')
+        destination = self._map_to_destination(tool, user, datasets=datasets, mapping_rules_path=rules_file,
+                                               job_conf='fixtures/job_conf_scenario_usegalaxy_au.yml')
+        self.assertEqual(destination.id, "slurm")

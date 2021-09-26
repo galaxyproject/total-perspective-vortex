@@ -19,14 +19,6 @@ class TagType(Enum):
     TOLERATED = 0
     REJECTED = -1
 
-    @classmethod
-    def contains(cls, key):
-        try:
-            cls(key)
-        except ValueError:
-            return False
-        return True
-
     def __int__(self):
         return self.value
 
