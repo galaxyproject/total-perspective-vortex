@@ -4,5 +4,16 @@
 
 ## <img src="https://raw.githubusercontent.com/usegalaxy-au/total-perspective-vortex/main/docs/images/vortex-logo-wide.png" width="800" height="100">
 
-Total Perspective Vortex is a dynamic rule for mapping Resources (Users, Roles, Tools)
-to a destination through a configurable yaml file.
+TotalPerspectiveVortex (Vortex) provides an installable set of dynamic rules for the
+[Galaxy application](https://galaxyproject.org/) that can route resources (Tools, Users, Roles) to appropriate
+job destinations based on a configurable yaml file.
+
+### Installing latest development version
+
+```python
+pip install https://github.com/usegalaxy-au/total-perspective-vortex
+```
+
+### Documentation
+
+[http://total-perspective-vortex.readthedocs.org](http://total-perspective-vortex.readthedocs.org/en/latest/?badge=latest)

@@ -1,0 +1,121 @@
+{
+    "results": [
+        {
+            "statement_id": 0,
+            "series": [
+                {
+                    "name": "sinfo",
+                    "tags": {
+                        "host": "slurm"
+                    },
+                    "columns": [
+                        "time",
+                        "last"
+                    ],
+                    "values": [
+                        [
+                            "2021-09-20T01:11:02Z",
+                            25
+                        ]
+                    ]
+                },
+                {
+                    "name": "sinfo",
+                    "tags": {
+                        "host": "general_pulsar_1"
+                    },
+                    "columns": [
+                        "time",
+                        "last"
+                    ],
+                    "values": [
+                        [
+                            "2021-09-20T01:11:01Z",
+                            40
+                        ]
+                    ]
+                },
+                {
+                    "name": "sinfo",
+                    "tags": {
+                        "host": "general_pulsar_2"
+                    },
+                    "columns": [
+                        "time",
+                        "last"
+                    ],
+                    "values": [
+                        [
+                            "2021-09-20T01:11:01Z",
+                            60
+                        ]
+                    ]
+                },
+                {
+                    "name": "sinfo",
+                    "tags": {
+                        "host": "highmem_pulsar_1"
+                    },
+                    "columns": [
+                        "time",
+                        "last"
+                    ],
+                    "values": [
+                        [
+                            "2021-09-20T01:11:01Z",
+                            0
+                        ]
+                    ]
+                },
+                {
+                    "name": "sinfo",
+                    "tags": {
+                        "host": "highmem_pulsar_2"
+                    },
+                    "columns": [
+                        "time",
+                        "last"
+                    ],
+                    "values": [
+                        [
+                            "2021-09-20T01:11:01Z",
+                            25
+                        ]
+                    ]
+                },
+                {
+                    "name": "sinfo",
+                    "tags": {
+                        "host": "training_slurm"
+                    },
+                    "columns": [
+                        "time",
+                        "last"
+                    ],
+                    "values": [
+                        [
+                            "2021-09-20T01:11:01Z",
+                            0
+                        ]
+                    ]
+                },
+                {
+                    "name": "sinfo",
+                    "tags": {
+                        "host": "training_pulsar"
+                    },
+                    "columns": [
+                        "time",
+                        "last"
+                    ],
+                    "values": [
+                        [
+                            "2021-09-20T01:11:01Z",
+                            0
+                        ]
+                    ]
+                }
+            ]
+        }
+    ]
+}

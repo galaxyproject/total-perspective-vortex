@@ -142,7 +142,9 @@ class TagSetManager(object):
 
     def match(self, other: TagSetManager) -> bool:
         return (all(other.contains_tag(required) for required in self.filter(TagType.REQUIRED)) and
-                not any(other.contains_tag(rejected) for rejected in self.filter(TagType.REJECTED)))
+                all(self.contains_tag(required) for required in other.filter(TagType.REQUIRED)) and
+                not any(other.contains_tag(rejected) for rejected in self.filter(TagType.REJECTED)) and
+                not any(self.contains_tag(rejected) for rejected in other.filter(TagType.REJECTED)))
 
     def contains_tag(self, tag) -> bool:
         """
@@ -288,7 +290,6 @@ class Resource(object):
 
     def score(self, resource):
         score = self.tags.score(resource.tags)
-        print("\n\n$$$ Scoring resource", self, "=======>", resource, "with score", score)
         return score
 
 
@@ -373,7 +374,7 @@ class Destination(ResourceWithRules):
             mem=resource_dict.get('mem'),
             env=resource_dict.get('env'),
             params=resource_dict.get('params'),
-            tags={'required': resource_dict.get('tags') or []},
+            tags=resource_dict.get('scheduling'),
             rules=resource_dict.get('rules')
         )
 

@@ -1,0 +1,54 @@
+runners:
+  local:
+    load: galaxy.jobs.runners.local:LocalJobRunner
+  slurm:
+    load: galaxy.jobs.runners.drmaa:DRMAAJobRunner
+  general_pulsar_1:
+    load: galaxy.jobs.runners.local:LocalJobRunner
+  general_pulsar_2:
+    load: galaxy.jobs.runners.local:LocalJobRunner
+  highmem_pulsar_1:
+    load: galaxy.jobs.runners.local:LocalJobRunner
+  highmem_pulsar_2:
+    load: galaxy.jobs.runners.local:LocalJobRunner
+  training_slurm:
+    load: galaxy.jobs.runners.local:LocalJobRunner
+  training_pulsar:
+    load: galaxy.jobs.runners.local:LocalJobRunner
+
+handling:
+  assign:
+    - db-skip-locked
+
+execution:
+  default: slurm
+  environments:
+    local:
+      runner: local
+    slurm:
+      runner: slurm
+      docker_enabled: true
+    general_pulsar_1:
+      runner: general_pulsar_1
+      docker_enabled: true
+    general_pulsar_2:
+      runner: general_pulsar_2
+      docker_enabled: true
+    highmem_pulsar_1:
+      runner: highmem_pulsar_1
+      docker_enabled: true
+    highmem_pulsar_2:
+      runner: highmem_pulsar_2
+      docker_enabled: true
+    training_slurm:
+      runner: training_slurm
+      docker_enabled: true
+    training_pulsar:
+      runner: training_pulsar
+      docker_enabled: true
+    vortex_dispatcher:
+      runner: dynamic
+      type: python
+      function: map_tool_to_destination
+      rules_module: vortex.rules
+      mapper_config_file: config/vortex_rules.yml

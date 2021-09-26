@@ -1,6 +1,8 @@
 import os
 import time
 import tempfile
+import pathlib
+import responses
 import shutil
 import unittest
 from vortex.rules import gateway
@@ -10,9 +12,14 @@ from . import mock_galaxy
 class TestScenarios(unittest.TestCase):
 
     @staticmethod
-    def _map_to_destination(tool, user, mapping_rules_path=None):
-        galaxy_app = mock_galaxy.App()
+    def _map_to_destination(tool, user, datasets=[], mapping_rules_path=None, job_conf=None):
+        if job_conf:
+            galaxy_app = mock_galaxy.App(job_conf=job_conf)
+        else:
+            galaxy_app = mock_galaxy.App()
         job = mock_galaxy.Job()
+        for d in datasets:
+            job.add_input_dataset(d)
         mapper_config = mapping_rules_path or os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rules.yml')
         gateway.ACTIVE_DESTINATION_MAPPER = None
         return gateway.map_tool_to_destination(galaxy_app, job, tool, user, mapper_config_file=mapper_config)
@@ -38,3 +45,21 @@ class TestScenarios(unittest.TestCase):
             # should now map to the available node
             destination = self._map_to_destination(tool, user, mapping_rules_path=tmp_file.name)
             self.assertEqual(destination.id, "local")
+
+    @responses.activate
+    def test_scenario_job_too_small_for_high_memory_node(self):
+        responses.add(
+            method=responses.GET,
+            url="http://stats.genome.edu.au:8086/query",
+            body=pathlib.Path(
+                os.path.join(os.path.dirname(__file__), 'fixtures/response-job-too-small-for-highmem.yml')).read_text(),
+            match_querystring=False,
+        )
+
+        tool = mock_galaxy.Tool('bwa-mem')
+        user = mock_galaxy.User('simon', 'simon@unimelb.edu.au')
+        datasets = [mock_galaxy.DatasetAssociation("input", mock_galaxy.Dataset("input.fastq", file_size=10))]
+        rules_file = os.path.join(os.path.dirname(__file__), 'fixtures/scenario-job-too-small-for-highmem.yml')
+        destination = self._map_to_destination(tool, user, datasets=datasets, mapping_rules_path=rules_file,
+                                               job_conf='fixtures/job_conf_scenario_usegalaxy_au.yml')
+        self.assertEqual(destination.id, "general_pulsar_2")

@@ -54,11 +54,13 @@ destinations:
   local:
     cores: 4
     mem: 16
-    tags:
-      - general
+    scheduling:
+      preferred:
+        - general
   k8s_environment:
     cores: 16
     mem: 64
     gpus: 2
-    tags:
-      - pulsar
+    scheduling:
+      preferred:
+        - pulsar
