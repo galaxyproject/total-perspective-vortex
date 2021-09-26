@@ -5,6 +5,7 @@ import pathlib
 import responses
 import shutil
 import unittest
+from galaxy.jobs.mapper import JobMappingException
 from vortex.rules import gateway
 from . import mock_galaxy
 
@@ -110,3 +111,24 @@ class TestScenarios(unittest.TestCase):
         destination = self._map_to_destination(tool, user, datasets=datasets, mapping_rules_path=rules_file,
                                                job_conf='fixtures/job_conf_scenario_usegalaxy_au.yml')
         self.assertEqual(destination.id, "highmem_pulsar_2")
+
+    @responses.activate
+    def test_scenario_trinity_job_too_much_data(self):
+        """
+        Contextual fail message sent to user with reasons that there is too much data. (i.e. that 1TB is > 200GB)
+        """
+        responses.add(
+            method=responses.GET,
+            url="http://stats.genome.edu.au:8086/query",
+            body=pathlib.Path(
+                os.path.join(os.path.dirname(__file__), 'fixtures/response-trinity-job-with-rules.yml')).read_text(),
+            match_querystring=False,
+        )
+
+        tool = mock_galaxy.Tool('trinity')
+        user = mock_galaxy.User('someone', 'someone@unimelb.edu.au')
+        datasets = [mock_galaxy.DatasetAssociation("input", mock_galaxy.Dataset("input.fastq", file_size=1000))]
+        rules_file = os.path.join(os.path.dirname(__file__), 'fixtures/scenario-trinity-job-too-much-data.yml')
+        with self.assertRaisesRegex(JobMappingException, "Input file size of 1000GB is > maximum allowed 200GB limit"):
+            self._map_to_destination(tool, user, datasets=datasets, mapping_rules_path=rules_file,
+                                     job_conf='fixtures/job_conf_scenario_usegalaxy_au.yml')

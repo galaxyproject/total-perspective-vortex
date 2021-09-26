@@ -406,7 +406,8 @@ class Rule(Resource):
         try:
             if exec_then_eval(self.match, context):
                 if self.fail:
-                    raise JobMappingException(self.fail)
+                    raise JobMappingException(
+                        exec_then_eval("f'''" + str(self.fail) + "'''", context))
                 return super().evaluate(context)
             else:
                 return {}
