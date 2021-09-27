@@ -76,12 +76,13 @@ class ResourceToDestinationMapper(object):
         # 2. Merge resource requirements
         merged_resource = self.merge_resources(resource_list)
 
-        # 3. Create evaluation context
+        # 3. Create evaluation context - these are the common variables available within any code block
         context = {
             'app': app,
             'tool': tool,
             'user': user,
             'job': job,
+            'mapper': self,
             'resource': merged_resource,
             'self': merged_resource
         }

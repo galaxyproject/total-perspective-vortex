@@ -1,7 +1,8 @@
 .. image:: images/vortex-logo-wide.png
 
-Dynamic rules for mapping Galaxy resources to destinations
-----------------------------------------------------------
+.. rst-class: center
+
+**Dynamic rules for mapping Galaxy resources to destinations**
 
 TotalPerspectiveVortex (Vortex) provides an installable set of dynamic rules for the
 `Galaxy application`_ that can route resources (Tools, Users, Roles) to appropriate

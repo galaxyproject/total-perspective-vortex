@@ -83,8 +83,19 @@ class TagSetManager(object):
         self.tags = list(filter(lambda t: t.value != tag.value, self.tags))
         self.tags.append(tag)
 
-    def filter(self, tag_type: TagType) -> list[Tag]:
-        return (tag for tag in self.tags if tag.tag_type == tag_type)
+    def filter(self, tag_type: TagType | list[TagType] = None,
+               tag_name: str = None, tag_value: str = None) -> list[Tag]:
+        filtered = self.tags
+        if tag_type:
+            if isinstance(tag_type, TagType):
+                filtered = (tag for tag in filtered if tag.tag_type == tag_type)
+            else:
+                filtered = (tag for tag in filtered if tag.tag_type in tag_type)
+        if tag_name:
+            filtered = (tag for tag in filtered if tag.name == tag_name)
+        if tag_value:
+            filtered = (tag for tag in filtered if tag.value == tag_value)
+        return filtered
 
     def add_tag_overrides(self, tags: list[Tag]):
         for tag in tags:
@@ -144,15 +155,7 @@ class TagSetManager(object):
         :param tag:
         :return:
         """
-        return any(t for t in self.tags if t.name == tag.name and t.value == tag.value)
-
-    def contains_tag_value(self, value) -> bool:
-        """
-        Returns true if the value of the tag matches. Ignores name and tag_type.
-        :param tag:
-        :return:
-        """
-        return any(t for t in self.tags if t.value == value)
+        return any(self.filter(tag_name=tag.name, tag_value=tag.value))
 
     def score(self, other: TagSetManager) -> bool:
         """
