@@ -15,17 +15,8 @@ class Job:
         self.param_values = dict()
         self.parameters = []
 
-    def get_param_values(self, app, ignore_errors=False):
-        return self.param_values
-
-    def set_arg_value(self, key, value):
-        self.param_values[key] = value
-
     def add_input_dataset(self, dataset):
         self.input_datasets.append(dataset)
-
-    def get_parameters(self):
-        return self.parameters
 
 
 class DatasetAssociation:
@@ -46,18 +37,6 @@ class Tool:
         self.id = id
         self.old_id = id
         self.installed_tool_dependencies = []
-
-    def add_tool_dependency(self, dependency):
-        self.installed_tool_dependencies.append(dependency)
-
-
-class ToolDependency:
-    def __init__(self, name, dir_name):
-        self.name = name
-        self.dir_name = dir_name
-
-    def installation_directory(self, app):
-        return self.dir_name
 
 
 # App mock=======================================================
