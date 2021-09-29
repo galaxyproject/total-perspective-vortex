@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-import ast
 from enum import Enum
-import functools
 import logging
 import copy
-from . import helpers
 from galaxy.jobs.mapper import JobMappingException
 
 
@@ -38,28 +35,6 @@ class Tag:
 
     def __repr__(self):
         return f"<Tag: name={self.name}, value={self.value}, type={self.tag_type}>"
-
-
-@functools.lru_cache(maxsize=8192)
-def compile_exec_then_eval(code):
-    block = ast.parse(code, mode='exec')
-    # assumes last node is an expression
-    last = ast.Expression(block.body.pop().value)
-    return compile(block, '<string>', mode='exec'), compile(last, '<string>', mode='eval')
-
-
-# https://stackoverflow.com/a/39381428
-def exec_then_eval(code, context):
-    exec_block, eval_block = compile_exec_then_eval(str(code))
-    locals = dict(globals())
-    locals.update(context)
-    locals.update({
-        'helpers': helpers,
-        # Don't unnecessarily compute input_size unless it's referred to
-        'input_size': helpers.input_size(context['job']) if 'input_size' in str(code) else 0
-    })
-    exec(exec_block, locals)
-    return eval(eval_block, locals)
 
 
 class IncompatibleTagsException(Exception):
@@ -186,7 +161,8 @@ class TagSetManager(object):
 
 class Resource(object):
 
-    def __init__(self, id=None, cores=None, mem=None, env=None, params=None, tags=None, rank=None):
+    def __init__(self, loader, id=None, cores=None, mem=None, env=None, params=None, tags=None, rank=None):
+        self.loader = loader
         self.id = id
         self.cores = cores
         self.mem = mem
@@ -194,6 +170,26 @@ class Resource(object):
         self.params = params
         self.tags = TagSetManager.from_dict(tags or {})
         self.rank = rank
+        self.validate()
+
+    def validate(self):
+        """
+        Validates each code block and makes sure the code can be compiled.
+        This process also results in the compiled code being cached by the loader,
+        so that future evaluations are faster.
+        """
+        if self.cores:
+            self.loader.compile_code_block(self.cores)
+        if self.mem:
+            self.loader.compile_code_block(self.mem)
+        if self.env:
+            for key, entry in self.env.items():
+                self.loader.compile_code_block(entry, as_f_string=True)
+        if self.params:
+            for key, param in self.params.items():
+                self.loader.compile_code_block(param, as_f_string=True)
+        if self.rank:
+            self.loader.compile_code_block(self.rank)
 
     def __repr__(self):
         return f"{self.__class__} id={self.id}, cores={self.cores}, mem={self.mem}, " \
@@ -257,25 +253,21 @@ class Resource(object):
     def evaluate(self, context):
         new_resource = copy.copy(self)
         if self.cores:
-            new_resource.cores = exec_then_eval(self.cores, context)
+            new_resource.cores = self.loader.eval_code_block(self.cores, context)
             context['cores'] = new_resource.cores
         if self.mem:
-            new_resource.mem = exec_then_eval(self.mem, context)
+            new_resource.mem = self.loader.eval_code_block(self.mem, context)
             context['mem'] = new_resource.mem
         if self.env:
             evaluated_env = {}
             for key, entry in self.env.items():
-                # evaluate as an f-string
-                entry = "f'''" + str(entry) + "'''"
-                evaluated_env[key] = exec_then_eval(entry, context)
+                evaluated_env[key] = self.loader.eval_code_block(entry, context, as_f_string=True)
             new_resource.env = evaluated_env
             context['env'] = new_resource.env
         if self.params:
             evaluated_params = {}
             for key, param in self.params.items():
-                # evaluate as an f-string
-                param = "f'''" + str(param) + "'''"
-                evaluated_params[key] = exec_then_eval(param, context)
+                evaluated_params[key] = self.loader.eval_code_block(param, context, as_f_string=True)
             new_resource.params = evaluated_params
             context['params'] = new_resource.params
         return new_resource
@@ -283,7 +275,7 @@ class Resource(object):
     def rank_destinations(self, destinations, context):
         if self.rank:
             context['candidate_destinations'] = destinations
-            return exec_then_eval(self.rank, context)
+            return self.loader.eval_code_block(self.rank, context)
         else:
             # Just return in whatever order the destinations
             # were originally found
@@ -296,22 +288,23 @@ class Resource(object):
 
 class ResourceWithRules(Resource):
 
-    def __init__(self, id=None, cores=None, mem=None, env=None, params=None, tags=None, rank=None, rules=None):
-        super().__init__(id, cores, mem, env, params, tags, rank)
-        self.rules = self.validate(rules)
+    def __init__(self, loader, id=None, cores=None, mem=None, env=None, params=None, tags=None, rank=None, rules=None):
+        super().__init__(loader, id, cores, mem, env, params, tags, rank)
+        self.rules = self.validate_rules(rules)
 
-    def validate(self, rules: list) -> list:
+    def validate_rules(self, rules: list) -> list:
         validated = []
         for rule in rules or []:
             try:
-                validated.append(Rule.from_dict(rule))
+                validated.append(Rule.from_dict(self.loader, rule))
             except Exception:
                 log.exception(f"Could not load rule for resource: {self.__class__} with id: {self.id} and data: {rule}")
         return validated
 
     @classmethod
-    def from_dict(cls: type, resource_dict):
+    def from_dict(cls: type, loader, resource_dict):
         return cls(
+            loader=loader,
             id=resource_dict.get('id'),
             cores=resource_dict.get('cores'),
             mem=resource_dict.get('mem'),
@@ -346,30 +339,31 @@ class ResourceWithRules(Resource):
 
 class Tool(ResourceWithRules):
 
-    def __init__(self, id=None, cores=None, mem=None, env=None, params=None, tags=None, rank=None, rules=None):
-        super().__init__(id, cores, mem, env, params, tags, rank, rules)
+    def __init__(self, loader, id=None, cores=None, mem=None, env=None, params=None, tags=None, rank=None, rules=None):
+        super().__init__(loader, id, cores, mem, env, params, tags, rank, rules)
 
 
 class User(ResourceWithRules):
 
-    def __init__(self, id=None, cores=None, mem=None, env=None, params=None, tags=None, rank=None, rules=None):
-        super().__init__(id, cores, mem, env, params, tags, rank, rules)
+    def __init__(self, loader, id=None, cores=None, mem=None, env=None, params=None, tags=None, rank=None, rules=None):
+        super().__init__(loader, id, cores, mem, env, params, tags, rank, rules)
 
 
 class Role(ResourceWithRules):
 
-    def __init__(self, id=None, cores=None, mem=None, env=None, params=None, tags=None, rank=None, rules=None):
-        super().__init__(id, cores, mem, env, params, tags, rank, rules)
+    def __init__(self, loader, id=None, cores=None, mem=None, env=None, params=None, tags=None, rank=None, rules=None):
+        super().__init__(loader, id, cores, mem, env, params, tags, rank, rules)
 
 
 class Destination(ResourceWithRules):
 
-    def __init__(self, id=None, cores=None, mem=None, env=None, params=None, tags=None, rules=None):
-        super().__init__(id, cores, mem, env, params, tags, rules=rules)
+    def __init__(self, loader, id=None, cores=None, mem=None, env=None, params=None, tags=None, rules=None):
+        super().__init__(loader, id, cores, mem, env, params, tags, rules=rules)
 
     @staticmethod
-    def from_dict(resource_dict):
+    def from_dict(loader, resource_dict):
         return Destination(
+            loader=loader,
             id=resource_dict.get('id'),
             cores=resource_dict.get('cores'),
             mem=resource_dict.get('mem'),
@@ -382,14 +376,19 @@ class Destination(ResourceWithRules):
 
 class Rule(Resource):
 
-    def __init__(self, id=None, cores=None, mem=None, env=None, params=None, tags=None, match=None, fail=None):
-        super().__init__(id, cores, mem, env, params, tags)
+    def __init__(self, loader, id=None, cores=None, mem=None, env=None, params=None, tags=None, match=None, fail=None):
+        super().__init__(loader, id, cores, mem, env, params, tags)
         self.match = match
         self.fail = fail
+        if self.match:
+            self.loader.compile_code_block(self.match)
+        if self.fail:
+            self.loader.compile_code_block(self.fail, as_f_string=True)
 
     @staticmethod
-    def from_dict(resource_dict):
+    def from_dict(loader, resource_dict):
         return Rule(
+            loader=loader,
             id=resource_dict.get('id'),
             cores=resource_dict.get('cores'),
             mem=resource_dict.get('mem'),
@@ -405,10 +404,10 @@ class Rule(Resource):
 
     def evaluate(self, context):
         try:
-            if exec_then_eval(self.match, context):
+            if self.loader.eval_code_block(self.match, context):
                 if self.fail:
                     raise JobMappingException(
-                        exec_then_eval("f'''" + str(self.fail) + "'''", context))
+                        self.loader.eval_code_block(self.fail, context, as_f_string=True))
                 return super().evaluate(context)
             else:
                 return {}
