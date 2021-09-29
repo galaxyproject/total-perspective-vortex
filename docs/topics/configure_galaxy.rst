@@ -15,7 +15,7 @@ Configuring Galaxy
 2. Edit your `job_conf.yml` in the `<galaxy_home>/config` folder and add the
    highlighted sections to it.
 
-   You will need to add your own value for the ``mapper_config_file`` to the
+   You will need to add your own value for the ``vortex_config_file`` to the
    file. Instructions on how to obtain your CloudLaunch API key are given below.
 
 .. literalinclude:: ../samples/job_conf.yml
@@ -23,5 +23,5 @@ Configuring Galaxy
    :linenos:
    :emphasize-lines: 15,17-22
 
-3. Add your own custom rules to the ``mapper_config_file`` following instructions in
+3. Add your own custom rules to the ``vortex_config_file`` following instructions in
    the next section.

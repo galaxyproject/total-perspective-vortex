@@ -11,9 +11,9 @@ class TestMapperBasic(unittest.TestCase):
         galaxy_app = mock_galaxy.App()
         job = mock_galaxy.Job()
         user = mock_galaxy.User('gargravarr', 'fairycake@vortex.org')
-        mapper_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-basic.yml')
+        vortex_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-basic.yml')
         gateway.ACTIVE_DESTINATION_MAPPER = None
-        return gateway.map_tool_to_destination(galaxy_app, job, tool, user, mapper_config_file=mapper_config)
+        return gateway.map_tool_to_destination(galaxy_app, job, tool, user, vortex_config_file=vortex_config)
 
     def test_map_default_tool(self):
         tool = mock_galaxy.Tool('sometool')

@@ -13,17 +13,25 @@ scheduling tags).
 
 2. Scheduling Tags - Resources can have scheduling tags defined on them,
 which determine which resources match up, and which destination they can schedule
-on. Tags fall into one of four categories, indicating a preference for a particular
-resource, to complete aversion:
-  required - required tags must match up for scheduling to occur. For example,
-    if a tool is marked as requiring the `high-mem` tag, only destinations
-    that are tagged as requiring, preferring or tolerating the `high-mem` tag
-    would be considering for scheduling.
+on. Tags fall into one of four categories, ranging from indicating a preference for a particular
+resource, to indicating complete aversion:
 
-  preferred -
-  tolerated -
-  rejected
-
++-----------+--------------------------------------------------------------------------------------------------------+
+| Tag Type  | Description                                                                                            |
++===========+========================================================================================================+
+| required  | required tags must match up for scheduling to occur. For example, if a tool is marked as requiring the |
+|           | `high-mem` tag, only destinations that are tagged as requiring, preferring or tolerating the           |
+|           | `high-mem` tag would be considering for scheduling.                                                    |
++-----------+--------------------------------------------------------------------------------------------------------+
+| preferred | preferred tags are ranked higher when scheduling decisions are made.                                   |
++-----------+--------------------------------------------------------------------------------------------------------+
+| tolerated | tolerated tags can be used to indicate that a resource can match up or support another resource, even  |
+|           | if not preferentially.                                                                                 |
++-----------+--------------------------------------------------------------------------------------------------------+
+| rejected  | rejected tags cannot be present for scheduling to occur. For example, if a tool is marked as rejecting |
+|           | the `pulsar` tag, only destinations that do not have that tag are considered for scheduling. If two    |
+|           | resources have the same rejected tag, they still repel each other.                                     |
++-----------+--------------------------------------------------------------------------------------------------------+
 
 
 Scheduling

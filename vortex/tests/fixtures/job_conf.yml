@@ -24,4 +24,4 @@ execution:
       type: python
       function: map_tool_to_destination
       rules_module: vortex.rules
-      mapper_config_file: config/vortex_rules.yml
+      vortex_config_file: config/vortex_rules.yml

@@ -16,9 +16,9 @@ class TestMapperRules(unittest.TestCase):
         job = mock_galaxy.Job()
         for d in datasets:
             job.add_input_dataset(d)
-        mapper_config = mapping_rules_path or os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rules.yml')
+        vortex_config = mapping_rules_path or os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rules.yml')
         gateway.ACTIVE_DESTINATION_MAPPER = None
-        return gateway.map_tool_to_destination(galaxy_app, job, tool, user, mapper_config_file=mapper_config)
+        return gateway.map_tool_to_destination(galaxy_app, job, tool, user, vortex_config_file=vortex_config)
 
     def test_map_rule_size_small(self):
         tool = mock_galaxy.Tool('bwa')
