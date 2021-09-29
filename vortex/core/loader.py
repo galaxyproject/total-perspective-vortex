@@ -50,6 +50,7 @@ class VortexConfigLoader(object):
                 validated[resource_id] = resource_class.from_dict(self, resource_dict)
             except Exception:
                 log.exception(f"Could not load resource of type: {resource_class} with data: {resource_dict}")
+                raise
         return validated
 
     def validate(self, destination_data: dict) -> dict:

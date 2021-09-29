@@ -11,12 +11,12 @@ from galaxy.jobs.mapper import JobMappingException
 class TestMapperRules(unittest.TestCase):
 
     @staticmethod
-    def _map_to_destination(tool, user, datasets, mapping_rules_path=None):
+    def _map_to_destination(tool, user, datasets, vortex_config_path=None):
         galaxy_app = mock_galaxy.App()
         job = mock_galaxy.Job()
         for d in datasets:
             job.add_input_dataset(d)
-        vortex_config = mapping_rules_path or os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rules.yml')
+        vortex_config = vortex_config_path or os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rules.yml')
         gateway.ACTIVE_DESTINATION_MAPPER = None
         return gateway.map_tool_to_destination(galaxy_app, job, tool, user, vortex_config_file=vortex_config)
 
@@ -73,7 +73,7 @@ class TestMapperRules(unittest.TestCase):
             user = mock_galaxy.User('gargravarr', 'fairycake@vortex.org')
             datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=5))]
 
-            destination = self._map_to_destination(tool, user, datasets, mapping_rules_path=tmp_file.name)
+            destination = self._map_to_destination(tool, user, datasets, vortex_config_path=tmp_file.name)
             self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_JOB_SLOTS_USER'], ['2'])
 
             # update the rule file
@@ -84,5 +84,14 @@ class TestMapperRules(unittest.TestCase):
             time.sleep(0.5)
 
             # should have loaded the new rules
-            destination = self._map_to_destination(tool, user, datasets, mapping_rules_path=tmp_file.name)
+            destination = self._map_to_destination(tool, user, datasets, vortex_config_path=tmp_file.name)
             self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_JOB_SLOTS_USER'], ['4'])
+
+    def test_map_with_syntax_error(self):
+        tool = mock_galaxy.Tool('bwa')
+        user = mock_galaxy.User('ford', 'prefect@vortex.org')
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=1))]
+
+        with self.assertRaises(SyntaxError):
+            vortex_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-syntax-error.yml')
+            self._map_to_destination(tool, user, datasets, vortex_config_path=vortex_config)

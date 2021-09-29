@@ -1,0 +1,66 @@
+tools:
+  default:
+    cores: 2
+    mem: 8
+    env: {}
+    scheduling:
+      required: []
+      preferred:
+        - general
+      tolerated:
+      rejected:
+        - pulsar
+    rules: []
+    rank: |
+      helpers.weighted_rand oops syntax! om_sampling(candidate_destinations)
+
+  bwa:
+    scheduling:
+      required:
+        - pulsar
+users:
+  default:
+    cores: 3
+    mem: 8
+    env: {}
+    scheduling:
+      required: []
+      preferred:
+        - general
+      tolerated:
+      rejected:
+        - pulsar
+    rules: []
+  fairycake@vortex.org:
+    scheduling:
+      required:
+        - pulsar
+  arthur@vortex.org:
+    scheduling:
+      required:
+        - earth
+  improbable@vortex.org:
+    scheduling:
+      required:
+        - pulsar
+      rejected:
+        - pulsar
+  .*@vortex.org:
+    scheduling:
+      required:
+        - pulsar
+
+destinations:
+  local:
+    cores: 4
+    mem: 16
+    scheduling:
+      preferred:
+        - general
+  k8s_environment:
+    cores: 16
+    mem: 64
+    gpus: 2
+    scheduling:
+      preferred:
+        - pulsar
