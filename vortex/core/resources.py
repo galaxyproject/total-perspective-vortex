@@ -161,11 +161,12 @@ class TagSetManager(object):
 
 class Resource(object):
 
-    def __init__(self, loader, id=None, cores=None, mem=None, env=None, params=None, tags=None, rank=None):
+    def __init__(self, loader, id=None, cores=None, mem=None, gpus=None, env=None, params=None, tags=None, rank=None):
         self.loader = loader
         self.id = id
         self.cores = cores
         self.mem = mem
+        self.gpus = gpus
         self.env = env
         self.params = params
         self.tags = TagSetManager.from_dict(tags or {})
@@ -182,6 +183,8 @@ class Resource(object):
             self.loader.compile_code_block(self.cores)
         if self.mem:
             self.loader.compile_code_block(self.mem)
+        if self.gpus:
+            self.loader.compile_code_block(self.gpus)
         if self.env:
             for key, entry in self.env.items():
                 self.loader.compile_code_block(entry, as_f_string=True)
@@ -192,7 +195,7 @@ class Resource(object):
             self.loader.compile_code_block(self.rank)
 
     def __repr__(self):
-        return f"{self.__class__} id={self.id}, cores={self.cores}, mem={self.mem}, " \
+        return f"{self.__class__} id={self.id}, cores={self.cores}, mem={self.mem}, gpus={self.gpus}, " \
                f"env={self.env}, params={self.params}, tags={self.tags}, rank={self.rank[:10] if self.rank else ''}"
 
     def override(self, resource):
@@ -200,6 +203,7 @@ class Resource(object):
         new_resource.id = self.id or resource.id
         new_resource.cores = self.cores or resource.cores
         new_resource.mem = self.mem or resource.mem
+        new_resource.gpus = self.gpus or resource.gpus
         new_resource.env = resource.env or {}
         new_resource.env.update(self.env or {})
         new_resource.params = resource.params or {}
@@ -244,9 +248,11 @@ class Resource(object):
         :param destination:
         :return:
         """
-        if destination.cores and destination.cores < self.cores:
+        if destination.cores and self.cores and destination.cores < self.cores:
             return False
-        if destination.mem and destination.mem < self.mem:
+        if destination.mem and self.mem and destination.mem < self.mem:
+            return False
+        if destination.gpus and self.gpus and destination.gpus < self.gpus:
             return False
         return self.tags.match(destination.tags or {})
 
@@ -258,6 +264,9 @@ class Resource(object):
         if self.mem:
             new_resource.mem = self.loader.eval_code_block(self.mem, context)
             context['mem'] = new_resource.mem
+        if self.gpus:
+            new_resource.gpus = self.loader.eval_code_block(self.gpus, context)
+            context['gpus'] = new_resource.gpus
         if self.env:
             evaluated_env = {}
             for key, entry in self.env.items():
@@ -288,8 +297,9 @@ class Resource(object):
 
 class ResourceWithRules(Resource):
 
-    def __init__(self, loader, id=None, cores=None, mem=None, env=None, params=None, tags=None, rank=None, rules=None):
-        super().__init__(loader, id, cores, mem, env, params, tags, rank)
+    def __init__(self, loader, id=None, cores=None, mem=None, gpus=None, env=None,
+                 params=None, tags=None, rank=None, rules=None):
+        super().__init__(loader, id, cores, mem, gpus, env, params, tags, rank)
         self.rules = self.validate_rules(rules)
 
     def validate_rules(self, rules: list) -> list:
@@ -308,6 +318,7 @@ class ResourceWithRules(Resource):
             id=resource_dict.get('id'),
             cores=resource_dict.get('cores'),
             mem=resource_dict.get('mem'),
+            gpus=resource_dict.get('gpus'),
             env=resource_dict.get('env'),
             params=resource_dict.get('params'),
             tags=resource_dict.get('scheduling'),
@@ -339,26 +350,30 @@ class ResourceWithRules(Resource):
 
 class Tool(ResourceWithRules):
 
-    def __init__(self, loader, id=None, cores=None, mem=None, env=None, params=None, tags=None, rank=None, rules=None):
-        super().__init__(loader, id, cores, mem, env, params, tags, rank, rules)
+    def __init__(self, loader, id=None, cores=None, mem=None, gpus=None,
+                 env=None, params=None, tags=None, rank=None, rules=None):
+        super().__init__(loader, id, cores, mem, gpus, env, params, tags, rank, rules)
 
 
 class User(ResourceWithRules):
 
-    def __init__(self, loader, id=None, cores=None, mem=None, env=None, params=None, tags=None, rank=None, rules=None):
-        super().__init__(loader, id, cores, mem, env, params, tags, rank, rules)
+    def __init__(self, loader, id=None, cores=None, mem=None, gpus=None,
+                 env=None, params=None, tags=None, rank=None, rules=None):
+        super().__init__(loader, id, cores, mem, gpus, env, params, tags, rank, rules)
 
 
 class Role(ResourceWithRules):
 
-    def __init__(self, loader, id=None, cores=None, mem=None, env=None, params=None, tags=None, rank=None, rules=None):
-        super().__init__(loader, id, cores, mem, env, params, tags, rank, rules)
+    def __init__(self, loader, id=None, cores=None, mem=None, gpus=None,
+                 env=None, params=None, tags=None, rank=None, rules=None):
+        super().__init__(loader, id, cores, mem, gpus, env, params, tags, rank, rules)
 
 
 class Destination(ResourceWithRules):
 
-    def __init__(self, loader, id=None, cores=None, mem=None, env=None, params=None, tags=None, rules=None):
-        super().__init__(loader, id, cores, mem, env, params, tags, rules=rules)
+    def __init__(self, loader, id=None, cores=None, mem=None, gpus=None,
+                 env=None, params=None, tags=None, rules=None):
+        super().__init__(loader, id, cores, mem, gpus, env, params, tags, rules=rules)
 
     @staticmethod
     def from_dict(loader, resource_dict):
@@ -367,6 +382,7 @@ class Destination(ResourceWithRules):
             id=resource_dict.get('id'),
             cores=resource_dict.get('cores'),
             mem=resource_dict.get('mem'),
+            gpus=resource_dict.get('gpus'),
             env=resource_dict.get('env'),
             params=resource_dict.get('params'),
             tags=resource_dict.get('scheduling'),
@@ -376,8 +392,9 @@ class Destination(ResourceWithRules):
 
 class Rule(Resource):
 
-    def __init__(self, loader, id=None, cores=None, mem=None, env=None, params=None, tags=None, match=None, fail=None):
-        super().__init__(loader, id, cores, mem, env, params, tags)
+    def __init__(self, loader, id=None, cores=None, mem=None, gpus=None,
+                 env=None, params=None, tags=None, match=None, fail=None):
+        super().__init__(loader, id, cores, mem, gpus, env, params, tags)
         self.match = match
         self.fail = fail
         if self.match:
@@ -392,6 +409,7 @@ class Rule(Resource):
             id=resource_dict.get('id'),
             cores=resource_dict.get('cores'),
             mem=resource_dict.get('mem'),
+            gpus=resource_dict.get('gpus'),
             env=resource_dict.get('env'),
             params=resource_dict.get('params'),
             tags=resource_dict.get('scheduling'),
