@@ -18,6 +18,13 @@ tools:
     scheduling:
       required:
         - pulsar
+  trinity:
+    rank: ~
+    scheduling:
+      required:
+        - pulsar
+      preferred:
+        - highmem
 users:
   default:
     cores: 3
@@ -64,3 +71,11 @@ destinations:
     scheduling:
       preferred:
         - pulsar
+  another_k8s_environment:
+    cores: 16
+    mem: 64
+    gpus: 2
+    scheduling:
+      preferred:
+        - pulsar
+        - highmem

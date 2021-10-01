@@ -19,6 +19,9 @@ execution:
     k8s_environment:
       runner: k8s
       docker_enabled: true
+    another_k8s_environment:
+      runner: k8s
+      docker_enabled: true
     vortex_dispatcher:
       runner: dynamic
       type: python

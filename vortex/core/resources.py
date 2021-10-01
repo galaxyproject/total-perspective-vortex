@@ -288,9 +288,8 @@ class Resource(object):
             context['candidate_destinations'] = destinations
             return self.loader.eval_code_block(self.rank, context)
         else:
-            # Just return in whatever order the destinations
-            # were originally found
-            return destinations
+            # Sort destinations by priority
+            return sorted(destinations, key=lambda d: (-1 * d.score(self)))
 
     def score(self, resource):
         score = self.tags.score(resource.tags)
