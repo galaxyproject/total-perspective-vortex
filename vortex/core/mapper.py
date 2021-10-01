@@ -45,7 +45,7 @@ class ResourceToDestinationMapper(object):
         return resource.rank_destinations(destinations, context)
 
     def find_best_match(self, resource, destinations, context):
-        matches = [dest for dest in destinations.values() if resource.match(dest, context)]
+        matches = [dest for dest in destinations.values() if resource.matches(dest, context)]
         rankings = self.rank(resource, matches, context)
         return rankings[0] if rankings else None
 

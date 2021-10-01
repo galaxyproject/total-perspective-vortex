@@ -210,7 +210,7 @@ class Resource(object):
         new_resource.env.update(self.env or {})
         new_resource.params = resource.params or {}
         new_resource.params.update(self.params or {})
-        new_resource.rank = self.rank or resource.rank
+        new_resource.rank = self.rank if self.rank is not None else resource.rank
         return new_resource
 
     def extend(self, resource):
@@ -239,7 +239,7 @@ class Resource(object):
         new_resource.tags = self.tags.merge(resource.tags)
         return new_resource
 
-    def match(self, destination, context):
+    def matches(self, destination, context):
         """
         The match operation checks whether all of the required tags in a resource are present
         in the destination resource, and none of the rejected tags in the first resource are
@@ -289,7 +289,7 @@ class Resource(object):
             return self.loader.eval_code_block(self.rank, context)
         else:
             # Sort destinations by priority
-            return sorted(destinations, key=lambda d: (-1 * d.score(self)))
+            return sorted(destinations, key=lambda d: d.score(self), reverse=True)
 
     def score(self, resource):
         score = self.tags.score(resource.tags)
@@ -304,10 +304,11 @@ class ResourceWithRules(Resource):
         self.rules = self.validate_rules(rules)
 
     def validate_rules(self, rules: list) -> list:
-        validated = []
+        validated = {}
         for rule in rules or []:
             try:
-                validated.append(Rule.from_dict(self.loader, rule))
+                validated_rule = Rule.from_dict(self.loader, rule)
+                validated[validated_rule.id] = validated_rule
             except Exception:
                 log.exception(f"Could not load rule for resource: {self.__class__} with id: {self.id} and data: {rule}")
         return validated
@@ -327,19 +328,18 @@ class ResourceWithRules(Resource):
             rules=resource_dict.get('rules')
         )
 
-    def extend(self, resource):
-        new_resource = super().extend(resource)
-        new_resource.rules = (self.rules or []) + (resource.rules or [])
-        return new_resource
-
-    def merge(self, resource):
-        new_resource = super().merge(resource)
-        new_resource.rules = (self.rules or []) + (resource.rules or [])
+    def override(self, resource):
+        new_resource = super().override(resource)
+        new_resource.rules = copy.copy(resource.rules)
+        new_resource.rules.update(self.rules or {})
+        for rule in self.rules.values():
+            if resource.rules.get(rule.id):
+                new_resource.rules[rule.id] = rule.extend(resource.rules[rule.id])
         return new_resource
 
     def evaluate(self, context):
         new_resource = self
-        for rule in self.rules:
+        for rule in self.rules.values():
             if rule.is_matching(context):
                 new_resource = rule.extend(new_resource)
         return super(ResourceWithRules, new_resource).evaluate(context)
@@ -392,8 +392,13 @@ class Destination(ResourceWithRules):
 
 class Rule(Resource):
 
+    rule_counter = 0
+
     def __init__(self, loader, id=None, cores=None, mem=None, gpus=None,
                  env=None, params=None, tags=None, match=None, fail=None):
+        if not id:
+            Rule.rule_counter += 1
+            id = f"vortex_rule_{Rule.rule_counter}"
         super().__init__(loader, id, cores, mem, gpus, env, params, tags)
         self.match = match
         self.fail = fail
@@ -416,6 +421,12 @@ class Rule(Resource):
             match=resource_dict.get('match'),
             fail=resource_dict.get('fail')
         )
+
+    def override(self, resource):
+        new_resource = super().override(resource)
+        new_resource.match = self.match if self.match is not None else getattr(resource, 'match', None)
+        new_resource.fail = self.fail if self.fail is not None else getattr(resource, 'fail', None)
+        return new_resource
 
     def __repr__(self):
         return super().__repr__() + f", match={self.match}, fail={self.fail}"

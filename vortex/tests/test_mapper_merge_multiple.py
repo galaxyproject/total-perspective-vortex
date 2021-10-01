@@ -5,7 +5,7 @@ from . import mock_galaxy
 from galaxy.jobs.mapper import JobMappingException
 
 
-class TestMapperRules(unittest.TestCase):
+class TestMapperMergeMultipleConfigs(unittest.TestCase):
 
     @staticmethod
     def _map_to_destination(tool, user, datasets, vortex_config_paths):
@@ -64,3 +64,20 @@ class TestMapperRules(unittest.TestCase):
         self.assertEqual(destination.id, "k8s_environment")
         self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_JOB_SLOTS'], ['2'])
         self.assertEqual(destination.params['native_spec'], '--mem 8 --cores 2')
+
+    def test_merge_rules(self):
+        tool = mock_galaxy.Tool('bwa')
+        user = mock_galaxy.User('ford', 'prefect@vortex.org')
+
+        config_first = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-merge-multiple-remote.yml')
+        config_second = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-merge-multiple-local.yml')
+
+        # the highmem rule should take effect
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=42))]
+        with self.assertRaisesRegex(JobMappingException, "a different kind of error"):
+            self._map_to_destination(tool, user, datasets, vortex_config_paths=[config_first])
+
+        # the highmem rule should not take effect for this size, as we've overridden it
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=42))]
+        destination = self._map_to_destination(tool, user, datasets, vortex_config_paths=[config_first, config_second])
+        self.assertEqual(destination.id, "another_k8s_environment")

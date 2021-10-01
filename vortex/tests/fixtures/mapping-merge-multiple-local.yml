@@ -22,11 +22,13 @@ tools:
     rules:
       - match: input_size <= 10
         mem: cores * 4
-      - match: input_size > 10 and input_size < 20
+      - id: highmem_rule
+        match: input_size > 40
+        fail: ""
         scheduling:
           required:
             - highmem
-      - match: input_size >= 20
+      - match: input_size >= 20 and input_size <= 30
         fail: Too much data, shouldn't run
 users:
   fairycake@vortex.org:
@@ -52,3 +54,11 @@ destinations:
     scheduling:
       preferred:
         - pulsar
+  another_k8s_environment:
+    cores: 16
+    mem: 64
+    gpus: 2
+    scheduling:
+      preferred:
+        - pulsar
+        - highmem

@@ -7,6 +7,10 @@ tools:
       - match: input_size < 5
         fail: We don't run piddling datasets
   bwa:
+    rules:
+      - id: highmem_rule
+        match: input_size > 40
+        fail: a different kind of error
     scheduling:
       required:
         - pulsar
