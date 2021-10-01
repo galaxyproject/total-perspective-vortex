@@ -18,7 +18,7 @@ class TestMapperRules(unittest.TestCase):
             job.add_input_dataset(d)
         vortex_config = vortex_config_path or os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rules.yml')
         gateway.ACTIVE_DESTINATION_MAPPER = None
-        return gateway.map_tool_to_destination(galaxy_app, job, tool, user, vortex_config_file=vortex_config)
+        return gateway.map_tool_to_destination(galaxy_app, job, tool, user, vortex_config_files=[vortex_config])
 
     def test_map_rule_size_small(self):
         tool = mock_galaxy.Tool('bwa')
@@ -35,8 +35,8 @@ class TestMapperRules(unittest.TestCase):
 
         destination = self._map_to_destination(tool, user, datasets)
         self.assertEqual(destination.id, "k8s_environment")
-        self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_JOB_SLOTS'], ['2'])
-        self.assertEqual(destination.params['native_spec'], '--mem 6 --cores 2')
+        self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_JOB_SLOTS'], ['4'])
+        self.assertEqual(destination.params['native_spec'], '--mem 16 --cores 4')
 
     def test_map_rule_size_large(self):
         tool = mock_galaxy.Tool('bwa')
@@ -61,8 +61,8 @@ class TestMapperRules(unittest.TestCase):
 
         destination = self._map_to_destination(tool, user, datasets)
         self.assertEqual(destination.id, "k8s_environment")
-        self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_JOB_SLOTS_USER'], ['2'])
-        self.assertEqual(destination.params['native_spec_user'], '--mem 6 --cores 2')
+        self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_JOB_SLOTS_USER'], ['4'])
+        self.assertEqual(destination.params['native_spec_user'], '--mem 16 --cores 4')
 
     def test_rules_automatically_reload_on_update(self):
         with tempfile.NamedTemporaryFile('w+t') as tmp_file:
@@ -74,7 +74,7 @@ class TestMapperRules(unittest.TestCase):
             datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=5))]
 
             destination = self._map_to_destination(tool, user, datasets, vortex_config_path=tmp_file.name)
-            self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_JOB_SLOTS_USER'], ['2'])
+            self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_JOB_SLOTS_USER'], ['4'])
 
             # update the rule file
             updated_rule_file = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rules-changed.yml')
@@ -85,7 +85,7 @@ class TestMapperRules(unittest.TestCase):
 
             # should have loaded the new rules
             destination = self._map_to_destination(tool, user, datasets, vortex_config_path=tmp_file.name)
-            self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_JOB_SLOTS_USER'], ['4'])
+            self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_JOB_SLOTS_USER'], ['8'])
 
     def test_map_with_syntax_error(self):
         tool = mock_galaxy.Tool('bwa')

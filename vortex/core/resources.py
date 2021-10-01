@@ -40,11 +40,13 @@ class Tag:
 class IncompatibleTagsException(Exception):
 
     def __init__(self, first_set, second_set):
+
         super().__init__(
             f"Cannot merge tag sets because required and rejected tags mismatch. First tag set requires:"
-            f" {first_set.filter(TagType.REQUIRED)} and rejects: {first_set.filter(TagType.REJECTED)}."
-            f" Second tag set requires: {second_set.filter(TagType.REQUIRED)} and rejects:"
-            f" {second_set.filter(TagType.REJECTED)}.")
+            f" {[tag.value for tag in first_set.filter(TagType.REQUIRED)]} and rejects:"
+            f" {[tag.value for tag in first_set.filter(TagType.REJECTED)]}. Second tag set requires:"
+            f" {[tag.value for tag in second_set.filter(TagType.REQUIRED)]} and rejects:"
+            f" {[tag.value for tag in second_set.filter(TagType.REJECTED)]}.")
 
 
 class TagSetManager(object):
@@ -337,12 +339,11 @@ class ResourceWithRules(Resource):
         return new_resource
 
     def evaluate(self, context):
-        new_resource = super().evaluate(context)
-        for rule in new_resource.rules:
-            evaluated = rule.evaluate(context)
-            if evaluated:
-                new_resource = evaluated.extend(new_resource)
-        return new_resource
+        new_resource = self
+        for rule in self.rules:
+            if rule.is_matching(context):
+                new_resource = rule.extend(new_resource)
+        return super(ResourceWithRules, new_resource).evaluate(context)
 
     def __repr__(self):
         return super().__repr__() + f", rules={self.rules}"
@@ -420,16 +421,16 @@ class Rule(Resource):
     def __repr__(self):
         return super().__repr__() + f", match={self.match}, fail={self.fail}"
 
-    def evaluate(self, context):
+    def is_matching(self, context):
         try:
             if self.loader.eval_code_block(self.match, context):
                 if self.fail:
                     raise JobMappingException(
                         self.loader.eval_code_block(self.fail, context, as_f_string=True))
-                return super().evaluate(context)
+                return True
             else:
-                return {}
+                return False
         except JobMappingException:
             raise
         except Exception as e:
-            raise Exception(f"Error evaluating rule: {self.match}") from e
+            raise Exception(f"Error evaluating rule: {self}") from e

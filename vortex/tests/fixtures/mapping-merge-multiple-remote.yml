@@ -1,0 +1,12 @@
+tools:
+  default:
+    cores: 2
+    mem: 8
+    env: {}
+    rules:
+      - match: input_size < 5
+        fail: We don't run piddling datasets
+  bwa:
+    scheduling:
+      required:
+        - pulsar

@@ -1,7 +1,11 @@
+from __future__ import annotations
 import ast
 import functools
 import logging
+import os
 import yaml
+
+import requests
 
 from . import helpers
 from .resources import Tool, User, Role, Destination
@@ -11,9 +15,9 @@ log = logging.getLogger(__name__)
 
 class VortexConfigLoader(object):
 
-    def __init__(self, destination_data: dict):
+    def __init__(self, vortex_config: dict):
         self.compile_code_block = functools.lru_cache(maxsize=0)(self.__compile_code_block)
-        validated = self.validate(destination_data)
+        validated = self.validate(vortex_config)
         self.tools = validated.get('tools')
         self.users = validated.get('users')
         self.roles = validated.get('roles')
@@ -53,17 +57,35 @@ class VortexConfigLoader(object):
                 raise
         return validated
 
-    def validate(self, destination_data: dict) -> dict:
+    def validate(self, vortex_config: dict) -> dict:
         validated = {
-            'tools': self.validate_resources(Tool, destination_data.get('tools', {})),
-            'users': self.validate_resources(User, destination_data.get('users', {})),
-            'roles': self.validate_resources(Role, destination_data.get('roles', {})),
-            'destinations': self.validate_resources(Destination, destination_data.get('destinations', {}))
+            'tools': self.validate_resources(Tool, vortex_config.get('tools', {})),
+            'users': self.validate_resources(User, vortex_config.get('users', {})),
+            'roles': self.validate_resources(Role, vortex_config.get('roles', {})),
+            'destinations': self.validate_resources(Destination, vortex_config.get('destinations', {}))
         }
         return validated
 
+    def extend_existing_resources(self, resources_current, resources_new):
+        for resource in resources_new.values():
+            if resources_current.get(resource.id):
+                resources_current[resource.id] = resource.extend(resources_current.get(resource.id))
+            else:
+                resources_current[resource.id] = resource
+
+    def merge_loader(self, loader: VortexConfigLoader):
+        self.extend_existing_resources(self.tools, loader.tools)
+        self.extend_existing_resources(self.users, loader.users)
+        self.extend_existing_resources(self.roles, loader.roles)
+        self.extend_existing_resources(self.destinations, loader.destinations)
+
     @staticmethod
-    def from_file_path(path: str):
-        with open(path, 'r') as f:
-            dest_data = yaml.safe_load(f)
-            return VortexConfigLoader(dest_data)
+    def from_url_or_path(url_or_path: str):
+        if os.path.isfile(url_or_path):
+            with open(url_or_path, 'r') as f:
+                vortex_config = yaml.safe_load(f)
+                return VortexConfigLoader(vortex_config)
+        else:
+            with requests.get(url_or_path) as r:
+                vortex_config = yaml.safe_load(r.content)
+                return VortexConfigLoader(vortex_config)

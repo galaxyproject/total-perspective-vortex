@@ -18,7 +18,8 @@ with open("README.md", "r") as fh:
 REQS_FULL = [
     "cachetools>=3.1.0",
     "galaxy-app",
-    "watchdog"
+    "watchdog",
+    "requests"
 ]
 
 REQS_TEST = ([

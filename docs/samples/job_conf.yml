@@ -19,7 +19,9 @@ execution:
       type: python
       function: map_tool_to_destination
       rules_module: vortex.rules
-      vortex_config_file: config/vortex_rules.yml
+      vortex_config_files:
+        - https://github.com/usegalaxy-au/total-perspective-vortex/raw/main/vortex/tests/fixtures/mapping-rules.yml
+        - config/vortex_rules_local.yml
     local:
       runner: local
     k8s_environment:
