@@ -17,23 +17,14 @@ class ResourceToDestinationMapper(object):
         self.destinations = destinations
 
     def _find_resource_by_id_regex(self, resource_list, resource_name):
-        default_resource = resource_list.get('default')
         # shortcut for direct match
         if resource_list.get(resource_name):
-            resource = resource_list.get(resource_name)
-            if default_resource:
-                return resource.extend(default_resource)
-            else:
-                return resource
+            return resource_list.get(resource_name)
         else:
             for key in resource_list.keys():
                 if re.match(key, resource_name):
-                    resource = resource_list[key]
-                    if default_resource:
-                        return resource.extend(default_resource)
-                    else:
-                        return resource
-            return default_resource
+                    return resource_list[key]
+            return resource_list.get('default')
 
     def merge_resources(self, resources):
         merged_resource = resources[0]

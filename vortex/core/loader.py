@@ -8,7 +8,7 @@ import yaml
 import requests
 
 from . import helpers
-from .resources import Tool, User, Role, Destination
+from .resources import Tool, User, Role, Destination, Resource
 
 log = logging.getLogger(__name__)
 
@@ -17,11 +17,11 @@ class VortexConfigLoader(object):
 
     def __init__(self, vortex_config: dict):
         self.compile_code_block = functools.lru_cache(maxsize=0)(self.__compile_code_block)
-        validated = self.validate(vortex_config)
-        self.tools = validated.get('tools')
-        self.users = validated.get('users')
-        self.roles = validated.get('roles')
-        self.destinations = validated.get('destinations')
+        resources = self.load_resources(vortex_config)
+        self.tools = resources.get('tools')
+        self.users = resources.get('users')
+        self.roles = resources.get('roles')
+        self.destinations = resources.get('destinations')
 
     def __compile_code_block(self, code, as_f_string=False):
         if as_f_string:
@@ -46,18 +46,27 @@ class VortexConfigLoader(object):
         exec(exec_block, locals)
         return eval(eval_block, locals)
 
+    @staticmethod
+    def process_default_inheritance(resources: dict[str, Resource]):
+        default_resource = resources.get('default')
+        for key in resources.keys():
+            if default_resource and not key == "default":
+                resources[key] = resources[key].extend(default_resource)
+
     def validate_resources(self, resource_class: type, resource_list: dict) -> dict:
         validated = {}
         for resource_id, resource_dict in resource_list.items():
             try:
                 resource_dict['id'] = resource_id
+                resource_class.from_dict(self, resource_dict)
                 validated[resource_id] = resource_class.from_dict(self, resource_dict)
             except Exception:
                 log.exception(f"Could not load resource of type: {resource_class} with data: {resource_dict}")
                 raise
+        self.process_default_inheritance(validated)
         return validated
 
-    def validate(self, vortex_config: dict) -> dict:
+    def load_resources(self, vortex_config: dict) -> dict:
         validated = {
             'tools': self.validate_resources(Tool, vortex_config.get('tools', {})),
             'users': self.validate_resources(User, vortex_config.get('users', {})),
@@ -72,6 +81,7 @@ class VortexConfigLoader(object):
                 resources_current[resource.id] = resource.extend(resources_current.get(resource.id))
             else:
                 resources_current[resource.id] = resource
+        self.process_default_inheritance(resources_current)
 
     def merge_loader(self, loader: VortexConfigLoader):
         self.extend_existing_resources(self.tools, loader.tools)
