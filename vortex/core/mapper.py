@@ -1,3 +1,4 @@
+import functools
 import logging
 import re
 from typing import Dict
@@ -15,6 +16,10 @@ class ResourceToDestinationMapper(object):
         self.users = users
         self.roles = roles
         self.destinations = destinations
+        self.lookup_tool_regex = functools.lru_cache(maxsize=0)(self.__compile_tool_regex)
+
+    def __compile_tool_regex(self, key):
+        return re.compile(key)
 
     def _find_resource_by_id_regex(self, resource_list, resource_name):
         # shortcut for direct match
@@ -22,7 +27,7 @@ class ResourceToDestinationMapper(object):
             return resource_list.get(resource_name)
         else:
             for key in resource_list.keys():
-                if re.match(key, resource_name):
+                if self.lookup_tool_regex(key).match(resource_name):
                     return resource_list[key]
             return resource_list.get('default')
 
