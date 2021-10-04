@@ -16,7 +16,7 @@ class ResourceToDestinationMapper(object):
         self.users = users
         self.roles = roles
         self.destinations = destinations
-        self.lookup_tool_regex = functools.lru_cache(maxsize=0)(self.__compile_tool_regex)
+        self.lookup_tool_regex = functools.lru_cache(maxsize=None)(self.__compile_tool_regex)
 
     def __compile_tool_regex(self, key):
         return re.compile(key)

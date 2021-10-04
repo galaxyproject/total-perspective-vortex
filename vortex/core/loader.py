@@ -16,7 +16,7 @@ log = logging.getLogger(__name__)
 class VortexConfigLoader(object):
 
     def __init__(self, vortex_config: dict):
-        self.compile_code_block = functools.lru_cache(maxsize=0)(self.__compile_code_block)
+        self.compile_code_block = functools.lru_cache(maxsize=None)(self.__compile_code_block)
         resources = self.load_resources(vortex_config)
         self.tools = resources.get('tools')
         self.users = resources.get('users')
