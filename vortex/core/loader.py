@@ -13,10 +13,15 @@ from .resources import Tool, User, Role, Destination, Resource
 log = logging.getLogger(__name__)
 
 
+class InvalidParentException(Exception):
+    pass
+
+
 class VortexConfigLoader(object):
 
     def __init__(self, vortex_config: dict):
         self.compile_code_block = functools.lru_cache(maxsize=None)(self.__compile_code_block)
+        self.global_settings = vortex_config.get('global', {})
         resources = self.load_resources(vortex_config)
         self.tools = resources.get('tools')
         self.users = resources.get('users')
@@ -46,12 +51,24 @@ class VortexConfigLoader(object):
         exec(exec_block, locals)
         return eval(eval_block, locals)
 
-    @staticmethod
-    def process_default_inheritance(resources: dict[str, Resource]):
-        default_resource = resources.get('default')
-        for key in resources.keys():
-            if default_resource and not key == "default":
-                resources[key] = resources[key].extend(default_resource)
+    def process_inheritance(self, resource_list: dict[str, Resource], resource: Resource):
+        if resource.inherits:
+            parent_resource = resource_list.get(resource.inherits)
+            if not parent_resource:
+                raise InvalidParentException(f"The specified parent: {resource.inherits} for"
+                                             f" resource: {resource} does not exist")
+            return resource.extend(self.process_inheritance(resource_list, parent_resource))
+        else:
+            default_inherits = self.global_settings.get('default_inherits')
+            if default_inherits and not resource.id == default_inherits:
+                default_parent = resource_list.get(default_inherits)
+                return resource.extend(default_parent)
+            else:
+                return resource
+
+    def recompute_inheritance(self, resources: dict[str, Resource]):
+        for key, resource in resources.items():
+            resources[key] = self.process_inheritance(resources, resource)
 
     def validate_resources(self, resource_class: type, resource_list: dict) -> dict:
         validated = {}
@@ -63,7 +80,7 @@ class VortexConfigLoader(object):
             except Exception:
                 log.exception(f"Could not load resource of type: {resource_class} with data: {resource_dict}")
                 raise
-        self.process_default_inheritance(validated)
+        self.recompute_inheritance(validated)
         return validated
 
     def load_resources(self, vortex_config: dict) -> dict:
@@ -81,9 +98,10 @@ class VortexConfigLoader(object):
                 resources_current[resource.id] = resource.extend(resources_current.get(resource.id))
             else:
                 resources_current[resource.id] = resource
-        self.process_default_inheritance(resources_current)
+        self.recompute_inheritance(resources_current)
 
     def merge_loader(self, loader: VortexConfigLoader):
+        self.global_settings.update(loader.global_settings)
         self.extend_existing_resources(self.tools, loader.tools)
         self.extend_existing_resources(self.users, loader.users)
         self.extend_existing_resources(self.roles, loader.roles)

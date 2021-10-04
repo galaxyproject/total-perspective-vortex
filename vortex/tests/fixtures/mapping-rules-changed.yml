@@ -1,3 +1,6 @@
+global:
+  default_inherits: default
+
 tools:
   default:
     cores: 2

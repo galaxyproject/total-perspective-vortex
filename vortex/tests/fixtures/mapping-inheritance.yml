@@ -3,11 +3,13 @@ global:
 
 tools:
   default:
+    cores: 2
     mem: cores * 3
+    gpus: 1
     env:
       TEST_JOB_SLOTS: "{cores}"
     params:
-      native_spec: "--mem {mem} --cores {cores}"
+      native_spec: "--mem {mem} --cores {cores} --gpus {gpus}"
     scheduling:
       required: []
       preferred:
@@ -19,29 +21,32 @@ tools:
       - match: input_size < 5
         fail: We don't run piddling datasets
   bwa:
+    gpus: 2
     scheduling:
       required:
         - pulsar
     rules:
       - match: input_size <= 10
+        cores: 4
         mem: cores * 4
-      - id: highmem_rule
-        match: input_size > 40
-        fail: ""
-        scheduling:
-          required:
-            - highmem
-      - match: input_size >= 20 and input_size <= 30
+      - match: input_size >= 20
         fail: Too much data, shouldn't run
-users:
-  fairycake@vortex.org:
-    env:
-      TEST_JOB_SLOTS_USER: "{cores}"
-    params:
-      native_spec_user: "--mem {mem} --cores {cores}"
+  trinity:
+    inherits: bwa
+    gpus: 3
+  hisat:
+    inherits: trinity
+    gpus: 4
     scheduling:
-      required:
+      required: []
+      preferred:
+        - general
+      tolerated:
+      rejected:
         - pulsar
+  tophat:
+    inherits: ~
+    gpus: 5
 
 destinations:
   local:
@@ -53,15 +58,7 @@ destinations:
   k8s_environment:
     cores: 16
     mem: 64
-    gpus: 2
+    gpus: 5
     scheduling:
       preferred:
         - pulsar
-  another_k8s_environment:
-    cores: 16
-    mem: 64
-    gpus: 2
-    scheduling:
-      preferred:
-        - pulsar
-        - highmem

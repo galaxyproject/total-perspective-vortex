@@ -1,21 +1,21 @@
 import functools
 import logging
 import re
-from typing import Dict
 
-from .resources import Tool, User, Role, Destination
+from .loader import VortexConfigLoader
 
 log = logging.getLogger(__name__)
 
 
 class ResourceToDestinationMapper(object):
 
-    def __init__(self, tools: Dict[str, Tool], users: Dict[str, User], roles: Dict[str, Role],
-                 destinations: Dict[str, Destination]):
-        self.tools = tools
-        self.users = users
-        self.roles = roles
-        self.destinations = destinations
+    def __init__(self, loader: VortexConfigLoader):
+        self.loader = loader
+        self.tools = loader.tools
+        self.users = loader.users
+        self.roles = loader.roles
+        self.destinations = loader.destinations
+        self.default_inherits = loader.global_settings.get('default_inherits')
         self.lookup_tool_regex = functools.lru_cache(maxsize=None)(self.__compile_tool_regex)
 
     def __compile_tool_regex(self, key):
@@ -29,7 +29,9 @@ class ResourceToDestinationMapper(object):
             for key in resource_list.keys():
                 if self.lookup_tool_regex(key).match(resource_name):
                     return resource_list[key]
-            return resource_list.get('default')
+            if self.default_inherits:
+                return resource_list.get(self.default_inherits)
+            return None
 
     def merge_resources(self, resources):
         merged_resource = resources[0]

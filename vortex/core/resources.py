@@ -163,7 +163,8 @@ class TagSetManager(object):
 
 class Resource(object):
 
-    def __init__(self, loader, id=None, cores=None, mem=None, gpus=None, env=None, params=None, tags=None, rank=None):
+    def __init__(self, loader, id=None, cores=None, mem=None, gpus=None, env=None, params=None, tags=None, rank=None,
+                 inherits=None):
         self.loader = loader
         self.id = id
         self.cores = cores
@@ -173,6 +174,7 @@ class Resource(object):
         self.params = params
         self.tags = TagSetManager.from_dict(tags or {})
         self.rank = rank
+        self.inherits = inherits
         self.validate()
 
     def validate(self):
@@ -198,7 +200,8 @@ class Resource(object):
 
     def __repr__(self):
         return f"{self.__class__} id={self.id}, cores={self.cores}, mem={self.mem}, gpus={self.gpus}, " \
-               f"env={self.env}, params={self.params}, tags={self.tags}, rank={self.rank[:10] if self.rank else ''}"
+               f"env={self.env}, params={self.params}, tags={self.tags}, rank={self.rank[:10] if self.rank else ''}, " \
+               f"inherits={self.inherits}"
 
     def override(self, resource):
         new_resource = copy.copy(resource)
@@ -211,12 +214,16 @@ class Resource(object):
         new_resource.params = resource.params or {}
         new_resource.params.update(self.params or {})
         new_resource.rank = self.rank if self.rank is not None else resource.rank
+        new_resource.inherits = self.inherits if self.inherits is not None else resource.inherits
         return new_resource
 
     def extend(self, resource):
-        new_resource = self.override(resource)
-        new_resource.tags = self.tags.extend(resource.tags)
-        return new_resource
+        if resource:
+            new_resource = self.override(resource)
+            new_resource.tags = self.tags.extend(resource.tags)
+            return new_resource
+        else:
+            return self
 
     def merge(self, resource):
         """
@@ -299,8 +306,8 @@ class Resource(object):
 class ResourceWithRules(Resource):
 
     def __init__(self, loader, id=None, cores=None, mem=None, gpus=None, env=None,
-                 params=None, tags=None, rank=None, rules=None):
-        super().__init__(loader, id, cores, mem, gpus, env, params, tags, rank)
+                 params=None, tags=None, rank=None, inherits=None, rules=None):
+        super().__init__(loader, id, cores, mem, gpus, env, params, tags, rank, inherits)
         self.rules = self.validate_rules(rules)
 
     def validate_rules(self, rules: list) -> list:
@@ -325,6 +332,7 @@ class ResourceWithRules(Resource):
             params=resource_dict.get('params'),
             tags=resource_dict.get('scheduling'),
             rank=resource_dict.get('rank'),
+            inherits=resource_dict.get('inherits'),
             rules=resource_dict.get('rules')
         )
 
@@ -351,29 +359,29 @@ class ResourceWithRules(Resource):
 class Tool(ResourceWithRules):
 
     def __init__(self, loader, id=None, cores=None, mem=None, gpus=None,
-                 env=None, params=None, tags=None, rank=None, rules=None):
-        super().__init__(loader, id, cores, mem, gpus, env, params, tags, rank, rules)
+                 env=None, params=None, tags=None, rank=None, inherits=None, rules=None):
+        super().__init__(loader, id, cores, mem, gpus, env, params, tags, rank, inherits, rules)
 
 
 class User(ResourceWithRules):
 
     def __init__(self, loader, id=None, cores=None, mem=None, gpus=None,
-                 env=None, params=None, tags=None, rank=None, rules=None):
-        super().__init__(loader, id, cores, mem, gpus, env, params, tags, rank, rules)
+                 env=None, params=None, tags=None, rank=None, inherits=None, rules=None):
+        super().__init__(loader, id, cores, mem, gpus, env, params, tags, rank, inherits, rules)
 
 
 class Role(ResourceWithRules):
 
     def __init__(self, loader, id=None, cores=None, mem=None, gpus=None,
-                 env=None, params=None, tags=None, rank=None, rules=None):
-        super().__init__(loader, id, cores, mem, gpus, env, params, tags, rank, rules)
+                 env=None, params=None, tags=None, rank=None, inherits=None, rules=None):
+        super().__init__(loader, id, cores, mem, gpus, env, params, tags, rank, inherits, rules)
 
 
 class Destination(ResourceWithRules):
 
     def __init__(self, loader, id=None, cores=None, mem=None, gpus=None,
-                 env=None, params=None, tags=None, rules=None):
-        super().__init__(loader, id, cores, mem, gpus, env, params, tags, rules=rules)
+                 env=None, params=None, tags=None, inherits=None, rules=None):
+        super().__init__(loader, id, cores, mem, gpus, env, params, tags, inherits, rules=rules)
 
     @staticmethod
     def from_dict(loader, resource_dict):
@@ -386,6 +394,7 @@ class Destination(ResourceWithRules):
             env=resource_dict.get('env'),
             params=resource_dict.get('params'),
             tags=resource_dict.get('scheduling'),
+            inherits=resource_dict.get('inherits'),
             rules=resource_dict.get('rules')
         )
 
@@ -395,11 +404,11 @@ class Rule(Resource):
     rule_counter = 0
 
     def __init__(self, loader, id=None, cores=None, mem=None, gpus=None,
-                 env=None, params=None, tags=None, match=None, fail=None):
+                 env=None, params=None, tags=None, inherits=None, match=None, fail=None):
         if not id:
             Rule.rule_counter += 1
             id = f"vortex_rule_{Rule.rule_counter}"
-        super().__init__(loader, id, cores, mem, gpus, env, params, tags)
+        super().__init__(loader, id, cores, mem, gpus, env, params, tags, inherits=inherits)
         self.match = match
         self.fail = fail
         if self.match:
@@ -418,6 +427,7 @@ class Rule(Resource):
             env=resource_dict.get('env'),
             params=resource_dict.get('params'),
             tags=resource_dict.get('scheduling'),
+            inherits=resource_dict.get('inherits'),
             match=resource_dict.get('match'),
             fail=resource_dict.get('fail')
         )

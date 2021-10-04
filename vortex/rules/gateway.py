@@ -20,7 +20,7 @@ def load_destination_mapper(vortex_config_files, reload=False):
             loader.merge_loader(current_loader)
         else:
             loader = current_loader
-    return ResourceToDestinationMapper(loader.tools, loader.users, loader.roles, loader.destinations)
+    return ResourceToDestinationMapper(loader)
 
 
 def reload_destination_mapper(path=None):
