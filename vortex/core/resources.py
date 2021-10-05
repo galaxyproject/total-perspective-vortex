@@ -292,14 +292,17 @@ class Resource(object):
 
     def rank_destinations(self, destinations, context):
         if self.rank:
+            log.debug(f"Ranking destinations: {destinations} for resource: {self} using custom function")
             context['candidate_destinations'] = destinations
             return self.loader.eval_code_block(self.rank, context)
         else:
             # Sort destinations by priority
+            log.debug(f"Ranking destinations: {destinations} for resource: {self} using custom default ranker")
             return sorted(destinations, key=lambda d: d.score(self), reverse=True)
 
     def score(self, resource):
         score = self.tags.score(resource.tags)
+        log.debug(f"Destination: {resource} scored: {score}")
         return score
 
 
