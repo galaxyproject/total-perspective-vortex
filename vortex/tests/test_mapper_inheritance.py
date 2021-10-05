@@ -5,7 +5,7 @@ from . import mock_galaxy
 from vortex.core.loader import InvalidParentException
 
 
-class TestMapperRules(unittest.TestCase):
+class TestMapperInheritance(unittest.TestCase):
 
     @staticmethod
     def _map_to_destination(tool, user, datasets, vortex_config_path=None):
@@ -21,7 +21,7 @@ class TestMapperRules(unittest.TestCase):
     def test_map_inherit_twice(self):
         tool = mock_galaxy.Tool('trinity')
         user = mock_galaxy.User('gargravarr', 'fairycake@vortex.org')
-        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=5))]
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=5*1024*1024))]
 
         destination = self._map_to_destination(tool, user, datasets)
         self.assertEqual(destination.id, "k8s_environment")
@@ -31,7 +31,7 @@ class TestMapperRules(unittest.TestCase):
     def test_map_inherit_thrice(self):
         tool = mock_galaxy.Tool('hisat')
         user = mock_galaxy.User('gargravarr', 'fairycake@vortex.org')
-        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=5))]
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=5*1024*1024))]
 
         destination = self._map_to_destination(tool, user, datasets)
         self.assertEqual(destination.id, "local")
@@ -41,7 +41,7 @@ class TestMapperRules(unittest.TestCase):
     def test_map_inherit_invalid(self):
         tool = mock_galaxy.Tool('tophat')
         user = mock_galaxy.User('gargravarr', 'fairycake@vortex.org')
-        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=5))]
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=5*1024*1024))]
         vortex_config_path = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-inheritance-invalid.yml')
 
         with self.assertRaises(InvalidParentException):
@@ -50,7 +50,7 @@ class TestMapperRules(unittest.TestCase):
     def test_map_inherit_no_default(self):
         tool = mock_galaxy.Tool('hisat')
         user = mock_galaxy.User('gargravarr', 'fairycake@vortex.org')
-        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=5))]
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=5*1024*1024))]
         vortex_config_path = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-inheritance-no-default.yml')
 
         destination = self._map_to_destination(tool, user, datasets, vortex_config_path=vortex_config_path)

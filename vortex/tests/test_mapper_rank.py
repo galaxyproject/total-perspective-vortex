@@ -4,7 +4,7 @@ from vortex.rules import gateway
 from . import mock_galaxy
 
 
-class TestMapperUser(unittest.TestCase):
+class TestMapperRank(unittest.TestCase):
 
     @staticmethod
     def _map_to_destination(tool, user):

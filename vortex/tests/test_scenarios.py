@@ -65,7 +65,7 @@ class TestScenarios(unittest.TestCase):
 
         tool = mock_galaxy.Tool('bwa-mem')
         user = mock_galaxy.User('simon', 'simon@unimelb.edu.au')
-        datasets = [mock_galaxy.DatasetAssociation("input", mock_galaxy.Dataset("input.fastq", file_size=10))]
+        datasets = [mock_galaxy.DatasetAssociation("input", mock_galaxy.Dataset("input.fastq", file_size=10*1024*1024))]
         rules_file = os.path.join(os.path.dirname(__file__), 'fixtures/scenario-job-too-small-for-highmem.yml')
         destination = self._map_to_destination(tool, user, datasets=datasets, vortex_config_path=rules_file,
                                                job_conf='fixtures/job_conf_scenario_usegalaxy_au.yml')
@@ -87,7 +87,8 @@ class TestScenarios(unittest.TestCase):
 
         tool = mock_galaxy.Tool('bwa-mem')
         user = mock_galaxy.User('steve', 'steve@unimelb.edu.au')
-        datasets = [mock_galaxy.DatasetAssociation("input", mock_galaxy.Dataset("input.fastq", file_size=0.1))]
+        datasets = [mock_galaxy.DatasetAssociation("input", mock_galaxy.Dataset("input.fastq",
+                                                                                file_size=0.1*1024*1024))]
         rules_file = os.path.join(os.path.dirname(__file__), 'fixtures/scenario-node-offline-high-cpu.yml')
         destination = self._map_to_destination(tool, user, datasets=datasets, vortex_config_path=rules_file,
                                                job_conf='fixtures/job_conf_scenario_usegalaxy_au.yml')
@@ -108,7 +109,8 @@ class TestScenarios(unittest.TestCase):
 
         tool = mock_galaxy.Tool('trinity')
         user = mock_galaxy.User('someone', 'someone@unimelb.edu.au')
-        datasets = [mock_galaxy.DatasetAssociation("input", mock_galaxy.Dataset("input.fastq", file_size=0.1))]
+        datasets = [mock_galaxy.DatasetAssociation("input", mock_galaxy.Dataset("input.fastq",
+                                                                                file_size=0.1*1024*1024))]
         rules_file = os.path.join(os.path.dirname(__file__), 'fixtures/scenario-trinity-job-with-rules.yml')
         destination = self._map_to_destination(tool, user, datasets=datasets, vortex_config_path=rules_file,
                                                job_conf='fixtures/job_conf_scenario_usegalaxy_au.yml')
@@ -129,9 +131,11 @@ class TestScenarios(unittest.TestCase):
 
         tool = mock_galaxy.Tool('trinity')
         user = mock_galaxy.User('someone', 'someone@unimelb.edu.au')
-        datasets = [mock_galaxy.DatasetAssociation("input", mock_galaxy.Dataset("input.fastq", file_size=1000))]
+        datasets = [mock_galaxy.DatasetAssociation("input", mock_galaxy.Dataset("input.fastq",
+                                                                                file_size=1000*1024*1024))]
         rules_file = os.path.join(os.path.dirname(__file__), 'fixtures/scenario-trinity-job-too-much-data.yml')
-        with self.assertRaisesRegex(JobMappingException, "Input file size of 1000GB is > maximum allowed 200GB limit"):
+        with self.assertRaisesRegex(JobMappingException,
+                                    "Input file size of 1000.0GB is > maximum allowed 200GB limit"):
             self._map_to_destination(tool, user, datasets=datasets, vortex_config_path=rules_file,
                                      job_conf='fixtures/job_conf_scenario_usegalaxy_au.yml')
 
@@ -150,7 +154,8 @@ class TestScenarios(unittest.TestCase):
 
         tool = mock_galaxy.Tool('fastp')
         user = mock_galaxy.User('kate', 'kate@unimelb.edu.au')
-        datasets = [mock_galaxy.DatasetAssociation("input", mock_galaxy.Dataset("input.fastq", file_size=1000))]
+        datasets = [mock_galaxy.DatasetAssociation("input", mock_galaxy.Dataset("input.fastq",
+                                                                                file_size=1000*1024*1024))]
         rules_file = os.path.join(os.path.dirname(__file__), 'fixtures/scenario-non-pulsar-enabled-job.yml')
         destination = self._map_to_destination(tool, user, datasets=datasets, vortex_config_path=rules_file,
                                                job_conf='fixtures/job_conf_scenario_usegalaxy_au.yml')
@@ -171,7 +176,8 @@ class TestScenarios(unittest.TestCase):
 
         tool = mock_galaxy.Tool('fastp')
         user = mock_galaxy.User('jenkinsbot', 'jenkinsbot@unimelb.edu.au')
-        datasets = [mock_galaxy.DatasetAssociation("input", mock_galaxy.Dataset("input.fastq", file_size=1000))]
+        datasets = [mock_galaxy.DatasetAssociation("input", mock_galaxy.Dataset("input.fastq",
+                                                                                file_size=1000*1024*1024))]
         rules_file = os.path.join(os.path.dirname(__file__), 'fixtures/scenario-jenkins-bot-user.yml')
         destination = self._map_to_destination(tool, user, datasets=datasets, vortex_config_path=rules_file,
                                                job_conf='fixtures/job_conf_scenario_usegalaxy_au.yml')
@@ -193,7 +199,8 @@ class TestScenarios(unittest.TestCase):
 
         tool = mock_galaxy.Tool('trinity')
         user = mock_galaxy.User('pulsar-hm2-user', 'pulsar-hm2-user@unimelb.edu.au', roles=["ga_admins"])
-        datasets = [mock_galaxy.DatasetAssociation("input", mock_galaxy.Dataset("input.fastq", file_size=1000))]
+        datasets = [mock_galaxy.DatasetAssociation("input", mock_galaxy.Dataset("input.fastq",
+                                                                                file_size=1000*1024*1024))]
         rules_file = os.path.join(os.path.dirname(__file__), 'fixtures/scenario-admin-group-user.yml')
         destination = self._map_to_destination(tool, user, datasets=datasets, vortex_config_path=rules_file,
                                                job_conf='fixtures/job_conf_scenario_usegalaxy_au.yml')
@@ -233,7 +240,8 @@ class TestScenarios(unittest.TestCase):
 
         tool = mock_galaxy.Tool('trinity')
         user = mock_galaxy.User('highmemuser', 'highmemuser@unimelb.edu.au', roles=["ga_admins"])
-        datasets = [mock_galaxy.DatasetAssociation("input", mock_galaxy.Dataset("input.fastq", file_size=1000))]
+        datasets = [mock_galaxy.DatasetAssociation("input", mock_galaxy.Dataset("input.fastq",
+                                                                                file_size=1000*1024*1024))]
         rules_file = os.path.join(os.path.dirname(__file__), 'fixtures/scenario-too-many-highmem-jobs.yml')
         destination = self._map_to_destination(tool, user, datasets=datasets, vortex_config_path=rules_file, app=app)
         self.assertEqual(destination.id, "highmem_pulsar_1")
