@@ -43,8 +43,8 @@ class TestMapperRules(unittest.TestCase):
         user = mock_galaxy.User('gargravarr', 'fairycake@vortex.org')
         datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=15*1024*1024))]
 
-        destination = self._map_to_destination(tool, user, datasets)
-        self.assertIsNone(destination)
+        with self.assertRaisesRegex(JobMappingException, "No destinations are available to fulfill request"):
+            self._map_to_destination(tool, user, datasets)
 
     def test_map_rule_user(self):
         tool = mock_galaxy.Tool('bwa')

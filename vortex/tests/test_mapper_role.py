@@ -2,6 +2,7 @@ import os
 import unittest
 from vortex.rules import gateway
 from . import mock_galaxy
+from galaxy.jobs.mapper import JobMappingException
 
 
 class TestMapperRole(unittest.TestCase):
@@ -25,8 +26,8 @@ class TestMapperRole(unittest.TestCase):
         tool = mock_galaxy.Tool('bwa')
         user = mock_galaxy.User('gargravarr', 'fairycake@vortex.org', roles=["training"])
 
-        destination = self._map_to_destination(tool, user)
-        self.assertIsNone(destination)
+        with self.assertRaisesRegex(JobMappingException, "No destinations are available to fulfill request"):
+            self._map_to_destination(tool, user)
 
     def test_map_role_by_regex(self):
         tool = mock_galaxy.Tool('bwa')

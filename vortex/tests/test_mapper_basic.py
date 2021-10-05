@@ -2,6 +2,7 @@ import os
 import unittest
 from vortex.rules import gateway
 from . import mock_galaxy
+from galaxy.jobs.mapper import JobMappingException
 
 
 class TestMapperBasic(unittest.TestCase):
@@ -27,13 +28,13 @@ class TestMapperBasic(unittest.TestCase):
 
     def test_map_unschedulable_tool(self):
         tool = mock_galaxy.Tool('unschedulable_tool')
-        destination = self._map_to_destination(tool)
-        self.assertIsNone(destination, f"{destination.id}" if destination else "")
+        with self.assertRaisesRegex(JobMappingException, "No destinations are available to fulfill request"):
+            self._map_to_destination(tool)
 
     def test_map_invalidly_tagged_tool(self):
         tool = mock_galaxy.Tool('invalidly_tagged_tool')
-        destination = self._map_to_destination(tool)
-        self.assertIsNone(destination, f"{destination.id}" if destination else "")
+        with self.assertRaisesRegex(JobMappingException, "No destinations are available to fulfill request"):
+            self._map_to_destination(tool)
 
     def test_map_tool_by_regex(self):
         tool = mock_galaxy.Tool('regex_tool_test')

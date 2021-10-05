@@ -2,6 +2,8 @@ import functools
 import logging
 import re
 
+from galaxy.jobs.mapper import JobMappingException
+
 from .loader import VortexConfigLoader
 
 log = logging.getLogger(__name__)
@@ -98,4 +100,4 @@ class ResourceToDestinationMapper(object):
             destination.params.update(evaluated_resource.params or {})
             return destination
         else:
-            return None
+            raise JobMappingException(f"No destinations are available to fulfill request: {evaluated_resource.id}")

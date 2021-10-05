@@ -243,6 +243,7 @@ class Resource(object):
         :return:
         """
         new_resource = resource.override(self)
+        new_resource.id = f"{type(self).__name__}: {self.id}, {type(resource).__name__}: {resource.id}"
         new_resource.tags = self.tags.merge(resource.tags)
         return new_resource
 
@@ -297,7 +298,7 @@ class Resource(object):
             return self.loader.eval_code_block(self.rank, context)
         else:
             # Sort destinations by priority
-            log.debug(f"Ranking destinations: {destinations} for resource: {self} using custom default ranker")
+            log.debug(f"Ranking destinations: {destinations} for resource: {self} using default ranker")
             return sorted(destinations, key=lambda d: d.score(self), reverse=True)
 
     def score(self, resource):
@@ -352,7 +353,9 @@ class ResourceWithRules(Resource):
         new_resource = self
         for rule in self.rules.values():
             if rule.is_matching(context):
+                resource_id = new_resource.id
                 new_resource = rule.extend(new_resource)
+                new_resource.id = f"{resource_id}, Rule: {rule.id}"
         return super(ResourceWithRules, new_resource).evaluate(context)
 
     def __repr__(self):
@@ -442,7 +445,8 @@ class Rule(Resource):
         return new_resource
 
     def __repr__(self):
-        return super().__repr__() + f", match={self.match}, fail={self.fail}"
+        return super().__repr__() + f", match={self.match[:10] if self.match else ''}," \
+                                    f"fail={self.fail[:10] if self.fail else ''}"
 
     def is_matching(self, context):
         try:
