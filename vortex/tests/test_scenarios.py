@@ -252,3 +252,22 @@ class TestScenarios(unittest.TestCase):
         with self.assertRaisesRegex(
                 JobMappingException, "You cannot have more than 4 high-mem jobs running concurrently"):
             self._map_to_destination(tool, user, datasets=datasets, vortex_config_path=rules_file, app=app)
+
+    @responses.activate
+    def test_scenario_usegalaxy_dev(self):
+        """
+        Check whether usegalaxy.au dev dispatch works
+        """
+        tool = mock_galaxy.Tool('upload1')
+        user = mock_galaxy.User('catherine', 'catherine@unimelb.edu.au')
+        datasets = [mock_galaxy.DatasetAssociation("input", mock_galaxy.Dataset("input.fastq",
+                                                                                file_size=1000*1024*1024))]
+        rules_file = os.path.join(os.path.dirname(__file__), 'fixtures/scenario-usegalaxy-dev.yml')
+        destination = self._map_to_destination(tool, user, datasets=datasets, vortex_config_path=rules_file,
+                                               job_conf='fixtures/job_conf_scenario_usegalaxy_au.yml')
+        self.assertEqual(destination.id, "slurm")
+
+        tool = mock_galaxy.Tool('hifiasm')
+        destination = self._map_to_destination(tool, user, datasets=datasets, vortex_config_path=rules_file,
+                                               job_conf='fixtures/job_conf_scenario_usegalaxy_au.yml')
+        self.assertEqual(destination.id, "pulsar-nci-test")

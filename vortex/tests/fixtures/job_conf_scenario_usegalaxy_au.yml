@@ -46,6 +46,9 @@ execution:
     training_pulsar:
       runner: training_pulsar
       docker_enabled: true
+    pulsar-nci-test:
+      runner: training_pulsar
+      docker_enabled: true
     vortex_dispatcher:
       runner: dynamic
       type: python
