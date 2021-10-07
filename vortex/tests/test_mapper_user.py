@@ -56,3 +56,21 @@ class TestMapperUser(unittest.TestCase):
 
         with self.assertRaises(IncompatibleTagsException):
             self._map_to_destination(tool, user)
+
+    def test_map_user_resource_usage_scenario_1(self):
+        tool = mock_galaxy.Tool('bwa')
+        user = mock_galaxy.User('ford', 'prefect@vortex.org')
+
+        destination = self._map_to_destination(tool, user)
+        self.assertEqual(destination.id, "k8s_environment")
+        # should use the lower of the two core and mem values for this user
+        self.assertEqual(destination.params['native_spec'], '--mem 4 --cores 2')
+
+    def test_map_user_resource_usage_scenario_2(self):
+        tool = mock_galaxy.Tool('bwa')
+        user = mock_galaxy.User('ford', 'fairycake@vortex.org')
+
+        destination = self._map_to_destination(tool, user)
+        self.assertEqual(destination.id, "k8s_environment")
+        # should use the lower of the two core and mem values for this user
+        self.assertEqual(destination.params['native_spec'], '--mem 8 --cores 1')

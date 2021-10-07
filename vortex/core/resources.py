@@ -228,11 +228,14 @@ class Resource(object):
     def merge(self, resource):
         """
         The merge operation takes a resource and merges its requirements with a second resource, with
-        the second resource overriding the requirements of the first resource.
+        the second resource's reequirements being combined with the first resource.
         For example, a User resource and a Tool resource can be merged to create a combined resource that contain
         both their mutual requirements, as long as they do not define mutually incompatible requirements.
         For example, the User requires the "pulsar" tag, but the tool rejects the "pulsar" tag.
         In this case, an IncompatibleTagsException will be thrown.
+
+        If both resources define cpu, memory and gpu requirements, the lower of those requirements are used.
+        This provides a mechanism for limiting the maximum memory used by a particular Group or User.
 
         The general hierarchy of resources in vortex is Tool > User > Role and therefore, these resources
         are usually merged as: role.merge(user).merge(tool), to produce a final set of tool requirements.
@@ -243,6 +246,12 @@ class Resource(object):
         :return:
         """
         new_resource = resource.override(self)
+        if self.cores and resource.cores:
+            new_resource.cores = min(self.cores, resource.cores)
+        if self.mem and resource.mem:
+            new_resource.mem = min(self.mem, resource.mem)
+        if self.gpus and resource.gpus:
+            new_resource.gpus = min(self.gpus, resource.gpus)
         new_resource.id = f"{type(self).__name__}: {self.id}, {type(resource).__name__}: {resource.id}"
         new_resource.tags = self.tags.merge(resource.tags)
         return new_resource
@@ -266,7 +275,7 @@ class Resource(object):
             return False
         return self.tags.match(destination.tags or {})
 
-    def evaluate(self, context):
+    def evaluate_resource_requirements(self, context):
         new_resource = copy.copy(self)
         if self.cores:
             new_resource.cores = self.loader.eval_code_block(self.cores, context)
@@ -277,6 +286,13 @@ class Resource(object):
         if self.gpus:
             new_resource.gpus = self.loader.eval_code_block(self.gpus, context)
             context['gpus'] = new_resource.gpus
+        return new_resource
+
+    def evaluate_expressions(self, context):
+        new_resource = copy.copy(self)
+        context['cores'] = new_resource.cores
+        context['mem'] = new_resource.mem
+        context['gpus'] = new_resource.gpus
         if self.env:
             evaluated_env = {}
             for key, entry in self.env.items():
@@ -349,14 +365,27 @@ class ResourceWithRules(Resource):
                 new_resource.rules[rule.id] = rule.extend(resource.rules[rule.id])
         return new_resource
 
-    def evaluate(self, context):
+    def evaluate_resource_requirements(self, context):
         new_resource = self
         for rule in self.rules.values():
             if rule.is_matching(context):
                 resource_id = new_resource.id
-                new_resource = rule.extend(new_resource)
+                new_resource.cores = rule.cores or self.cores
+                new_resource.mem = rule.mem or self.mem
+                new_resource.gpus = rule.gpus or self.gpus
                 new_resource.id = f"{resource_id}, Rule: {rule.id}"
-        return super(ResourceWithRules, new_resource).evaluate(context)
+        return super(ResourceWithRules, new_resource).evaluate_resource_requirements(context)
+
+    def evaluate_expressions(self, context):
+        new_resource = self
+        for rule in self.rules.values():
+            if rule.is_matching(context):
+                new_resource = rule.extend(new_resource)
+                # restore already evaluated resource requirements
+                new_resource.cores = self.cores
+                new_resource.mem = self.mem
+                new_resource.gpus = self.gpus
+        return super(ResourceWithRules, new_resource).evaluate_expressions(context)
 
     def __repr__(self):
         return super().__repr__() + f", rules={self.rules}"

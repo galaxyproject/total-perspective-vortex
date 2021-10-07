@@ -35,6 +35,16 @@ class ResourceToDestinationMapper(object):
                 return resource_list.get(self.default_inherits)
             return None
 
+    def evaluate_resource_requirements(self, resources, context):
+        evaluated = []
+        for resource in resources:
+            context.update({
+                'resource': resource,
+                'self': resource
+            })
+            evaluated.append(resource.evaluate_resource_requirements(context))
+        return evaluated
+
     def merge_resources(self, resources):
         merged_resource = resources[0]
         for resource in resources[1:]:
@@ -73,31 +83,42 @@ class ResourceToDestinationMapper(object):
         # 1. Find the resources relevant to this job
         resource_list = self._find_matching_resources(tool, user)
 
-        # 2. Merge resource requirements
-        merged_resource = self.merge_resources(resource_list)
-
-        # 3. Create evaluation context - these are the common variables available within any code block
+        # 2. Create evaluation context - these are the common variables available within any code block
         context = {
             'app': app,
             'tool': tool,
             'user': user,
             'job': job,
-            'mapper': self,
-            'resource': merged_resource,
-            'self': merged_resource
+            'mapper': self
         }
 
-        # 4. Evaluate resource expressions
-        evaluated_resource = merged_resource.evaluate(context)
+        # 3. Evaluate resource requirement expressions
+        evaluated_resources = self.evaluate_resource_requirements(resource_list, context)
 
-        # 5. Find best matching destination
-        destination = self.find_best_match(evaluated_resource, self.destinations, context)
+        # 4. Merge resource requirements
+        merged_resource = self.merge_resources(evaluated_resources)
 
-        # 6. Return destination with params
+        context.update({
+            'resource': merged_resource,
+            'self': merged_resource
+        })
+
+        # 5. Evaluate remaining expressions
+        evaluated = merged_resource.evaluate_expressions(context)
+
+        context.update({
+            'resource': evaluated,
+            'self': evaluated
+        })
+
+        # 6. Find best matching destination
+        destination = self.find_best_match(evaluated, self.destinations, context)
+
+        # 7. Return destination with params
         if destination:
             destination = app.job_config.get_destination(destination.id)
-            destination.env += [dict(name=k, value=v) for (k, v) in evaluated_resource.env.items()]
-            destination.params.update(evaluated_resource.params or {})
+            destination.env += [dict(name=k, value=v) for (k, v) in evaluated.env.items()]
+            destination.params.update(evaluated.params or {})
             return destination
         else:
-            raise JobMappingException(f"No destinations are available to fulfill request: {evaluated_resource.id}")
+            raise JobMappingException(f"No destinations are available to fulfill request: {evaluated.id}")

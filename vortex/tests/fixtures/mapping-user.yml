@@ -13,6 +13,8 @@ tools:
       tolerated:
       rejected:
         - pulsar
+    params:
+      native_spec: "--mem {mem} --cores {cores}"
     rules: []
   bwa:
     scheduling:
@@ -21,7 +23,7 @@ tools:
 users:
   default:
     cores: 3
-    mem: 8
+    mem: 4
     env: {}
     scheduling:
       required: []
@@ -32,6 +34,9 @@ users:
         - pulsar
     rules: []
   fairycake@vortex.org:
+    cores: 1
+    mem: 16
+    env: {}
     scheduling:
       required:
         - pulsar
