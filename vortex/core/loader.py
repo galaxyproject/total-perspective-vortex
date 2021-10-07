@@ -57,12 +57,12 @@ class VortexConfigLoader(object):
             if not parent_resource:
                 raise InvalidParentException(f"The specified parent: {resource.inherits} for"
                                              f" resource: {resource} does not exist")
-            return resource.extend(self.process_inheritance(resource_list, parent_resource))
+            return resource.inherit(self.process_inheritance(resource_list, parent_resource))
         else:
             default_inherits = self.global_settings.get('default_inherits')
             if default_inherits and not resource.id == default_inherits:
                 default_parent = resource_list.get(default_inherits)
-                return resource.extend(default_parent)
+                return resource.inherit(default_parent)
             else:
                 return resource
 
@@ -92,20 +92,20 @@ class VortexConfigLoader(object):
         }
         return validated
 
-    def extend_existing_resources(self, resources_current, resources_new):
+    def inherit_existing_resources(self, resources_current, resources_new):
         for resource in resources_new.values():
             if resources_current.get(resource.id):
-                resources_current[resource.id] = resource.extend(resources_current.get(resource.id))
+                resources_current[resource.id] = resource.inherit(resources_current.get(resource.id))
             else:
                 resources_current[resource.id] = resource
         self.recompute_inheritance(resources_current)
 
     def merge_loader(self, loader: VortexConfigLoader):
         self.global_settings.update(loader.global_settings)
-        self.extend_existing_resources(self.tools, loader.tools)
-        self.extend_existing_resources(self.users, loader.users)
-        self.extend_existing_resources(self.roles, loader.roles)
-        self.extend_existing_resources(self.destinations, loader.destinations)
+        self.inherit_existing_resources(self.tools, loader.tools)
+        self.inherit_existing_resources(self.users, loader.users)
+        self.inherit_existing_resources(self.roles, loader.roles)
+        self.inherit_existing_resources(self.destinations, loader.destinations)
 
     @staticmethod
     def from_url_or_path(url_or_path: str):

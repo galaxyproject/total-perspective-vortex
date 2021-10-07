@@ -42,7 +42,7 @@ class IncompatibleTagsException(Exception):
     def __init__(self, first_set, second_set):
 
         super().__init__(
-            f"Cannot merge tag sets because required and rejected tags mismatch. First tag set requires:"
+            f"Cannot combine tag sets because required and rejected tags mismatch. First tag set requires:"
             f" {[tag.value for tag in first_set.filter(TagType.REQUIRED)]} and rejects:"
             f" {[tag.value for tag in first_set.filter(TagType.REJECTED)]}. Second tag set requires:"
             f" {[tag.value for tag in second_set.filter(TagType.REQUIRED)]} and rejects:"
@@ -77,7 +77,7 @@ class TagSetManager(object):
         for tag in tags:
             self.add_tag_override(tag)
 
-    def can_merge(self, other: TagSetManager) -> bool:
+    def can_combine(self, other: TagSetManager) -> bool:
         self_required = ((t.name, t.value) for t in self.filter(TagType.REQUIRED))
         other_required = ((t.name, t.value) for t in other.filter(TagType.REQUIRED))
         self_rejected = ((t.name, t.value) for t in self.filter(TagType.REJECTED))
@@ -89,7 +89,7 @@ class TagSetManager(object):
         else:
             return True
 
-    def extend(self, other) -> TagSetManager:
+    def inherit(self, other) -> TagSetManager:
         assert type(self) == type(other)
         new_tag_set = TagSetManager()
         new_tag_set.add_tag_overrides(other.filter(TagType.TOLERATED))
@@ -102,8 +102,8 @@ class TagSetManager(object):
         new_tag_set.add_tag_overrides(self.filter(TagType.REJECTED))
         return new_tag_set
 
-    def merge(self, other: TagSetManager) -> TagSetManager:
-        if not self.can_merge(other):
+    def combine(self, other: TagSetManager) -> TagSetManager:
+        if not self.can_combine(other):
             raise IncompatibleTagsException(self, other)
         new_tag_set = TagSetManager()
         # Add tolerated tags first, as they should be overridden by preferred, required and rejected tags
@@ -217,30 +217,29 @@ class Resource(object):
         new_resource.inherits = self.inherits if self.inherits is not None else resource.inherits
         return new_resource
 
-    def extend(self, resource):
+    def inherit(self, resource):
         if resource:
             new_resource = self.override(resource)
-            new_resource.tags = self.tags.extend(resource.tags)
+            new_resource.tags = self.tags.inherit(resource.tags)
             return new_resource
         else:
             return self
 
-    def merge(self, resource):
+    def combine(self, resource):
         """
-        The merge operation takes a resource and merges its requirements with a second resource, with
-        the second resource's reequirements being combined with the first resource.
-        For example, a User resource and a Tool resource can be merged to create a combined resource that contain
+        The combine operation takes an entity and combines its requirements with a second entity.
+        For example, a User entity and a Tool entity can be combined to create a merged resource that contain
         both their mutual requirements, as long as they do not define mutually incompatible requirements.
-        For example, the User requires the "pulsar" tag, but the tool rejects the "pulsar" tag.
+        For example, if a User requires the "pulsar" tag, but the tool rejects the "pulsar" tag.
         In this case, an IncompatibleTagsException will be thrown.
 
-        If both resources define cpu, memory and gpu requirements, the lower of those requirements are used.
+        If both entities define cpu, memory and gpu requirements, the lower of those requirements are used.
         This provides a mechanism for limiting the maximum memory used by a particular Group or User.
 
-        The general hierarchy of resources in vortex is Tool > User > Role and therefore, these resources
-        are usually merged as: role.merge(user).merge(tool), to produce a final set of tool requirements.
+        The general hierarchy of entities in vortex is User > Role > Tool and therefore, these resources
+        are usually merged as: tool.merge(role).merge(user), to produce a final set of tool requirements.
 
-        The merged requirements can then be matched against the destination, through the match operation.
+        The combined requirements can then be matched against the destination, through the match operation.
 
         :param resource:
         :return:
@@ -253,7 +252,7 @@ class Resource(object):
         if self.gpus and resource.gpus:
             new_resource.gpus = min(self.gpus, resource.gpus)
         new_resource.id = f"{type(self).__name__}: {self.id}, {type(resource).__name__}: {resource.id}"
-        new_resource.tags = self.tags.merge(resource.tags)
+        new_resource.tags = self.tags.combine(resource.tags)
         return new_resource
 
     def matches(self, destination, context):
@@ -262,7 +261,7 @@ class Resource(object):
         in the destination resource, and none of the rejected tags in the first resource are
         present in the second resource.
 
-        This is used to check compatibility of a final set of merged tool requirements with its destination.
+        This is used to check compatibility of a final set of combined tool requirements with its destination.
 
         :param destination:
         :return:
@@ -362,7 +361,7 @@ class ResourceWithRules(Resource):
         new_resource.rules.update(self.rules or {})
         for rule in self.rules.values():
             if resource.rules.get(rule.id):
-                new_resource.rules[rule.id] = rule.extend(resource.rules[rule.id])
+                new_resource.rules[rule.id] = rule.inherit(resource.rules[rule.id])
         return new_resource
 
     def evaluate_resource_requirements(self, context):
@@ -380,7 +379,7 @@ class ResourceWithRules(Resource):
         new_resource = self
         for rule in self.rules.values():
             if rule.is_matching(context):
-                new_resource = rule.extend(new_resource)
+                new_resource = rule.inherit(new_resource)
                 # restore already evaluated resource requirements
                 new_resource.cores = self.cores
                 new_resource.mem = self.mem

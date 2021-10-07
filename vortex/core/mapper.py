@@ -45,11 +45,11 @@ class ResourceToDestinationMapper(object):
             evaluated.append(resource.evaluate_resource_requirements(context))
         return evaluated
 
-    def merge_resources(self, resources):
-        merged_resource = resources[0]
+    def combine_resources(self, resources):
+        combined_resource = resources[0]
         for resource in resources[1:]:
-            merged_resource = merged_resource.merge(resource)
-        return merged_resource
+            combined_resource = combined_resource.combine(resource)
+        return combined_resource
 
     def rank(self, resource, destinations, context):
         return resource.rank_destinations(destinations, context)
@@ -95,16 +95,16 @@ class ResourceToDestinationMapper(object):
         # 3. Evaluate resource requirement expressions
         evaluated_resources = self.evaluate_resource_requirements(resource_list, context)
 
-        # 4. Merge resource requirements
-        merged_resource = self.merge_resources(evaluated_resources)
+        # 4. Combine resource requirements
+        combined_resource = self.combine_resources(evaluated_resources)
 
         context.update({
-            'resource': merged_resource,
-            'self': merged_resource
+            'resource': combined_resource,
+            'self': combined_resource
         })
 
         # 5. Evaluate remaining expressions
-        evaluated = merged_resource.evaluate_expressions(context)
+        evaluated = combined_resource.evaluate_expressions(context)
 
         context.update({
             'resource': evaluated,
