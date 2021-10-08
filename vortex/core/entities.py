@@ -161,7 +161,7 @@ class TagSetManager(object):
         return TagSetManager(tags=tag_list)
 
 
-class Resource(object):
+class Entity(object):
 
     def __init__(self, loader, id=None, cores=None, mem=None, gpus=None, env=None, params=None, tags=None, rank=None,
                  inherits=None):
@@ -203,32 +203,32 @@ class Resource(object):
                f"env={self.env}, params={self.params}, tags={self.tags}, rank={self.rank[:10] if self.rank else ''}, " \
                f"inherits={self.inherits}"
 
-    def override(self, resource):
-        new_resource = copy.copy(resource)
-        new_resource.id = self.id or resource.id
-        new_resource.cores = self.cores or resource.cores
-        new_resource.mem = self.mem or resource.mem
-        new_resource.gpus = self.gpus or resource.gpus
-        new_resource.env = resource.env or {}
-        new_resource.env.update(self.env or {})
-        new_resource.params = resource.params or {}
-        new_resource.params.update(self.params or {})
-        new_resource.rank = self.rank if self.rank is not None else resource.rank
-        new_resource.inherits = self.inherits if self.inherits is not None else resource.inherits
-        return new_resource
+    def override(self, entity):
+        new_entity = copy.copy(entity)
+        new_entity.id = self.id or entity.id
+        new_entity.cores = self.cores or entity.cores
+        new_entity.mem = self.mem or entity.mem
+        new_entity.gpus = self.gpus or entity.gpus
+        new_entity.env = entity.env or {}
+        new_entity.env.update(self.env or {})
+        new_entity.params = entity.params or {}
+        new_entity.params.update(self.params or {})
+        new_entity.rank = self.rank if self.rank is not None else entity.rank
+        new_entity.inherits = self.inherits if self.inherits is not None else entity.inherits
+        return new_entity
 
-    def inherit(self, resource):
-        if resource:
-            new_resource = self.override(resource)
-            new_resource.tags = self.tags.inherit(resource.tags)
-            return new_resource
+    def inherit(self, entity):
+        if entity:
+            new_entity = self.override(entity)
+            new_entity.tags = self.tags.inherit(entity.tags)
+            return new_entity
         else:
             return self
 
-    def combine(self, resource):
+    def combine(self, entity):
         """
         The combine operation takes an entity and combines its requirements with a second entity.
-        For example, a User entity and a Tool entity can be combined to create a merged resource that contain
+        For example, a User entity and a Tool entity can be combined to create a merged entity that contain
         both their mutual requirements, as long as they do not define mutually incompatible requirements.
         For example, if a User requires the "pulsar" tag, but the tool rejects the "pulsar" tag.
         In this case, an IncompatibleTagsException will be thrown.
@@ -236,30 +236,30 @@ class Resource(object):
         If both entities define cpu, memory and gpu requirements, the lower of those requirements are used.
         This provides a mechanism for limiting the maximum memory used by a particular Group or User.
 
-        The general hierarchy of entities in vortex is User > Role > Tool and therefore, these resources
+        The general hierarchy of entities in vortex is User > Role > Tool and therefore, these entity
         are usually merged as: tool.merge(role).merge(user), to produce a final set of tool requirements.
 
         The combined requirements can then be matched against the destination, through the match operation.
 
-        :param resource:
+        :param entity:
         :return:
         """
-        new_resource = resource.override(self)
-        if self.cores and resource.cores:
-            new_resource.cores = min(self.cores, resource.cores)
-        if self.mem and resource.mem:
-            new_resource.mem = min(self.mem, resource.mem)
-        if self.gpus and resource.gpus:
-            new_resource.gpus = min(self.gpus, resource.gpus)
-        new_resource.id = f"{type(self).__name__}: {self.id}, {type(resource).__name__}: {resource.id}"
-        new_resource.tags = self.tags.combine(resource.tags)
-        return new_resource
+        new_entity = entity.override(self)
+        if self.cores and entity.cores:
+            new_entity.cores = min(self.cores, entity.cores)
+        if self.mem and entity.mem:
+            new_entity.mem = min(self.mem, entity.mem)
+        if self.gpus and entity.gpus:
+            new_entity.gpus = min(self.gpus, entity.gpus)
+        new_entity.id = f"{type(self).__name__}: {self.id}, {type(entity).__name__}: {entity.id}"
+        new_entity.tags = self.tags.combine(entity.tags)
+        return new_entity
 
     def matches(self, destination, context):
         """
-        The match operation checks whether all of the required tags in a resource are present
-        in the destination resource, and none of the rejected tags in the first resource are
-        present in the second resource.
+        The match operation checks whether all of the required tags in a entity are present
+        in the destination entity, and none of the rejected tags in the first entity are
+        present in the second entity.
 
         This is used to check compatibility of a final set of combined tool requirements with its destination.
 
@@ -274,55 +274,69 @@ class Resource(object):
             return False
         return self.tags.match(destination.tags or {})
 
-    def evaluate_resource_requirements(self, context):
-        new_resource = copy.copy(self)
-        if self.cores:
-            new_resource.cores = self.loader.eval_code_block(self.cores, context)
-            context['cores'] = new_resource.cores
-        if self.mem:
-            new_resource.mem = self.loader.eval_code_block(self.mem, context)
-            context['mem'] = new_resource.mem
+    def evaluate_early(self, context):
+        """
+        Evaluate expressions in entity properties that must be evaluated early, which
+        is to say, evaluated prior to combining entity requirements. These properties
+        are namely, cores, mem and gpus, since at the time of combining entity requirements,
+        the properties must be compared.
+        :param context:
+        :return:
+        """
+        new_entity = copy.copy(self)
         if self.gpus:
-            new_resource.gpus = self.loader.eval_code_block(self.gpus, context)
-            context['gpus'] = new_resource.gpus
-        return new_resource
+            new_entity.gpus = self.loader.eval_code_block(self.gpus, context)
+            context['gpus'] = new_entity.gpus
+        if self.cores:
+            new_entity.cores = self.loader.eval_code_block(self.cores, context)
+            context['cores'] = new_entity.cores
+        if self.mem:
+            new_entity.mem = self.loader.eval_code_block(self.mem, context)
+        return new_entity
 
-    def evaluate_expressions(self, context):
-        new_resource = copy.copy(self)
-        context['cores'] = new_resource.cores
-        context['mem'] = new_resource.mem
-        context['gpus'] = new_resource.gpus
+    def evaluate_late(self, context):
+        """
+        Evaluate expressions in entity properties that must be evaluated as late as possible, which is
+        to say, after combining entity requirements. This includes env and params, that rely on
+        properties such as cores, mem and gpus after they are combined.
+        :param context:
+        :return:
+        """
+        new_entity = copy.copy(self)
+        context['gpus'] = new_entity.gpus
+        context['cores'] = new_entity.cores
+        context['mem'] = new_entity.mem
         if self.env:
             evaluated_env = {}
             for key, entry in self.env.items():
                 evaluated_env[key] = self.loader.eval_code_block(entry, context, as_f_string=True)
-            new_resource.env = evaluated_env
-            context['env'] = new_resource.env
+            new_entity.env = evaluated_env
+            context['env'] = new_entity.env
         if self.params:
             evaluated_params = {}
             for key, param in self.params.items():
                 evaluated_params[key] = self.loader.eval_code_block(param, context, as_f_string=True)
-            new_resource.params = evaluated_params
-            context['params'] = new_resource.params
-        return new_resource
+            new_entity.params = evaluated_params
+            context['params'] = new_entity.params
+        return new_entity
 
     def rank_destinations(self, destinations, context):
         if self.rank:
-            log.debug(f"Ranking destinations: {destinations} for resource: {self} using custom function")
+            log.debug(f"Ranking destinations: {destinations} for entity: {self} using custom function")
             context['candidate_destinations'] = destinations
             return self.loader.eval_code_block(self.rank, context)
         else:
             # Sort destinations by priority
-            log.debug(f"Ranking destinations: {destinations} for resource: {self} using default ranker")
+            log.debug(f"Ranking destinations: {destinations} for entity: {self} using default ranker")
             return sorted(destinations, key=lambda d: d.score(self), reverse=True)
 
-    def score(self, resource):
-        score = self.tags.score(resource.tags)
-        log.debug(f"Destination: {resource} scored: {score}")
+    def score(self, entity):
+        score = self.tags.score(entity.tags)
+        log.debug(f"Destination: {entity} scored: {score}")
         return score
 
 
-class ResourceWithRules(Resource):
+class EntityWithRules(Entity):
 
     def __init__(self, loader, id=None, cores=None, mem=None, gpus=None, env=None,
                  params=None, tags=None, rank=None, inherits=None, rules=None):
@@ -336,104 +350,104 @@ class ResourceWithRules(Resource):
                 validated_rule = Rule.from_dict(self.loader, rule)
                 validated[validated_rule.id] = validated_rule
             except Exception:
-                log.exception(f"Could not load rule for resource: {self.__class__} with id: {self.id} and data: {rule}")
+                log.exception(f"Could not load rule for entity: {self.__class__} with id: {self.id} and data: {rule}")
         return validated
 
     @classmethod
-    def from_dict(cls: type, loader, resource_dict):
+    def from_dict(cls: type, loader, entity_dict):
         return cls(
             loader=loader,
-            id=resource_dict.get('id'),
-            cores=resource_dict.get('cores'),
-            mem=resource_dict.get('mem'),
-            gpus=resource_dict.get('gpus'),
-            env=resource_dict.get('env'),
-            params=resource_dict.get('params'),
-            tags=resource_dict.get('scheduling'),
-            rank=resource_dict.get('rank'),
-            inherits=resource_dict.get('inherits'),
-            rules=resource_dict.get('rules')
+            id=entity_dict.get('id'),
+            cores=entity_dict.get('cores'),
+            mem=entity_dict.get('mem'),
+            gpus=entity_dict.get('gpus'),
+            env=entity_dict.get('env'),
+            params=entity_dict.get('params'),
+            tags=entity_dict.get('scheduling'),
+            rank=entity_dict.get('rank'),
+            inherits=entity_dict.get('inherits'),
+            rules=entity_dict.get('rules')
         )
 
-    def override(self, resource):
-        new_resource = super().override(resource)
-        new_resource.rules = copy.copy(resource.rules)
-        new_resource.rules.update(self.rules or {})
+    def override(self, entity):
+        new_entity = super().override(entity)
+        new_entity.rules = copy.copy(entity.rules)
+        new_entity.rules.update(self.rules or {})
         for rule in self.rules.values():
-            if resource.rules.get(rule.id):
-                new_resource.rules[rule.id] = rule.inherit(resource.rules[rule.id])
-        return new_resource
+            if entity.rules.get(rule.id):
+                new_entity.rules[rule.id] = rule.inherit(entity.rules[rule.id])
+        return new_entity
 
-    def evaluate_resource_requirements(self, context):
-        new_resource = self
+    def evaluate_early(self, context):
+        new_entity = self
         for rule in self.rules.values():
             if rule.is_matching(context):
-                resource_id = new_resource.id
-                new_resource.cores = rule.cores or self.cores
-                new_resource.mem = rule.mem or self.mem
-                new_resource.gpus = rule.gpus or self.gpus
-                new_resource.id = f"{resource_id}, Rule: {rule.id}"
-        return super(ResourceWithRules, new_resource).evaluate_resource_requirements(context)
+                entity_id = new_entity.id
+                new_entity.gpus = rule.gpus or self.gpus
+                new_entity.cores = rule.cores or self.cores
+                new_entity.mem = rule.mem or self.mem
+                new_entity.id = f"{entity_id}, Rule: {rule.id}"
+        return super(EntityWithRules, new_entity).evaluate_early(context)
 
-    def evaluate_expressions(self, context):
-        new_resource = self
+    def evaluate_late(self, context):
+        new_entity = self
         for rule in self.rules.values():
             if rule.is_matching(context):
-                new_resource = rule.inherit(new_resource)
-                # restore already evaluated resource requirements
-                new_resource.cores = self.cores
-                new_resource.mem = self.mem
-                new_resource.gpus = self.gpus
-        return super(ResourceWithRules, new_resource).evaluate_expressions(context)
+                new_entity = rule.inherit(new_entity)
+                # restore already evaluated entity requirements
+                new_entity.cores = self.cores
+                new_entity.mem = self.mem
+                new_entity.gpus = self.gpus
+        return super(EntityWithRules, new_entity).evaluate_late(context)
 
     def __repr__(self):
         return super().__repr__() + f", rules={self.rules}"
 
 
-class Tool(ResourceWithRules):
+class Tool(EntityWithRules):
 
     def __init__(self, loader, id=None, cores=None, mem=None, gpus=None,
                  env=None, params=None, tags=None, rank=None, inherits=None, rules=None):
         super().__init__(loader, id, cores, mem, gpus, env, params, tags, rank, inherits, rules)
 
 
-class User(ResourceWithRules):
+class User(EntityWithRules):
 
     def __init__(self, loader, id=None, cores=None, mem=None, gpus=None,
                  env=None, params=None, tags=None, rank=None, inherits=None, rules=None):
         super().__init__(loader, id, cores, mem, gpus, env, params, tags, rank, inherits, rules)
 
 
-class Role(ResourceWithRules):
+class Role(EntityWithRules):
 
     def __init__(self, loader, id=None, cores=None, mem=None, gpus=None,
                  env=None, params=None, tags=None, rank=None, inherits=None, rules=None):
         super().__init__(loader, id, cores, mem, gpus, env, params, tags, rank, inherits, rules)
 
 
-class Destination(ResourceWithRules):
+class Destination(EntityWithRules):
 
     def __init__(self, loader, id=None, cores=None, mem=None, gpus=None,
                  env=None, params=None, tags=None, inherits=None, rules=None):
         super().__init__(loader, id, cores, mem, gpus, env, params, tags, inherits, rules=rules)
 
     @staticmethod
-    def from_dict(loader, resource_dict):
+    def from_dict(loader, entity_dict):
         return Destination(
             loader=loader,
-            id=resource_dict.get('id'),
-            cores=resource_dict.get('cores'),
-            mem=resource_dict.get('mem'),
-            gpus=resource_dict.get('gpus'),
-            env=resource_dict.get('env'),
-            params=resource_dict.get('params'),
-            tags=resource_dict.get('scheduling'),
-            inherits=resource_dict.get('inherits'),
-            rules=resource_dict.get('rules')
+            id=entity_dict.get('id'),
+            cores=entity_dict.get('cores'),
+            mem=entity_dict.get('mem'),
+            gpus=entity_dict.get('gpus'),
+            env=entity_dict.get('env'),
+            params=entity_dict.get('params'),
+            tags=entity_dict.get('scheduling'),
+            inherits=entity_dict.get('inherits'),
+            rules=entity_dict.get('rules')
         )
 
 
-class Rule(Resource):
+class Rule(Entity):
 
     rule_counter = 0
 
@@ -451,26 +465,26 @@ class Rule(Resource):
             self.loader.compile_code_block(self.fail, as_f_string=True)
 
     @staticmethod
-    def from_dict(loader, resource_dict):
+    def from_dict(loader, entity_dict):
         return Rule(
             loader=loader,
-            id=resource_dict.get('id'),
-            cores=resource_dict.get('cores'),
-            mem=resource_dict.get('mem'),
-            gpus=resource_dict.get('gpus'),
-            env=resource_dict.get('env'),
-            params=resource_dict.get('params'),
-            tags=resource_dict.get('scheduling'),
-            inherits=resource_dict.get('inherits'),
-            match=resource_dict.get('match'),
-            fail=resource_dict.get('fail')
+            id=entity_dict.get('id'),
+            cores=entity_dict.get('cores'),
+            mem=entity_dict.get('mem'),
+            gpus=entity_dict.get('gpus'),
+            env=entity_dict.get('env'),
+            params=entity_dict.get('params'),
+            tags=entity_dict.get('scheduling'),
+            inherits=entity_dict.get('inherits'),
+            match=entity_dict.get('match'),
+            fail=entity_dict.get('fail')
         )
 
-    def override(self, resource):
-        new_resource = super().override(resource)
-        new_resource.match = self.match if self.match is not None else getattr(resource, 'match', None)
-        new_resource.fail = self.fail if self.fail is not None else getattr(resource, 'fail', None)
-        return new_resource
+    def override(self, entity):
+        new_entity = super().override(entity)
+        new_entity.match = self.match if self.match is not None else getattr(entity, 'match', None)
+        new_entity.fail = self.fail if self.fail is not None else getattr(entity, 'fail', None)
+        return new_entity
 
     def __repr__(self):
         return super().__repr__() + f", match={self.match[:10] if self.match else ''}," \

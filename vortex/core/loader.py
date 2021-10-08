@@ -8,7 +8,7 @@ import yaml
 import requests
 
 from . import helpers
-from .resources import Tool, User, Role, Destination, Resource
+from .entities import Tool, User, Role, Destination, Entity
 
 log = logging.getLogger(__name__)
 
@@ -22,11 +22,11 @@ class VortexConfigLoader(object):
     def __init__(self, vortex_config: dict):
         self.compile_code_block = functools.lru_cache(maxsize=None)(self.__compile_code_block)
         self.global_settings = vortex_config.get('global', {})
-        resources = self.load_resources(vortex_config)
-        self.tools = resources.get('tools')
-        self.users = resources.get('users')
-        self.roles = resources.get('roles')
-        self.destinations = resources.get('destinations')
+        entities = self.load_entities(vortex_config)
+        self.tools = entities.get('tools')
+        self.users = entities.get('users')
+        self.roles = entities.get('roles')
+        self.destinations = entities.get('destinations')
 
     def __compile_code_block(self, code, as_f_string=False):
         if as_f_string:
@@ -51,61 +51,61 @@ class VortexConfigLoader(object):
         exec(exec_block, locals)
         return eval(eval_block, locals)
 
-    def process_inheritance(self, resource_list: dict[str, Resource], resource: Resource):
-        if resource.inherits:
-            parent_resource = resource_list.get(resource.inherits)
-            if not parent_resource:
-                raise InvalidParentException(f"The specified parent: {resource.inherits} for"
-                                             f" resource: {resource} does not exist")
-            return resource.inherit(self.process_inheritance(resource_list, parent_resource))
+    def process_inheritance(self, entity_list: dict[str, Entity], entity: Entity):
+        if entity.inherits:
+            parent_entity = entity_list.get(entity.inherits)
+            if not parent_entity:
+                raise InvalidParentException(f"The specified parent: {entity.inherits} for"
+                                             f" entity: {entity} does not exist")
+            return entity.inherit(self.process_inheritance(entity_list, parent_entity))
         else:
             default_inherits = self.global_settings.get('default_inherits')
-            if default_inherits and not resource.id == default_inherits:
-                default_parent = resource_list.get(default_inherits)
-                return resource.inherit(default_parent)
+            if default_inherits and not entity.id == default_inherits:
+                default_parent = entity_list.get(default_inherits)
+                return entity.inherit(default_parent)
             else:
-                return resource
+                return entity
 
-    def recompute_inheritance(self, resources: dict[str, Resource]):
-        for key, resource in resources.items():
-            resources[key] = self.process_inheritance(resources, resource)
+    def recompute_inheritance(self, entities: dict[str, Entity]):
+        for key, entity in entities.items():
+            entities[key] = self.process_inheritance(entities, entity)
 
-    def validate_resources(self, resource_class: type, resource_list: dict) -> dict:
+    def validate_entities(self, entity_class: type, entity_list: dict) -> dict:
         validated = {}
-        for resource_id, resource_dict in resource_list.items():
+        for entity_id, entity_dict in entity_list.items():
             try:
-                resource_dict['id'] = resource_id
-                resource_class.from_dict(self, resource_dict)
-                validated[resource_id] = resource_class.from_dict(self, resource_dict)
+                entity_dict['id'] = entity_id
+                entity_class.from_dict(self, entity_dict)
+                validated[entity_id] = entity_class.from_dict(self, entity_dict)
             except Exception:
-                log.exception(f"Could not load resource of type: {resource_class} with data: {resource_dict}")
+                log.exception(f"Could not load entity of type: {entity_class} with data: {entity_dict}")
                 raise
         self.recompute_inheritance(validated)
         return validated
 
-    def load_resources(self, vortex_config: dict) -> dict:
+    def load_entities(self, vortex_config: dict) -> dict:
         validated = {
-            'tools': self.validate_resources(Tool, vortex_config.get('tools', {})),
-            'users': self.validate_resources(User, vortex_config.get('users', {})),
-            'roles': self.validate_resources(Role, vortex_config.get('roles', {})),
-            'destinations': self.validate_resources(Destination, vortex_config.get('destinations', {}))
+            'tools': self.validate_entities(Tool, vortex_config.get('tools', {})),
+            'users': self.validate_entities(User, vortex_config.get('users', {})),
+            'roles': self.validate_entities(Role, vortex_config.get('roles', {})),
+            'destinations': self.validate_entities(Destination, vortex_config.get('destinations', {}))
         }
         return validated
 
-    def inherit_existing_resources(self, resources_current, resources_new):
-        for resource in resources_new.values():
-            if resources_current.get(resource.id):
-                resources_current[resource.id] = resource.inherit(resources_current.get(resource.id))
+    def inherit_existing_entities(self, entities_current, entities_new):
+        for entity in entities_new.values():
+            if entities_current.get(entity.id):
+                entities_current[entity.id] = entity.inherit(entities_current.get(entity.id))
             else:
-                resources_current[resource.id] = resource
-        self.recompute_inheritance(resources_current)
+                entities_current[entity.id] = entity
+        self.recompute_inheritance(entities_current)
 
     def merge_loader(self, loader: VortexConfigLoader):
         self.global_settings.update(loader.global_settings)
-        self.inherit_existing_resources(self.tools, loader.tools)
-        self.inherit_existing_resources(self.users, loader.users)
-        self.inherit_existing_resources(self.roles, loader.roles)
-        self.inherit_existing_resources(self.destinations, loader.destinations)
+        self.inherit_existing_entities(self.tools, loader.tools)
+        self.inherit_existing_entities(self.users, loader.users)
+        self.inherit_existing_entities(self.roles, loader.roles)
+        self.inherit_existing_entities(self.destinations, loader.destinations)
 
     @staticmethod
     def from_url_or_path(url_or_path: str):

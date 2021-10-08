@@ -5,7 +5,7 @@
 ## <img src="https://raw.githubusercontent.com/usegalaxy-au/total-perspective-vortex/main/docs/images/vortex-logo-wide.png" width="800" height="100">
 
 TotalPerspectiveVortex (Vortex) provides an installable set of dynamic rules for the
-[Galaxy application](https://galaxyproject.org/) that can route resources (Tools, Users, Roles) to appropriate
+[Galaxy application](https://galaxyproject.org/) that can route entities (Tools, Users, Roles) to appropriate
 job destinations based on a configurable yaml file.
 
 ### Installing latest development version

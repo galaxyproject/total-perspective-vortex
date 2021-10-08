@@ -1,7 +1,7 @@
 import os
 import unittest
 from vortex.rules import gateway
-from vortex.core.resources import IncompatibleTagsException
+from vortex.core.entities import IncompatibleTagsException
 from . import mock_galaxy
 
 
@@ -57,7 +57,7 @@ class TestMapperUser(unittest.TestCase):
         with self.assertRaises(IncompatibleTagsException):
             self._map_to_destination(tool, user)
 
-    def test_map_user_resource_usage_scenario_1(self):
+    def test_map_user_entity_usage_scenario_1(self):
         tool = mock_galaxy.Tool('bwa')
         user = mock_galaxy.User('ford', 'prefect@vortex.org')
 
@@ -66,7 +66,7 @@ class TestMapperUser(unittest.TestCase):
         # should use the lower of the two core and mem values for this user
         self.assertEqual(destination.params['native_spec'], '--mem 4 --cores 2')
 
-    def test_map_user_resource_usage_scenario_2(self):
+    def test_map_user_entity_usage_scenario_2(self):
         tool = mock_galaxy.Tool('bwa')
         user = mock_galaxy.User('ford', 'fairycake@vortex.org')
 

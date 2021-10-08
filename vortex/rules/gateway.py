@@ -3,7 +3,7 @@ import os
 
 from galaxy.util.watcher import get_watcher
 from vortex.core.loader import VortexConfigLoader
-from vortex.core.mapper import ResourceToDestinationMapper
+from vortex.core.mapper import EntityToDestinationMapper
 
 log = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ def load_destination_mapper(vortex_config_files, reload=False):
             loader.merge_loader(current_loader)
         else:
             loader = current_loader
-    return ResourceToDestinationMapper(loader)
+    return EntityToDestinationMapper(loader)
 
 
 def reload_destination_mapper(path=None):

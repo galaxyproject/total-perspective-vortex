@@ -29,7 +29,7 @@ tools:
         data = response.json()
         cpu_by_destination = {s['tags']['host']:s['values'][0][1] for s in data.get('results')[0].get('series', [])}
         # sort by destination preference, and then by cpu usage
-        candidate_destinations.sort(key=lambda d: (-1 * d.score(resource), cpu_by_destination.get(d.id)))
+        candidate_destinations.sort(key=lambda d: (-1 * d.score(entity), cpu_by_destination.get(d.id)))
         final_destinations = candidate_destinations
       except Exception:
         log.exception("An error occurred while querying influxdb. Using a weighted random candidate destination")
@@ -57,9 +57,9 @@ users:
     rules:
       - match: |
           from galaxy.jobs.rule_helper import RuleHelper
-          from vortex.core.resources import TagType
+          from vortex.core.entities import TagType
 
-          if resource.tags.filter(tag_value='highmem'):
+          if entity.tags.filter(tag_value='highmem'):
             rule_helper = RuleHelper(app)
             # Find all destinations that support highmem
             destinations = [d.id for d in mapper.destinations.values()

@@ -2,10 +2,10 @@
 
 .. centered::
 
-   **Dynamic rules for mapping Galaxy resources to destinations**
+   **Dynamic rules for routing Galaxy entities to destinations**
 
 TotalPerspectiveVortex (Vortex) provides an installable set of dynamic rules for the
-`Galaxy application`_ that can route resources (Tools, Users, Roles) to appropriate
+`Galaxy application`_ that can route entities (Tools, Users, Roles) to appropriate
 destinations based on a configurable yaml file. The aim of Vortex is to build on and
 unify previous efforts, such as `Dynamic Tool Destinations`_, the `Job Router`_ and
 `Sorting Hat`_, into a configurable set of rules that that can be extended arbitrarily
@@ -14,9 +14,9 @@ with custom Python logic.
 How it works
 ------------
 Vortex provides a dynamic rule that can be plugged into Galaxy via ``job_conf.xml``.
-The dynamic rule will also have an associated configuration file, that maps resources
+The dynamic rule will also have an associated configuration file, that maps entities
 (tools, users, roles) to specific destination through a flexible tagging system.
-Destinations can have arbitrary tags defined, and each resource can express a preference
+Destinations can have arbitrary tags defined, and each entity can express a preference
 or aversion to specific tags. Based on this tagging, jobs are routed to the most appropriate
 destination. In addition, admins can also plugin arbitrary python based rules for making
 more complex decisions, as well as custom ranking functions for choosing between matching

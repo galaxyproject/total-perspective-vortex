@@ -35,7 +35,7 @@ REQS_DEV = (['sphinx', 'sphinx_rtd_theme'] + REQS_TEST)
 
 setuptools.setup(
     name="total-perspective-vortex",
-    description="A library for mapping resources to destinations in Galaxy",
+    description="A library for routing entities to destinations in Galaxy",
     version=version,
     author="Galaxy and GVL projects",
     author_email="help@genome.edu.au",

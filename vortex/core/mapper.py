@@ -9,7 +9,7 @@ from .loader import VortexConfigLoader
 log = logging.getLogger(__name__)
 
 
-class ResourceToDestinationMapper(object):
+class EntityToDestinationMapper(object):
 
     def __init__(self, loader: VortexConfigLoader):
         self.loader = loader
@@ -23,65 +23,65 @@ class ResourceToDestinationMapper(object):
     def __compile_tool_regex(self, key):
         return re.compile(key)
 
-    def _find_resource_by_id_regex(self, resource_list, resource_name):
+    def _find_entity_by_id_regex(self, entity_list, entity_name):
         # shortcut for direct match
-        if resource_list.get(resource_name):
-            return resource_list.get(resource_name)
+        if entity_list.get(entity_name):
+            return entity_list.get(entity_name)
         else:
-            for key in resource_list.keys():
-                if self.lookup_tool_regex(key).match(resource_name):
-                    return resource_list[key]
+            for key in entity_list.keys():
+                if self.lookup_tool_regex(key).match(entity_name):
+                    return entity_list[key]
             if self.default_inherits:
-                return resource_list.get(self.default_inherits)
+                return entity_list.get(self.default_inherits)
             return None
 
-    def evaluate_resource_requirements(self, resources, context):
+    def evaluate_early(self, entities, context):
         evaluated = []
-        for resource in resources:
+        for entity in entities:
             context.update({
-                'resource': resource,
-                'self': resource
+                'entity': entity,
+                'self': entity
             })
-            evaluated.append(resource.evaluate_resource_requirements(context))
+            evaluated.append(entity.evaluate_early(context))
         return evaluated
 
-    def combine_resources(self, resources):
-        combined_resource = resources[0]
-        for resource in resources[1:]:
-            combined_resource = combined_resource.combine(resource)
-        return combined_resource
+    def combine_entities(self, entities):
+        combined_entity = entities[0]
+        for entity in entities[1:]:
+            combined_entity = combined_entity.combine(entity)
+        return combined_entity
 
-    def rank(self, resource, destinations, context):
-        return resource.rank_destinations(destinations, context)
+    def rank(self, entity, destinations, context):
+        return entity.rank_destinations(destinations, context)
 
-    def find_best_match(self, resource, destinations, context):
-        matches = [dest for dest in destinations.values() if resource.matches(dest, context)]
-        rankings = self.rank(resource, matches, context)
+    def find_best_match(self, entity, destinations, context):
+        matches = [dest for dest in destinations.values() if entity.matches(dest, context)]
+        rankings = self.rank(entity, matches, context)
         return rankings[0] if rankings else None
 
-    def _find_matching_resources(self, tool, user):
-        tool_resource = self._find_resource_by_id_regex(self.tools, tool.id)
+    def _find_matching_entities(self, tool, user):
+        tool_entity = self._find_entity_by_id_regex(self.tools, tool.id)
 
-        resource_list = [tool_resource]
+        entity_list = [tool_entity]
 
         if user:
-            user_resource = self._find_resource_by_id_regex(self.users, user.email)
-            if user_resource:
-                resource_list += [user_resource]
+            user_entity = self._find_entity_by_id_regex(self.users, user.email)
+            if user_entity:
+                entity_list += [user_entity]
 
-            role_resources = (self._find_resource_by_id_regex(self.roles, role.name)
-                              for role in user.all_roles() if not role.deleted)
+            role_entities = (self._find_entity_by_id_regex(self.roles, role.name)
+                             for role in user.all_roles() if not role.deleted)
             # trim empty
-            user_role_resources = (role for role in role_resources if role)
-            user_role_resource = next(user_role_resources, None)
-            if user_role_resource:
-                resource_list += [user_role_resource]
+            user_role_entities = (role for role in role_entities if role)
+            user_role_entity = next(user_role_entities, None)
+            if user_role_entity:
+                entity_list += [user_role_entity]
 
-        return resource_list
+        return entity_list
 
     def map_to_destination(self, app, tool, user, job):
-        # 1. Find the resources relevant to this job
-        resource_list = self._find_matching_resources(tool, user)
+        # 1. Find the entities relevant to this job
+        entity_list = self._find_matching_entities(tool, user)
 
         # 2. Create evaluation context - these are the common variables available within any code block
         context = {
@@ -92,22 +92,22 @@ class ResourceToDestinationMapper(object):
             'mapper': self
         }
 
-        # 3. Evaluate resource requirement expressions
-        evaluated_resources = self.evaluate_resource_requirements(resource_list, context)
+        # 3. Evaluate entity properties that must be evaluated early, prior to combining
+        evaluated_entities = self.evaluate_early(entity_list, context)
 
-        # 4. Combine resource requirements
-        combined_resource = self.combine_resources(evaluated_resources)
+        # 4. Combine entity requirements
+        combined_entity = self.combine_entities(evaluated_entities)
 
         context.update({
-            'resource': combined_resource,
-            'self': combined_resource
+            'entity': combined_entity,
+            'self': combined_entity
         })
 
-        # 5. Evaluate remaining expressions
-        evaluated = combined_resource.evaluate_expressions(context)
+        # 5. Evaluate remaining expressions after combining requirements
+        evaluated = combined_entity.evaluate_late(context)
 
         context.update({
-            'resource': evaluated,
+            'entity': evaluated,
             'self': evaluated
         })
 
