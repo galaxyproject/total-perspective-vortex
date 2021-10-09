@@ -10,18 +10,18 @@ tools:
     params:
       native_spec: "--mem {mem} --cores {cores}"
     scheduling:
-      required: []
-      preferred:
+      require: []
+      prefer:
         - general
-      accepted:
-      rejected:
+      accept:
+      reject:
         - pulsar
     rules:
       - match: input_size < 5
         fail: We don't run piddling datasets
   bwa:
     scheduling:
-      required:
+      require:
         - pulsar
     rules:
       - match: input_size <= 10
@@ -29,7 +29,7 @@ tools:
         mem: cores * 4
       - match: input_size > 10 and input_size < 20
         scheduling:
-          required:
+          require:
             - highmem
       - match: input_size >= 20
         fail: Too much data, shouldn't run
@@ -40,11 +40,11 @@ users:
     params:
       native_spec_user: "--mem {mem} --cores {cores}"
     scheduling:
-      required:
+      require:
         - pulsar
   arthur@vortex.org:
     scheduling:
-      required:
+      require:
         - earth
     rules:
       - match: True
@@ -54,13 +54,13 @@ users:
         fail: Just because
   improbable@vortex.org:
     scheduling:
-      required:
+      require:
         - pulsar
-      rejected:
+      reject:
         - pulsar
   .*@vortex.org:
     scheduling:
-      required:
+      require:
         - pulsar
 
 destinations:
@@ -68,12 +68,12 @@ destinations:
     cores: 4
     mem: 16
     scheduling:
-      preferred:
+      prefer:
         - general
   k8s_environment:
     cores: 16
     mem: 64
     gpus: 2
     scheduling:
-      preferred:
+      prefer:
         - pulsar

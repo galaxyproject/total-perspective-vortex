@@ -15,5 +15,5 @@ tools:
         match: input_size > 40
         fail: a different kind of error
     scheduling:
-      required:
+      require:
         - pulsar

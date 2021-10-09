@@ -7,12 +7,12 @@ tools:
     mem: 8
     env: {}
     scheduling:
-      required:
+      require:
         - highmem
-      preferred:
+      prefer:
         - general
-      accepted:
-      rejected:
+      accept:
+      reject:
         - offline
     rules: []
     rank: |
@@ -40,16 +40,16 @@ tools:
     mem: cores * 4
     env: {}
     scheduling:
-      required: []
-      preferred:
+      require: []
+      prefer:
         - pulsar
-      accepted:
-      rejected:
+      accept:
+      reject:
         - offline
     rules:
       - match: input_size >= 0.1
         scheduling:
-          required:
+          require:
             - highmem
 
 users:
@@ -64,7 +64,7 @@ users:
             # Find all destinations that support highmem
             destinations = [d.id for d in mapper.destinations.values()
                             if any(d.tags.filter(tag_value='highmem',
-                                   tag_type=[TagType.REQUIRED, TagType.PREFERRED, TagType.ACCEPTED]))]
+                                   tag_type=[TagType.REQUIRE, TagType.PREFER, TagType.ACCEPT]))]
             count = rule_helper.job_count(for_user_email=user.email, for_destinations=destinations)
             if count > 4:
               retval = True
@@ -83,44 +83,44 @@ destinations:
     cores: 8
     mem: 32
     scheduling:
-      accepted:
+      accept:
         - general
-      required:
+      require:
         - pulsar
   general_pulsar_2:
     cores: 32
     mem: 128
     scheduling:
-      accepted:
+      accept:
         - general
-      required:
+      require:
         - pulsar
   highmem_pulsar_1:
     cores: 128
     mem: 4096
     scheduling:
-      preferred:
+      prefer:
         - highmem
-      required:
+      require:
         - pulsar
   highmem_pulsar_2:
     cores: 128
     mem: 4096
     scheduling:
-      preferred:
+      prefer:
         - highmem
-      required:
+      require:
         - pulsar
   training_slurm:
     cores: 16
     mem: 64
     scheduling:
-      required:
+      require:
         - training
   training_pulsar:
     cores: 8
     mem: 32
     scheduling:
-      required:
+      require:
         - training
         - pulsar

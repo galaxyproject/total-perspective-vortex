@@ -10,10 +10,10 @@ log = logging.getLogger(__name__)
 
 
 class TagType(Enum):
-    REQUIRED = 2
-    PREFERRED = 1
-    ACCEPTED = 0
-    REJECTED = -1
+    REQUIRE = 2
+    PREFER = 1
+    ACCEPT = 0
+    REJECT = -1
 
     def __int__(self):
         return self.value
@@ -42,11 +42,11 @@ class IncompatibleTagsException(Exception):
     def __init__(self, first_set, second_set):
 
         super().__init__(
-            f"Cannot combine tag sets because required and rejected tags mismatch. First tag set requires:"
-            f" {[tag.value for tag in first_set.filter(TagType.REQUIRED)]} and rejects:"
-            f" {[tag.value for tag in first_set.filter(TagType.REJECTED)]}. Second tag set requires:"
-            f" {[tag.value for tag in second_set.filter(TagType.REQUIRED)]} and rejects:"
-            f" {[tag.value for tag in second_set.filter(TagType.REJECTED)]}.")
+            f"Cannot combine tag sets because require and reject tags mismatch. First tag set requires:"
+            f" {[tag.value for tag in first_set.filter(TagType.REQUIRE)]} and rejects:"
+            f" {[tag.value for tag in first_set.filter(TagType.REJECT)]}. Second tag set requires:"
+            f" {[tag.value for tag in second_set.filter(TagType.REQUIRE)]} and rejects:"
+            f" {[tag.value for tag in second_set.filter(TagType.REJECT)]}.")
 
 
 class TagSetManager(object):
@@ -78,10 +78,10 @@ class TagSetManager(object):
             self.add_tag_override(tag)
 
     def can_combine(self, other: TagSetManager) -> bool:
-        self_required = ((t.name, t.value) for t in self.filter(TagType.REQUIRED))
-        other_required = ((t.name, t.value) for t in other.filter(TagType.REQUIRED))
-        self_rejected = ((t.name, t.value) for t in self.filter(TagType.REJECTED))
-        other_rejected = ((t.name, t.value) for t in other.filter(TagType.REJECTED))
+        self_required = ((t.name, t.value) for t in self.filter(TagType.REQUIRE))
+        other_required = ((t.name, t.value) for t in other.filter(TagType.REQUIRE))
+        self_rejected = ((t.name, t.value) for t in self.filter(TagType.REJECT))
+        other_rejected = ((t.name, t.value) for t in other.filter(TagType.REJECT))
         if set(self_required).intersection(set(other_rejected)):
             return False
         elif set(self_rejected).intersection(set(other_required)):
@@ -92,38 +92,38 @@ class TagSetManager(object):
     def inherit(self, other) -> TagSetManager:
         assert type(self) == type(other)
         new_tag_set = TagSetManager()
-        new_tag_set.add_tag_overrides(other.filter(TagType.ACCEPTED))
-        new_tag_set.add_tag_overrides(other.filter(TagType.PREFERRED))
-        new_tag_set.add_tag_overrides(other.filter(TagType.REQUIRED))
-        new_tag_set.add_tag_overrides(other.filter(TagType.REJECTED))
-        new_tag_set.add_tag_overrides(self.filter(TagType.ACCEPTED))
-        new_tag_set.add_tag_overrides(self.filter(TagType.PREFERRED))
-        new_tag_set.add_tag_overrides(self.filter(TagType.REQUIRED))
-        new_tag_set.add_tag_overrides(self.filter(TagType.REJECTED))
+        new_tag_set.add_tag_overrides(other.filter(TagType.ACCEPT))
+        new_tag_set.add_tag_overrides(other.filter(TagType.PREFER))
+        new_tag_set.add_tag_overrides(other.filter(TagType.REQUIRE))
+        new_tag_set.add_tag_overrides(other.filter(TagType.REJECT))
+        new_tag_set.add_tag_overrides(self.filter(TagType.ACCEPT))
+        new_tag_set.add_tag_overrides(self.filter(TagType.PREFER))
+        new_tag_set.add_tag_overrides(self.filter(TagType.REQUIRE))
+        new_tag_set.add_tag_overrides(self.filter(TagType.REJECT))
         return new_tag_set
 
     def combine(self, other: TagSetManager) -> TagSetManager:
         if not self.can_combine(other):
             raise IncompatibleTagsException(self, other)
         new_tag_set = TagSetManager()
-        # Add accepted tags first, as they should be overridden by preferred, required and rejected tags
-        new_tag_set.add_tag_overrides(other.filter(TagType.ACCEPTED))
-        new_tag_set.add_tag_overrides(self.filter(TagType.ACCEPTED))
-        # Next add preferred, as they should be overridden by required and rejected tags
-        new_tag_set.add_tag_overrides(other.filter(TagType.PREFERRED))
-        new_tag_set.add_tag_overrides(self.filter(TagType.PREFERRED))
-        # Required and rejected tags can be added in either order, as there's no overlap
-        new_tag_set.add_tag_overrides(other.filter(TagType.REQUIRED))
-        new_tag_set.add_tag_overrides(self.filter(TagType.REQUIRED))
-        new_tag_set.add_tag_overrides(other.filter(TagType.REJECTED))
-        new_tag_set.add_tag_overrides(self.filter(TagType.REJECTED))
+        # Add accept tags first, as they should be overridden by prefer, require and reject tags
+        new_tag_set.add_tag_overrides(other.filter(TagType.ACCEPT))
+        new_tag_set.add_tag_overrides(self.filter(TagType.ACCEPT))
+        # Next add preferred, as they should be overridden by require and reject tags
+        new_tag_set.add_tag_overrides(other.filter(TagType.PREFER))
+        new_tag_set.add_tag_overrides(self.filter(TagType.PREFER))
+        # Require and reject tags can be added in either order, as there's no overlap
+        new_tag_set.add_tag_overrides(other.filter(TagType.REQUIRE))
+        new_tag_set.add_tag_overrides(self.filter(TagType.REQUIRE))
+        new_tag_set.add_tag_overrides(other.filter(TagType.REJECT))
+        new_tag_set.add_tag_overrides(self.filter(TagType.REJECT))
         return new_tag_set
 
     def match(self, other: TagSetManager) -> bool:
-        return (all(other.contains_tag(required) for required in self.filter(TagType.REQUIRED)) and
-                all(self.contains_tag(required) for required in other.filter(TagType.REQUIRED)) and
-                not any(other.contains_tag(rejected) for rejected in self.filter(TagType.REJECTED)) and
-                not any(self.contains_tag(rejected) for rejected in other.filter(TagType.REJECTED)))
+        return (all(other.contains_tag(required) for required in self.filter(TagType.REQUIRE)) and
+                all(self.contains_tag(required) for required in other.filter(TagType.REQUIRE)) and
+                not any(other.contains_tag(rejected) for rejected in self.filter(TagType.REJECT)) and
+                not any(self.contains_tag(rejected) for rejected in other.filter(TagType.REJECT)))
 
     def contains_tag(self, tag) -> bool:
         """
@@ -150,14 +150,14 @@ class TagSetManager(object):
     @staticmethod
     def from_dict(tags: list[dict]) -> TagSetManager:
         tag_list = []
-        for tag_val in tags.get('required') or []:
-            tag_list.append(Tag(name="scheduling", value=tag_val, tag_type=TagType.REQUIRED))
-        for tag_val in tags.get('preferred') or []:
-            tag_list.append(Tag(name="scheduling", value=tag_val, tag_type=TagType.PREFERRED))
-        for tag_val in tags.get('accepted') or []:
-            tag_list.append(Tag(name="scheduling", value=tag_val, tag_type=TagType.ACCEPTED))
-        for tag_val in tags.get('rejected') or []:
-            tag_list.append(Tag(name="scheduling", value=tag_val, tag_type=TagType.REJECTED))
+        for tag_val in tags.get('require') or []:
+            tag_list.append(Tag(name="scheduling", value=tag_val, tag_type=TagType.REQUIRE))
+        for tag_val in tags.get('prefer') or []:
+            tag_list.append(Tag(name="scheduling", value=tag_val, tag_type=TagType.PREFER))
+        for tag_val in tags.get('accept') or []:
+            tag_list.append(Tag(name="scheduling", value=tag_val, tag_type=TagType.ACCEPT))
+        for tag_val in tags.get('reject') or []:
+            tag_list.append(Tag(name="scheduling", value=tag_val, tag_type=TagType.REJECT))
         return TagSetManager(tags=tag_list)
 
 
@@ -257,8 +257,8 @@ class Entity(object):
 
     def matches(self, destination, context):
         """
-        The match operation checks whether all of the required tags in a entity are present
-        in the destination entity, and none of the rejected tags in the first entity are
+        The match operation checks whether all of the require tags in an entity are present
+        in the destination entity, and none of the reject tags in the first entity are
         present in the second entity.
 
         This is used to check compatibility of a final set of combined tool requirements with its destination.

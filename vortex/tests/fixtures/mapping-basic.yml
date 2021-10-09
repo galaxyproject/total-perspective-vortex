@@ -7,32 +7,32 @@ tools:
     mem: 8
     env: {}
     scheduling:
-      required: []
-      preferred:
+      require: []
+      prefer:
         - general
-      accepted:
-      rejected:
+      accept:
+      reject:
         - pulsar
     rules: []
   bwa:
     scheduling:
-      required:
+      require:
         - pulsar
   unschedulable_tool:
     scheduling:
-      required:
+      require:
         - non_existent
   invalidly_tagged_tool:
     scheduling:
-      required:
+      require:
         - general
-      rejected:
+      reject:
         - general
   regex_tool.*:
     scheduling:
-      required:
+      require:
         - pulsar
-      rejected:
+      reject:
         - general
 
 destinations:
@@ -40,12 +40,12 @@ destinations:
     cores: 4
     mem: 16
     scheduling:
-      preferred:
+      prefer:
         - general
   k8s_environment:
     cores: 16
     mem: 64
     gpus: 2
     scheduling:
-      preferred:
+      prefer:
         - pulsar

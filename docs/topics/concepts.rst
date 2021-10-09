@@ -19,18 +19,18 @@ entity, to indicating complete aversion:
 +-----------+--------------------------------------------------------------------------------------------------------+
 | Tag Type  | Description                                                                                            |
 +===========+========================================================================================================+
-| required  | required tags must match up for scheduling to occur. For example, if a tool is marked as requiring the |
+| require   | required tags must match up for scheduling to occur. For example, if a tool is marked as requiring the |
 |           | `high-mem` tag, only destinations that are tagged as requiring, preferring or tolerating the           |
 |           | `high-mem` tag would be considering for scheduling.                                                    |
 +-----------+--------------------------------------------------------------------------------------------------------+
-| preferred | preferred tags are ranked higher when scheduling decisions are made.                                   |
+| prefer    | preferred tags are ranked higher when scheduling decisions are made.                                   |
 +-----------+--------------------------------------------------------------------------------------------------------+
-| accepted | accepted tags can be used to indicate that a entity can match up or support another entity, even        |
+| accept    | accept tags can be used to indicate that a entity can match up or support another entity, even         |
 |           | if not preferentially.                                                                                 |
 +-----------+--------------------------------------------------------------------------------------------------------+
-| rejected  | rejected tags cannot be present for scheduling to occur. For example, if a tool is marked as rejecting |
+| reject    | reject tags cannot be present for scheduling to occur. For example, if a tool is marked as rejecting   |
 |           | the `pulsar` tag, only destinations that do not have that tag are considered for scheduling. If two    |
-|           | entities have the same rejected tag, they still repel each other.                                      |
+|           | entities have the same reject tag, they still repel each other.                                        |
 +-----------+--------------------------------------------------------------------------------------------------------+
 
 

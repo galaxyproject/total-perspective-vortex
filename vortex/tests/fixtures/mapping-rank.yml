@@ -7,23 +7,23 @@ tools:
     mem: 8
     env: {}
     scheduling:
-      required: []
-      preferred:
+      require: []
+      prefer:
         - general
-      accepted:
-      rejected:
+      accept:
+      reject:
         - pulsar
     rules: []
 
   bwa:
     scheduling:
-      required:
+      require:
         - pulsar
   trinity:
     scheduling:
-      required:
+      require:
         - pulsar
-      preferred:
+      prefer:
         - highmem
 users:
   default:
@@ -31,30 +31,30 @@ users:
     mem: 8
     env: {}
     scheduling:
-      required: []
-      preferred:
+      require: []
+      prefer:
         - general
-      accepted:
-      rejected:
+      accept:
+      reject:
         - pulsar
     rules: []
   fairycake@vortex.org:
     scheduling:
-      required:
+      require:
         - pulsar
   arthur@vortex.org:
     scheduling:
-      required:
+      require:
         - earth
   improbable@vortex.org:
     scheduling:
-      required:
+      require:
         - pulsar
-      rejected:
+      reject:
         - pulsar
   .*@vortex.org:
     scheduling:
-      required:
+      require:
         - pulsar
 
 destinations:
@@ -62,20 +62,20 @@ destinations:
     cores: 4
     mem: 16
     scheduling:
-      preferred:
+      prefer:
         - general
   k8s_environment:
     cores: 16
     mem: 64
     gpus: 2
     scheduling:
-      preferred:
+      prefer:
         - pulsar
   another_k8s_environment:
     cores: 16
     mem: 64
     gpus: 2
     scheduling:
-      preferred:
+      prefer:
         - pulsar
         - highmem

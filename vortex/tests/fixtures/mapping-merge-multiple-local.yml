@@ -9,18 +9,18 @@ tools:
     params:
       native_spec: "--mem {mem} --cores {cores}"
     scheduling:
-      required: []
-      preferred:
+      require: []
+      prefer:
         - general
-      accepted:
-      rejected:
+      accept:
+      reject:
         - pulsar
     rules:
       - match: input_size < 5
         fail: We don't run piddling datasets
   bwa:
     scheduling:
-      required:
+      require:
         - pulsar
     rules:
       - match: input_size <= 10
@@ -29,7 +29,7 @@ tools:
         match: input_size > 40
         fail: ""
         scheduling:
-          required:
+          require:
             - highmem
       - match: input_size >= 20 and input_size <= 30
         fail: Too much data, shouldn't run
@@ -40,7 +40,7 @@ users:
     params:
       native_spec_user: "--mem {mem} --cores {cores}"
     scheduling:
-      required:
+      require:
         - pulsar
 
 destinations:
@@ -48,20 +48,20 @@ destinations:
     cores: 4
     mem: 16
     scheduling:
-      preferred:
+      prefer:
         - general
   k8s_environment:
     cores: 16
     mem: 64
     gpus: 2
     scheduling:
-      preferred:
+      prefer:
         - pulsar
   another_k8s_environment:
     cores: 16
     mem: 64
     gpus: 2
     scheduling:
-      preferred:
+      prefer:
         - pulsar
         - highmem

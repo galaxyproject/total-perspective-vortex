@@ -7,11 +7,11 @@ tools:
     mem: 8
     env: {}
     scheduling:
-      required: []
-      preferred:
+      require: []
+      prefer:
         - general
-      accepted:
-      rejected:
+      accept:
+      reject:
         - offline
     rules: []
     rank: |
@@ -39,18 +39,18 @@ tools:
     mem: cores * 4
     env: {}
     scheduling:
-      required: []
-      preferred:
+      require: []
+      prefer:
         - pulsar
-      accepted:
-      rejected:
+      accept:
+      reject:
         - offline
     rules:
       - match: input_size >= 10
         cores: 16
       - match: input_size >= 20
         scheduling:
-          required:
+          require:
             - highmem
 
 destinations:
@@ -61,44 +61,44 @@ destinations:
     cores: 8
     mem: 32
     scheduling:
-      accepted:
+      accept:
         - general
-      required:
+      require:
         - pulsar
   general_pulsar_2:
     cores: 32
     mem: 128
     scheduling:
-      accepted:
+      accept:
         - general
-      required:
+      require:
         - pulsar
   highmem_pulsar_1:
     cores: 128
     mem: 4096
     scheduling:
-      preferred:
+      prefer:
         - highmem
-      required:
+      require:
         - pulsar
   highmem_pulsar_2:
     cores: 128
     mem: 4096
     scheduling:
-      preferred:
+      prefer:
         - highmem
-      required:
+      require:
         - pulsar
   training_slurm:
     cores: 16
     mem: 64
     scheduling:
-      required:
+      require:
         - training
   training_pulsar:
     cores: 8
     mem: 32
     scheduling:
-      required:
+      require:
         - training
         - pulsar

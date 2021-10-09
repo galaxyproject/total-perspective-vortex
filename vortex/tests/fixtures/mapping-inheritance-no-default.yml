@@ -8,11 +8,11 @@ tools:
     params:
       native_spec: "--mem {mem} --cores {cores} --gpus {gpus}"
     scheduling:
-      required: []
-      preferred:
+      require: []
+      prefer:
         - general
-      accepted:
-      rejected:
+      accept:
+      reject:
         - pulsar
     rules:
       - match: input_size < 5
@@ -20,7 +20,7 @@ tools:
   bwa:
     gpus: 2
     scheduling:
-      required:
+      require:
         - pulsar
     rules:
       - match: input_size <= 10
@@ -37,11 +37,11 @@ tools:
     inherits: trinity
     gpus: 4
     scheduling:
-      required: []
-      preferred:
+      require: []
+      prefer:
         - general
-      accepted:
-      rejected:
+      accept:
+      reject:
         - pulsar
 
 destinations:
@@ -49,12 +49,12 @@ destinations:
     cores: 4
     mem: 16
     scheduling:
-      preferred:
+      prefer:
         - general
   k8s_environment:
     cores: 16
     mem: 64
     gpus: 5
     scheduling:
-      preferred:
+      prefer:
         - pulsar

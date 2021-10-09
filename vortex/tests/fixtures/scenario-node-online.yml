@@ -7,11 +7,11 @@ tools:
     mem: 8
     env: {}
     scheduling:
-      required: []
-      preferred:
+      require: []
+      prefer:
         - general
-      accepted:
-      rejected:
+      accept:
+      reject:
         - offline
     rules: []
 
@@ -20,9 +20,9 @@ destinations:
     cores: 4
     mem: 16
     scheduling:
-      rejected:
+      reject:
         - offline
-      preferred:
+      prefer:
         - general
   k8s_environment:
     cores: 16
