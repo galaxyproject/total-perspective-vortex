@@ -11,7 +11,7 @@ tools:
         - highmem
       preferred:
         - general
-      tolerated:
+      accepted:
       rejected:
         - offline
     rules: []
@@ -43,7 +43,7 @@ tools:
       required: []
       preferred:
         - pulsar
-      tolerated:
+      accepted:
       rejected:
         - offline
     rules:
@@ -64,7 +64,7 @@ users:
             # Find all destinations that support highmem
             destinations = [d.id for d in mapper.destinations.values()
                             if any(d.tags.filter(tag_value='highmem',
-                                   tag_type=[TagType.REQUIRED, TagType.PREFERRED, TagType.TOLERATED]))]
+                                   tag_type=[TagType.REQUIRED, TagType.PREFERRED, TagType.ACCEPTED]))]
             count = rule_helper.job_count(for_user_email=user.email, for_destinations=destinations)
             if count > 4:
               retval = True
@@ -83,7 +83,7 @@ destinations:
     cores: 8
     mem: 32
     scheduling:
-      tolerated:
+      accepted:
         - general
       required:
         - pulsar
@@ -91,7 +91,7 @@ destinations:
     cores: 32
     mem: 128
     scheduling:
-      tolerated:
+      accepted:
         - general
       required:
         - pulsar

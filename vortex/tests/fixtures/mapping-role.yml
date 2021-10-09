@@ -10,7 +10,7 @@ tools:
       required: []
       preferred:
         - general
-      tolerated:
+      accepted:
       rejected:
         - pulsar
     rules: []
@@ -27,7 +27,7 @@ users:
       required: []
       preferred:
         - general
-      tolerated:
+      accepted:
     rules: []
   fairycake@vortex.org:
     scheduling:

@@ -10,7 +10,7 @@ tools:
       nativeSpecification: "--nodes=1 --ntasks={cores} --ntasks-per-node={cores} --mem={mem*1024}"
     scheduling:
       preferred:
-      tolerated:
+      accepted:
         - general
       rejected:
         - offline
@@ -22,12 +22,12 @@ tools:
     params:
       nativeSpecification: "--nodes=1 --ntasks={cores} --ntasks-per-node={cores} --mem=500"
     scheduling:
-      tolerated:
+      accepted:
         - pulsar
   '.*bwa_mem.*':
     cores: 2
     scheduling:
-      tolerated:
+      accepted:
         - pulsar
   '.*hifiasm.*':
     cores: 2
@@ -49,14 +49,14 @@ destinations:
     cores: 4
     mem: 15.5
     scheduling:
-      tolerated:
+      accepted:
         - pulsar
         - general
   pulsar_destination:
     cores: 4
     mem: 7.77
     scheduling:
-      tolerated:
+      accepted:
         - general
       required:
         - pulsar
@@ -64,7 +64,7 @@ destinations:
     cores: 32
     mem: 96.38
     scheduling:
-      tolerated:
+      accepted:
         - general
       required:
         - pulsar

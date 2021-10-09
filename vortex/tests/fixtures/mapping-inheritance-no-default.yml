@@ -11,7 +11,7 @@ tools:
       required: []
       preferred:
         - general
-      tolerated:
+      accepted:
       rejected:
         - pulsar
     rules:
@@ -40,7 +40,7 @@ tools:
       required: []
       preferred:
         - general
-      tolerated:
+      accepted:
       rejected:
         - pulsar
 

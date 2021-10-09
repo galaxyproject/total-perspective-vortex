@@ -10,7 +10,7 @@ tools:
       required: []
       preferred:
         - general
-      tolerated:
+      accepted:
       rejected:
         - offline
     rules: []
@@ -42,7 +42,7 @@ tools:
       required: []
       preferred:
         - pulsar
-      tolerated:
+      accepted:
       rejected:
         - offline
     rules:
@@ -59,7 +59,7 @@ destinations:
     cores: 8
     mem: 32
     scheduling:
-      tolerated:
+      accepted:
         - general
       required:
         - pulsar
@@ -67,7 +67,7 @@ destinations:
     cores: 32
     mem: 128
     scheduling:
-      tolerated:
+      accepted:
         - general
       required:
         - pulsar

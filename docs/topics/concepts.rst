@@ -25,7 +25,7 @@ entity, to indicating complete aversion:
 +-----------+--------------------------------------------------------------------------------------------------------+
 | preferred | preferred tags are ranked higher when scheduling decisions are made.                                   |
 +-----------+--------------------------------------------------------------------------------------------------------+
-| tolerated | tolerated tags can be used to indicate that a entity can match up or support another entity, even      |
+| accepted | accepted tags can be used to indicate that a entity can match up or support another entity, even        |
 |           | if not preferentially.                                                                                 |
 +-----------+--------------------------------------------------------------------------------------------------------+
 | rejected  | rejected tags cannot be present for scheduling to occur. For example, if a tool is marked as rejecting |

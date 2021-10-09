@@ -12,7 +12,7 @@ log = logging.getLogger(__name__)
 class TagType(Enum):
     REQUIRED = 2
     PREFERRED = 1
-    TOLERATED = 0
+    ACCEPTED = 0
     REJECTED = -1
 
     def __int__(self):
@@ -92,11 +92,11 @@ class TagSetManager(object):
     def inherit(self, other) -> TagSetManager:
         assert type(self) == type(other)
         new_tag_set = TagSetManager()
-        new_tag_set.add_tag_overrides(other.filter(TagType.TOLERATED))
+        new_tag_set.add_tag_overrides(other.filter(TagType.ACCEPTED))
         new_tag_set.add_tag_overrides(other.filter(TagType.PREFERRED))
         new_tag_set.add_tag_overrides(other.filter(TagType.REQUIRED))
         new_tag_set.add_tag_overrides(other.filter(TagType.REJECTED))
-        new_tag_set.add_tag_overrides(self.filter(TagType.TOLERATED))
+        new_tag_set.add_tag_overrides(self.filter(TagType.ACCEPTED))
         new_tag_set.add_tag_overrides(self.filter(TagType.PREFERRED))
         new_tag_set.add_tag_overrides(self.filter(TagType.REQUIRED))
         new_tag_set.add_tag_overrides(self.filter(TagType.REJECTED))
@@ -106,9 +106,9 @@ class TagSetManager(object):
         if not self.can_combine(other):
             raise IncompatibleTagsException(self, other)
         new_tag_set = TagSetManager()
-        # Add tolerated tags first, as they should be overridden by preferred, required and rejected tags
-        new_tag_set.add_tag_overrides(other.filter(TagType.TOLERATED))
-        new_tag_set.add_tag_overrides(self.filter(TagType.TOLERATED))
+        # Add accepted tags first, as they should be overridden by preferred, required and rejected tags
+        new_tag_set.add_tag_overrides(other.filter(TagType.ACCEPTED))
+        new_tag_set.add_tag_overrides(self.filter(TagType.ACCEPTED))
         # Next add preferred, as they should be overridden by required and rejected tags
         new_tag_set.add_tag_overrides(other.filter(TagType.PREFERRED))
         new_tag_set.add_tag_overrides(self.filter(TagType.PREFERRED))
@@ -154,8 +154,8 @@ class TagSetManager(object):
             tag_list.append(Tag(name="scheduling", value=tag_val, tag_type=TagType.REQUIRED))
         for tag_val in tags.get('preferred') or []:
             tag_list.append(Tag(name="scheduling", value=tag_val, tag_type=TagType.PREFERRED))
-        for tag_val in tags.get('tolerated') or []:
-            tag_list.append(Tag(name="scheduling", value=tag_val, tag_type=TagType.TOLERATED))
+        for tag_val in tags.get('accepted') or []:
+            tag_list.append(Tag(name="scheduling", value=tag_val, tag_type=TagType.ACCEPTED))
         for tag_val in tags.get('rejected') or []:
             tag_list.append(Tag(name="scheduling", value=tag_val, tag_type=TagType.REJECTED))
         return TagSetManager(tags=tag_list)
