@@ -5,7 +5,10 @@ tools:
   default:
     cores: 2
     mem: 8
-    env: {}
+    env:
+      TOOL_AND_ROLE_DEFINED: "tool"
+      TOOL_AND_USER_DEFINED: "tool"
+      TOOL_USER_AND_ROLE_DEFINED: "tool"
     scheduling:
       require: []
       prefer:
@@ -30,6 +33,10 @@ users:
       accept:
     rules: []
   fairycake@vortex.org:
+    env:
+      TOOL_AND_USER_DEFINED: "user"
+      TOOL_USER_AND_ROLE_DEFINED: "user"
+      USER_AND_ROLE_DEFINED: "user"
     scheduling:
       require:
         - pulsar
@@ -62,6 +69,10 @@ roles:
       require:
         - pulsar
   newtraining2021.*:
+    env:
+      TOOL_AND_ROLE_DEFINED: "role"
+      TOOL_USER_AND_ROLE_DEFINED: "role"
+      USER_AND_ROLE_DEFINED: "role"
     scheduling:
       prefer:
         - pulsar

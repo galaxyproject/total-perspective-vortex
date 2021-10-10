@@ -35,3 +35,16 @@ class TestMapperRole(unittest.TestCase):
 
         destination = self._map_to_destination(tool, user)
         self.assertEqual(destination.id, "k8s_environment")
+
+    def test_map_role_env_combine_order(self):
+        tool = mock_galaxy.Tool('bwa')
+        user = mock_galaxy.User('gargravarr', 'fairycake@vortex.org', roles=["newtraining2021group"])
+
+        destination = self._map_to_destination(tool, user)
+        self.assertEqual(destination.id, "k8s_environment")
+        self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TOOL_AND_USER_DEFINED'], ['user'])
+        self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TOOL_AND_ROLE_DEFINED'], ['role'])
+        self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TOOL_USER_AND_ROLE_DEFINED'],
+                         ['user'])
+        self.assertEqual([env['value'] for env in destination.env if env['name'] == 'USER_AND_ROLE_DEFINED'],
+                         ['user'])

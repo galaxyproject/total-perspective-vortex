@@ -237,7 +237,7 @@ class Entity(object):
         This provides a mechanism for limiting the maximum memory used by a particular Group or User.
 
         The general hierarchy of entities in vortex is User > Role > Tool and therefore, these entity
-        are usually merged as: tool.merge(role).merge(user), to produce a final set of tool requirements.
+        are usually merged as: tool.combine(role).combine(user), to produce a final set of tool requirements.
 
         The combined requirements can then be matched against the destination, through the match operation.
 

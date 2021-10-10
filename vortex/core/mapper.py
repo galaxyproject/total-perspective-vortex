@@ -65,10 +65,6 @@ class EntityToDestinationMapper(object):
         entity_list = [tool_entity]
 
         if user:
-            user_entity = self._find_entity_by_id_regex(self.users, user.email)
-            if user_entity:
-                entity_list += [user_entity]
-
             role_entities = (self._find_entity_by_id_regex(self.roles, role.name)
                              for role in user.all_roles() if not role.deleted)
             # trim empty
@@ -76,6 +72,10 @@ class EntityToDestinationMapper(object):
             user_role_entity = next(user_role_entities, None)
             if user_role_entity:
                 entity_list += [user_role_entity]
+
+            user_entity = self._find_entity_by_id_regex(self.users, user.email)
+            if user_entity:
+                entity_list += [user_entity]
 
         return entity_list
 
