@@ -37,6 +37,7 @@ Getting Started
    :maxdepth: 2
    :caption: Contents:
 
+   topics/concepts.rst
    topics/configure_galaxy.rst
    topics/configure_vortex_rules.rst
 
