@@ -204,14 +204,14 @@ class Entity(object):
                f"inherits={self.inherits}"
 
     def override(self, entity):
-        new_entity = copy.deepcopy(entity)
+        new_entity = copy.copy(entity)
         new_entity.id = self.id or entity.id
         new_entity.cores = self.cores or entity.cores
         new_entity.mem = self.mem or entity.mem
         new_entity.gpus = self.gpus or entity.gpus
-        new_entity.env = entity.env or {}
+        new_entity.env = copy.copy(entity.env) or {}
         new_entity.env.update(self.env or {})
-        new_entity.params = entity.params or {}
+        new_entity.params = copy.copy(entity.params) or {}
         new_entity.params.update(self.params or {})
         new_entity.rank = self.rank if self.rank is not None else entity.rank
         new_entity.inherits = self.inherits if self.inherits is not None else entity.inherits
@@ -223,7 +223,7 @@ class Entity(object):
             new_entity.tags = self.tags.inherit(entity.tags)
             return new_entity
         else:
-            return self
+            return copy.deepcopy(self)
 
     def combine(self, entity):
         """
