@@ -1,0 +1,38 @@
+global:
+  default_inherits: default
+
+tools:
+  default:
+    cores: 2
+    mem: cores * 3
+    env:
+      TEST_JOB_SLOTS: "{cores}"
+    params:
+      native_spec: "--mem {mem} --cores {cores}"
+    scheduling:
+      require: []
+      prefer:
+        - general
+      accept:
+      reject:
+        - pulsar
+  grappa:
+    params:
+      earth: 'mostly harmless'
+    env:
+      JAVA_MEM: 42
+
+destinations:
+  local:
+    cores: 4
+    mem: 16
+    scheduling:
+      prefer:
+        - general
+  k8s_environment:
+    cores: 16
+    mem: 64
+    gpus: 2
+    scheduling:
+      prefer:
+        - pulsar
