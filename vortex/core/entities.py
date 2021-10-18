@@ -204,7 +204,7 @@ class Entity(object):
                f"inherits={self.inherits}"
 
     def override(self, entity):
-        new_entity = copy.copy(entity)
+        new_entity = copy.deepcopy(entity)
         new_entity.id = self.id or entity.id
         new_entity.cores = self.cores or entity.cores
         new_entity.mem = self.mem or entity.mem
@@ -283,7 +283,7 @@ class Entity(object):
         :param context:
         :return:
         """
-        new_entity = copy.copy(self)
+        new_entity = copy.deepcopy(self)
         if self.gpus:
             new_entity.gpus = self.loader.eval_code_block(self.gpus, context)
             context['gpus'] = new_entity.gpus
@@ -302,7 +302,7 @@ class Entity(object):
         :param context:
         :return:
         """
-        new_entity = copy.copy(self)
+        new_entity = copy.deepcopy(self)
         context['gpus'] = new_entity.gpus
         context['cores'] = new_entity.cores
         context['mem'] = new_entity.mem
@@ -371,7 +371,7 @@ class EntityWithRules(Entity):
 
     def override(self, entity):
         new_entity = super().override(entity)
-        new_entity.rules = copy.copy(entity.rules)
+        new_entity.rules = copy.deepcopy(entity.rules)
         new_entity.rules.update(self.rules or {})
         for rule in self.rules.values():
             if entity.rules.get(rule.id):
