@@ -88,7 +88,7 @@ Job Dispatch Process
 
 When a typical job is dispatched, vortex follows the process below.
 
-.. image:: images/job-dispatch-process.svg
+.. image:: ../images/job-dispatch-process.svg
 
 
 1. lookup - Looks up Tool, User and Role entity definitions that match the job
