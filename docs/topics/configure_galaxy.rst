@@ -1,8 +1,8 @@
 Configuring Galaxy
 ==================
 
-Configuring Galaxy
-------------------
+Simple configuration
+--------------------
 1. First install the TotalPerspectiveVortex into your Galaxy virtual environment.
 
 .. code-block:: shell
@@ -25,3 +25,25 @@ Configuring Galaxy
 
 3. Add your own custom rules to your local ``vortex_config_file``, following instructions in
    the next section.
+
+
+Combining multiple remote and local configs
+--------------------------------------------
+
+Vortex allows rules to be loaded from remote or local sources.
+
+.. code-block:: yaml
+   :linenos:
+   :emphasize-lines: 7-9,14-19
+
+    vortex_dispatcher:
+     runner: dynamic
+     type: python
+     function: map_tool_to_destination
+     rules_module: vortex.rules
+     vortex_config_files:
+       - https://usegalaxy.org/shared_rules.yml
+       - config/vortex_rules_australia.yml
+
+The config files listed first are overridden by config files listed later. The normal rules of inheritance apply.
+This allows a central database of common rules to be maintained, with individual, site-specific overrides.
