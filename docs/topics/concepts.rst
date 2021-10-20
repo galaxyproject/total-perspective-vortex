@@ -83,6 +83,21 @@ User > Role > Tool.
 The match operation can be used
 
 
+Job Dispatch Process
+====================
+
+When a typical job is dispatched, vortex follows the process below.
+
+.. image:: images/job-dispatch-process.svg
+
+
+1. lookup - Looks up Tool, User and Role entity definitions that match the job
+2. evaluate_early() - Evaluates gpu, cores, and mem expressions
+3. combine() - Combines entity requirements to create a merged entity. Uses lower of gpu, cores and mem requirements
+4. evaluate_late() - Evaluates remaining expressions as late as possible
+5. match() - Matches the combined entity requirements with a suitable destination
+6. rank() - The matching destinations are ranked and the best match chosen
+
 
 Expressions
 ===========
