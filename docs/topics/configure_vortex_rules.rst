@@ -13,7 +13,7 @@ The simplest possible example of a useful vortex config might look like the foll
     tools:
       https://toolshed.g2.bx.psu.edu/repos/iuc/hisat2/.*:
         cores: 12
-        mem: cores*4
+        mem: cores * 4
         gpus: 1
 
     destinations:
@@ -53,7 +53,7 @@ Inheritance provides a mechanism for an entity to inherit properties from other 
           nativeSpecification: "--nodes=1 --ntasks={cores} --ntasks-per-node={cores} --mem={mem*1024}"
       https://toolshed.g2.bx.psu.edu/repos/iuc/hisat2/hisat2/2.1.0+galaxy7:
         cores: 12
-        mem: cores*4
+        mem: cores * 4
         gpus: 1
 
 
@@ -84,7 +84,7 @@ Explicit inheritance provides a mechanism for exerting greater control over the 
           nativeSpecification: "--nodes=1 --ntasks={cores} --ntasks-per-node={cores} --mem={mem*1024}"
       https://toolshed.g2.bx.psu.edu/repos/iuc/hisat2/.*:
         cores: 12
-        mem: cores*4
+        mem: cores * 4
         gpus: 1
       .*minimap2.*:
         inherits: https://toolshed.g2.bx.psu.edu/repos/iuc/hisat2/.*:
@@ -116,7 +116,7 @@ preferred destinations, or to explicitly control which users can execute which t
             - offline
       https://toolshed.g2.bx.psu.edu/repos/iuc/hisat2/.*:
         cores: 4
-        mem: cores*4
+        mem: cores * 4
         gpus: 1
         scheduling:
           require:
@@ -126,7 +126,7 @@ preferred destinations, or to explicitly control which users can execute which t
           reject:
       https://toolshed.g2.bx.psu.edu/repos/iuc/minimap2/.*:
         cores: 4
-        mem: cores*4
+        mem: cores * 4
         gpus: 1
         scheduling:
           require:
@@ -173,7 +173,7 @@ Rules provide a means by which to conditionally change entity requirements.
 
 .. code-block:: yaml
    :linenos:
-   :emphasize-lines: 7-9,14-19
+   :emphasize-lines: 5-8,13-25
 
     tools:
       default:
