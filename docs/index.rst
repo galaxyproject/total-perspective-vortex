@@ -40,6 +40,7 @@ Getting Started
    topics/concepts.rst
    topics/configure_galaxy.rst
    topics/configure_vortex_rules.rst
+   topics/shell_commands.rst
 
 Indices and tables
 ==================
