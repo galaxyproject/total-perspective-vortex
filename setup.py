@@ -49,6 +49,11 @@ setuptools.setup(
         'dev': REQS_DEV,
         'test': REQS_TEST
     },
+    entry_points={
+        'console_scripts': [
+            'vortex = vortex.core.shell:main'
+        ]
+    },
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Programming Language :: Python :: 3",

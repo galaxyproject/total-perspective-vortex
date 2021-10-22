@@ -3,7 +3,6 @@ from __future__ import annotations
 from enum import Enum
 import logging
 import copy
-from galaxy.jobs.mapper import JobMappingException
 
 
 log = logging.getLogger(__name__)
@@ -494,12 +493,11 @@ class Rule(Entity):
         try:
             if self.loader.eval_code_block(self.match, context):
                 if self.fail:
+                    from galaxy.jobs.mapper import JobMappingException
                     raise JobMappingException(
                         self.loader.eval_code_block(self.fail, context, as_f_string=True))
                 return True
             else:
                 return False
-        except JobMappingException:
-            raise
-        except Exception as e:
+        except SyntaxError as e:
             raise Exception(f"Error evaluating rule: {self}") from e

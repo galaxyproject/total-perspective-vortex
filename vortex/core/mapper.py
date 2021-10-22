@@ -2,8 +2,6 @@ import functools
 import logging
 import re
 
-from galaxy.jobs.mapper import JobMappingException
-
 from .loader import VortexConfigLoader
 
 log = logging.getLogger(__name__)
@@ -121,4 +119,5 @@ class EntityToDestinationMapper(object):
             destination.params.update(evaluated.params or {})
             return destination
         else:
+            from galaxy.jobs.mapper import JobMappingException
             raise JobMappingException(f"No destinations are available to fulfill request: {evaluated.id}")
