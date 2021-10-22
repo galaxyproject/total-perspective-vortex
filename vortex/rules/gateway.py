@@ -28,6 +28,7 @@ def setup_destination_mapper(app, vortex_config_files):
     job_rule_watcher = get_watcher(app.config, 'watch_job_rules', monitor_what_str='job rules')
 
     def reload_destination_mapper(path=None):
+        # reload all config files when one file changes to preserve order of loading the files
         global ACTIVE_DESTINATION_MAPPER
         ACTIVE_DESTINATION_MAPPER = load_destination_mapper(vortex_config_files, reload=True)
 
