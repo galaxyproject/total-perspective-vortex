@@ -12,5 +12,5 @@ Vortex config files can be checked for linting errors using the vortex lint comm
     pip install --upgrade total-perspective-vortex
     vortex lint <url_or_path_to_config_file>
 
-If linting is successful, a lint successful message will be displayed with a return code of zero.
-If the linting fails, a lint failed message with the relevant error will be displayed with a return code of 1.
+If linting is successful, a lint successful message will be displayed with an exit code of zero.
+If the linting fails, a lint failed message with the relevant error will be displayed with an exit code of 1.

@@ -76,12 +76,28 @@ User > Role > Tool.
 
 3. Evaluate
 -----------
-
+This operation evaluates any python expressions in the vortex config. It is divided into two steps, evaluate_early()
+and evaluate_late(). The former runs before the combine step and evaluates expressions for cores, mem and gpus.
+This ensures that at the time of combining entities, these values are concrete and can be compared. After the combine()
+step, the evaluate_late() function evaluates all remaining variables, ensuring that they have the latest possible
+values after combining requirements.
 
 4. Match
 --------
-The match operation can be used
+The match operation is used to find matching destinations for the combined, evaluated entity. This step ensures
+that the destination has sufficient gpus, cores and mem to satisfy the entity's request, assuming these are defined.
+If these are not defined, a match is assumed. In addition, all destinations that do not have tags required by the
+entity are rejected, and all destinations that have tags rejected by the entity are also rejected. Preference and
+acceptance is not considered at this stage, simply compatibility with available destinations based on the tag
+compatibility table documented later.
 
+5. Rank
+--------
+After the matching destinations are short listed, they are ranked using a pluggable rank function. The default
+rank function simply sorts the destinations by tags that have the most number of preferred tags, with a penalty
+if preferred tags are absent. However, this default rank function can be overridden per entity, allowing a custom
+rank function to be defined in python code, with arbitrary logic for picking the best match from the available
+candidate destinations.
 
 Job Dispatch Process
 ====================
@@ -102,8 +118,39 @@ When a typical job is dispatched, vortex follows the process below.
 Expressions
 ===========
 
-1. Python expressions
-2. F-string expressions
+Most vortex properties can be expressed as python expressions. The rule of thumb is that all string expressions
+are evaluated as python f-strings, and all integers or boolean expressions are evaluated as python code blocks.
+For example, cpu, cores and mem are evaluated as python code blocks, as they evaluate to integer/float values.
+However, env and params are evaluated as f-strings, as they result in string values. This is to improve the readability
+and syntactic simplicity of vortex config files.
+
+At the point of evaluating these functions, there is an evaluation context, which is a default set of variables
+that are available to that expression. The following default variables are available to all expressions:
+
+Default evaluation context
+--------------------------
+app - the Galaxy App object
+tool - the Galaxy tool object
+user - the current Galaxy user object
+job - the Galaxy job object
+mapper - the vortex mapper object, which can be used to access parsed vortex configs
+entity - the vortex entity being currently evaluated. Can be a combined entity.
+self - an alias for the current vortex entity.
+
+Special evaluation contexts
+---------------------------
+In addition to the defaults above, additional context variables are available at different steps.
+
+*gpu, core and mem expressions* - these are evaluated in order, and thus can be referred to in that same order.
+For example, gpu expressions cannot refer to core and mem, as they have not been evaluated yet. cpu
+expressions can be based on gpu values. mem expressions can refer to both cores and gpus.
+
+*env and param expressions* - env expressions can be based on gpu, cores or mem. param expressions can additional
+refer to evaluated env expressions.
+
+*rank functions* - these can refer to all prior expressions, and are additional passed in a `candidate_destinations`
+array, which is a list of matching vortex destinations.
+
 
 Scheduling
 ==========
@@ -129,6 +176,9 @@ the entity would schedule on the first available entity. Admins can use addition
 |           | entities have the same reject tag, they still repel each other.                                        |
 +-----------+--------------------------------------------------------------------------------------------------------+
 
+
+Tag compatibility table
+-----------------------
 
 .. table::
    :align: center
