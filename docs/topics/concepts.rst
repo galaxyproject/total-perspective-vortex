@@ -129,13 +129,23 @@ that are available to that expression. The following default variables are avail
 
 Default evaluation context
 --------------------------
-app - the Galaxy App object
-tool - the Galaxy tool object
-user - the current Galaxy user object
-job - the Galaxy job object
-mapper - the vortex mapper object, which can be used to access parsed vortex configs
-entity - the vortex entity being currently evaluated. Can be a combined entity.
-self - an alias for the current vortex entity.
++----------+-----------------------------------------------------------------------------+
+| Variable | Description                                                                 |
++----------+-----------------------------------------------------------------------------+
+| app      | the Galaxy App object                                                       |
++----------+-----------------------------------------------------------------------------+
+| tool     | the Galaxy tool object                                                      |
++----------+-----------------------------------------------------------------------------+
+| user     | the current Galaxy user object                                              |
++----------+-----------------------------------------------------------------------------+
+| job      | the Galaxy job object                                                       |
++----------+-----------------------------------------------------------------------------+
+| mapper   | the vortex mapper object, which can be used to access parsed vortex configs |
++----------+-----------------------------------------------------------------------------+
+| entity   | the vortex entity being currently evaluated. Can be a combined entity.      |
++----------+-----------------------------------------------------------------------------+
+| self     | an alias for the current vortex entity.                                     |
++----------+-----------------------------------------------------------------------------+
 
 Special evaluation contexts
 ---------------------------
