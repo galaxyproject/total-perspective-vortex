@@ -28,19 +28,22 @@ class VortexConfigLoader(object):
         self.roles = entities.get('roles')
         self.destinations = entities.get('destinations')
 
-    def __compile_code_block(self, code, as_f_string=False):
+    def __compile_code_block(self, code, as_f_string=False, exec_only=False):
         if as_f_string:
             code_str = "f'''" + str(code) + "'''"
         else:
             code_str = str(code)
         block = ast.parse(code_str, mode='exec')
-        # assumes last node is an expression
-        last = ast.Expression(block.body.pop().value)
-        return compile(block, '<string>', mode='exec'), compile(last, '<string>', mode='eval')
+        if exec_only:
+            return compile(block, '<string>', mode='exec'), None
+        else:
+            # assumes last node is an expression
+            last = ast.Expression(block.body.pop().value)
+            return compile(block, '<string>', mode='exec'), compile(last, '<string>', mode='eval')
 
     # https://stackoverflow.com/a/39381428
-    def eval_code_block(self, code, context, as_f_string=False):
-        exec_block, eval_block = self.compile_code_block(code, as_f_string=as_f_string)
+    def eval_code_block(self, code, context, as_f_string=False, exec_only=False):
+        exec_block, eval_block = self.compile_code_block(code, as_f_string=as_f_string, exec_only=exec_only)
         locals = dict(globals())
         locals.update(context)
         locals.update({
@@ -49,7 +52,10 @@ class VortexConfigLoader(object):
             'input_size': helpers.input_size(context['job']) if 'input_size' in str(code) else 0
         })
         exec(exec_block, locals)
-        return eval(eval_block, locals)
+        if eval_block:
+            return eval(eval_block, locals)
+        else:
+            return None
 
     def process_inheritance(self, entity_list: dict[str, Entity], entity: Entity):
         if entity.inherits:

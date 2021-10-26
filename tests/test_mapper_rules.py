@@ -6,6 +6,7 @@ import unittest
 from vortex.rules import gateway
 from . import mock_galaxy
 from galaxy.jobs.mapper import JobMappingException
+from galaxy.jobs.mapper import JobNotReadyException
 
 
 class TestMapperRules(unittest.TestCase):
@@ -94,4 +95,13 @@ class TestMapperRules(unittest.TestCase):
 
         with self.assertRaises(SyntaxError):
             vortex_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-syntax-error.yml')
+            self._map_to_destination(tool, user, datasets, vortex_config_path=vortex_config)
+
+    def test_map_with_execute_block(self):
+        tool = mock_galaxy.Tool('bwa')
+        user = mock_galaxy.User('ford', 'prefect@vortex.org')
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=7*1024*1024))]
+
+        with self.assertRaises(JobNotReadyException):
+            vortex_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rule-execute.yml')
             self._map_to_destination(tool, user, datasets, vortex_config_path=vortex_config)

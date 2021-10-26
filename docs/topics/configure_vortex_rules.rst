@@ -194,6 +194,9 @@ Rules provide a means by which to conditionally change entity requirements.
           - match: input_size <= 10
             cores: 4
             mem: cores * 4
+            execute: |
+               from galaxy.jobs.mapper import JobNotReadyException
+               raise JobNotReadyException()
           - match: input_size > 10 and input_size < 20
             scheduling:
               require:
@@ -215,6 +218,9 @@ rule by id. If no id is specified, an id is auto-generated and no longer overrid
 
 Note the use of the {input_size} variable in the fail message. The general rule is that all non-string expressions
 are evaluated as python code blocks, while string variables are evaluated as python f-strings.
+
+The execute block can be used to create arbitrary side-effects if a rule matches. The return value of an execute
+block is ignored.
 
 User and Role Handling
 ------------------------

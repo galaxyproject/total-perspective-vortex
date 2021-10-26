@@ -350,6 +350,7 @@ class EntityWithRules(Entity):
                 validated[validated_rule.id] = validated_rule
             except Exception:
                 log.exception(f"Could not load rule for entity: {self.__class__} with id: {self.id} and data: {rule}")
+                raise
         return validated
 
     @classmethod
@@ -381,6 +382,7 @@ class EntityWithRules(Entity):
         new_entity = self
         for rule in self.rules.values():
             if rule.is_matching(context):
+                rule = rule.evaluate_early(context)
                 entity_id = new_entity.id
                 new_entity.gpus = rule.gpus or self.gpus
                 new_entity.cores = rule.cores or self.cores
@@ -392,6 +394,7 @@ class EntityWithRules(Entity):
         new_entity = self
         for rule in self.rules.values():
             if rule.is_matching(context):
+                rule = rule.evaluate_late(context)
                 new_entity = rule.inherit(new_entity)
                 # restore already evaluated entity requirements
                 new_entity.cores = self.cores
@@ -451,15 +454,18 @@ class Rule(Entity):
     rule_counter = 0
 
     def __init__(self, loader, id=None, cores=None, mem=None, gpus=None,
-                 env=None, params=None, tags=None, inherits=None, match=None, fail=None):
+                 env=None, params=None, tags=None, inherits=None, match=None, execute=None, fail=None):
         if not id:
             Rule.rule_counter += 1
             id = f"vortex_rule_{Rule.rule_counter}"
         super().__init__(loader, id, cores, mem, gpus, env, params, tags, inherits=inherits)
         self.match = match
+        self.execute = execute
         self.fail = fail
         if self.match:
             self.loader.compile_code_block(self.match)
+        if self.execute:
+            self.loader.compile_code_block(self.execute, exec_only=True)
         if self.fail:
             self.loader.compile_code_block(self.fail, as_f_string=True)
 
@@ -476,28 +482,36 @@ class Rule(Entity):
             tags=entity_dict.get('scheduling'),
             inherits=entity_dict.get('inherits'),
             match=entity_dict.get('match'),
+            execute=entity_dict.get('execute'),
             fail=entity_dict.get('fail')
         )
 
     def override(self, entity):
         new_entity = super().override(entity)
         new_entity.match = self.match if self.match is not None else getattr(entity, 'match', None)
+        new_entity.execute = self.execute if self.execute is not None else getattr(entity, 'execute', None)
         new_entity.fail = self.fail if self.fail is not None else getattr(entity, 'fail', None)
         return new_entity
 
     def __repr__(self):
-        return super().__repr__() + f", match={self.match[:10] if self.match else ''}," \
+        return super().__repr__() + f", match={self.match[:10] if self.match else ''}, " \
+                                    f"execute={self.execute[:10] if self.execute else ''}, " \
                                     f"fail={self.fail[:10] if self.fail else ''}"
 
     def is_matching(self, context):
-        try:
-            if self.loader.eval_code_block(self.match, context):
-                if self.fail:
-                    from galaxy.jobs.mapper import JobMappingException
-                    raise JobMappingException(
-                        self.loader.eval_code_block(self.fail, context, as_f_string=True))
-                return True
-            else:
-                return False
-        except SyntaxError as e:
-            raise Exception(f"Error evaluating rule: {self}") from e
+        if self.loader.eval_code_block(self.match, context):
+            return True
+        else:
+            return False
+
+    def evaluate_early(self, context):
+        if self.fail:
+            from galaxy.jobs.mapper import JobMappingException
+            raise JobMappingException(
+                self.loader.eval_code_block(self.fail, context, as_f_string=True))
+        return self
+
+    def evaluate_late(self, context):
+        if self.execute:
+            self.loader.eval_code_block(self.execute, context, exec_only=True)
+        return self
