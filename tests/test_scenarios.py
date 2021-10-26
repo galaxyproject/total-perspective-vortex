@@ -1,4 +1,5 @@
 import os
+import re
 import time
 import tempfile
 import pathlib
@@ -271,3 +272,44 @@ class TestScenarios(unittest.TestCase):
         destination = self._map_to_destination(tool, user, datasets=datasets, vortex_config_path=rules_file,
                                                job_conf='fixtures/job_conf_scenario_usegalaxy_au.yml')
         self.assertEqual(destination.id, "pulsar-nci-test")
+
+    @responses.activate
+    def test_user_specific_resource_rules_small(self):
+        """
+        test assigning higher/lower numbers of cores for specific users
+        """
+        ntasks_pattern = re.compile('.*--ntasks=(?P<ntasks>\d+).*')
+        mem_pattern = re.compile('.*--mem=(?P<mem>\d+).*')
+
+        tool = mock_galaxy.Tool('bwa_mem')
+        user = mock_galaxy.User('misa', 'misa@krikkit.net')
+        datasets = [mock_galaxy.DatasetAssociation("input", mock_galaxy.Dataset("input.fastq",
+                                                                                file_size=1000*1024*1024))]
+        rules_file = os.path.join(os.path.dirname(__file__), 'fixtures/scenario-usegalaxy-dev.yml')
+
+        destination = self._map_to_destination(tool, user, datasets=datasets, vortex_config_path=rules_file,
+                                               job_conf='fixtures/job_conf_scenario_usegalaxy_au.yml')
+        ntasks = re.match(ntasks_pattern, destination.params['nativeSpecification']).groupdict().get('ntasks')
+        mem = re.match(mem_pattern, destination.params['nativeSpecification']).groupdict().get('mem')
+        self.assertEqual(int(ntasks), 1)
+        self.assertEqual(int(mem), int(ntasks)*3*1024)
+
+    @responses.activate
+    def test_user_specific_resource_rules_large(self):
+        """
+        test assigning higher/lower numbers of cores for specific users
+        """
+        ntasks_pattern = re.compile('.*--ntasks=(?P<ntasks>\d+).*')
+        mem_pattern = re.compile('.*--mem=(?P<mem>\d+).*')
+
+        tool = mock_galaxy.Tool('bwa_mem')
+        user = mock_galaxy.User('lisa', 'lisa@krikkit.net')
+        datasets = [mock_galaxy.DatasetAssociation("input", mock_galaxy.Dataset("input.fastq",
+                                                                                file_size=1000*1024*1024))]
+        rules_file = os.path.join(os.path.dirname(__file__), 'fixtures/scenario-usegalaxy-dev.yml')
+        destination = self._map_to_destination(tool, user, datasets=datasets, vortex_config_path=rules_file,
+                                               job_conf='fixtures/job_conf_scenario_usegalaxy_au.yml')
+        ntasks = re.match(ntasks_pattern, destination.params['nativeSpecification']).groupdict().get('ntasks')
+        mem = re.match(mem_pattern, destination.params['nativeSpecification']).groupdict().get('mem')
+        self.assertEqual(int(ntasks), 2)
+

@@ -44,6 +44,17 @@ users:
       - match: |
           False
         fail: "You cannot have more than 4 high-mem jobs running concurrently"
+  misa@krikkit.net:
+    rules:
+      - match: |
+          'bwa_mem' in tool.id
+        cores: 1
+  lisa@krikkit.net:
+    rules:
+      - match: |
+          'bwa_mem' in tool.id
+        cores: 16
+
 destinations:
   slurm:
     cores: 4
