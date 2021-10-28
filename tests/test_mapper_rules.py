@@ -24,7 +24,7 @@ class TestMapperRules(unittest.TestCase):
     def test_map_rule_size_small(self):
         tool = mock_galaxy.Tool('bwa')
         user = mock_galaxy.User('ford', 'prefect@vortex.org')
-        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=1*1024*1024))]
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=1*1024**3))]
 
         with self.assertRaises(JobMappingException):
             self._map_to_destination(tool, user, datasets)
@@ -32,7 +32,7 @@ class TestMapperRules(unittest.TestCase):
     def test_map_rule_size_medium(self):
         tool = mock_galaxy.Tool('bwa')
         user = mock_galaxy.User('gargravarr', 'fairycake@vortex.org')
-        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=5*1024*1024))]
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=5*1024**3))]
 
         destination = self._map_to_destination(tool, user, datasets)
         self.assertEqual(destination.id, "k8s_environment")
@@ -42,7 +42,7 @@ class TestMapperRules(unittest.TestCase):
     def test_map_rule_size_large(self):
         tool = mock_galaxy.Tool('bwa')
         user = mock_galaxy.User('gargravarr', 'fairycake@vortex.org')
-        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=15*1024*1024))]
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=15*1024**3))]
 
         with self.assertRaisesRegex(JobMappingException, "No destinations are available to fulfill request"):
             self._map_to_destination(tool, user, datasets)
@@ -50,7 +50,7 @@ class TestMapperRules(unittest.TestCase):
     def test_map_rule_user(self):
         tool = mock_galaxy.Tool('bwa')
         user = mock_galaxy.User('arthur', 'arthur@vortex.org')
-        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=15*1024*1024))]
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=15*1024**3))]
 
         with self.assertRaises(JobMappingException):
             self._map_to_destination(tool, user, datasets)
@@ -58,7 +58,7 @@ class TestMapperRules(unittest.TestCase):
     def test_map_rule_user_params(self):
         tool = mock_galaxy.Tool('bwa')
         user = mock_galaxy.User('gargravarr', 'fairycake@vortex.org')
-        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=5*1024*1024))]
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=5*1024**3))]
 
         destination = self._map_to_destination(tool, user, datasets)
         self.assertEqual(destination.id, "k8s_environment")
@@ -72,7 +72,7 @@ class TestMapperRules(unittest.TestCase):
 
             tool = mock_galaxy.Tool('bwa')
             user = mock_galaxy.User('gargravarr', 'fairycake@vortex.org')
-            datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=5*1024*1024))]
+            datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=5*1024**3))]
 
             destination = self._map_to_destination(tool, user, datasets, vortex_config_path=tmp_file.name)
             self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_JOB_SLOTS_USER'], ['4'])
@@ -91,7 +91,7 @@ class TestMapperRules(unittest.TestCase):
     def test_map_with_syntax_error(self):
         tool = mock_galaxy.Tool('bwa')
         user = mock_galaxy.User('ford', 'prefect@vortex.org')
-        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=1*1024*1024))]
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=1*1024**3))]
 
         with self.assertRaises(SyntaxError):
             vortex_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-syntax-error.yml')
@@ -100,7 +100,7 @@ class TestMapperRules(unittest.TestCase):
     def test_map_with_execute_block(self):
         tool = mock_galaxy.Tool('bwa')
         user = mock_galaxy.User('ford', 'prefect@vortex.org')
-        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=7*1024*1024))]
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=7*1024**3))]
 
         with self.assertRaises(JobNotReadyException):
             vortex_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rule-execute.yml')
