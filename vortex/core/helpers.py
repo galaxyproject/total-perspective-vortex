@@ -1,6 +1,8 @@
 import random
 from functools import reduce
 
+GIGABYTES = 1024.0**3
+
 
 def get_dataset_size(dataset_association):
     return dataset_association.dataset.file_size
@@ -19,7 +21,7 @@ def calculate_dataset_total(datasets):
 
 
 def input_size(job):
-    return calculate_dataset_total(job.input_datasets)/1024.0/1024.0
+    return calculate_dataset_total(job.input_datasets)/GIGABYTES
 
 
 def weighted_random_sampling(destinations):

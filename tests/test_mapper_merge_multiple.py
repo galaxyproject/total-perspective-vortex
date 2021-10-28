@@ -25,17 +25,17 @@ class TestMapperMergeMultipleConfigs(unittest.TestCase):
         config_second = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-merge-multiple-local.yml')
 
         # a small file size should fail because of remote rule
-        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=1*1024*1024))]
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=1*1024**3))]
         with self.assertRaisesRegex(JobMappingException, "We don't run piddling datasets"):
             self._map_to_destination(tool, user, datasets, vortex_config_paths=[config_first, config_second])
 
         # a large file size should fail because of local rule
-        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=25*1024*1024))]
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=25*1024**3))]
         with self.assertRaisesRegex(JobMappingException, "Too much data, shouldn't run"):
             self._map_to_destination(tool, user, datasets, vortex_config_paths=[config_first, config_second])
 
         # an intermediate file size should compute correct values
-        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=7*1024*1024))]
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=7*1024**3))]
         destination = self._map_to_destination(tool, user, datasets, vortex_config_paths=[config_first, config_second])
         self.assertEqual(destination.id, "k8s_environment")
         self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_JOB_SLOTS'], ['2'])
@@ -49,17 +49,17 @@ class TestMapperMergeMultipleConfigs(unittest.TestCase):
         config_second = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-merge-multiple-local.yml')
 
         # a small file size should fail because of remote rule
-        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=1*1024*1024))]
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=1*1024**3))]
         with self.assertRaisesRegex(JobMappingException, "We don't run piddling datasets"):
             self._map_to_destination(tool, user, datasets, vortex_config_paths=[config_first, config_second])
 
         # a large file size should fail because of local rule
-        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=25*1024*1024))]
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=25*1024**3))]
         with self.assertRaisesRegex(JobMappingException, "Too much data, shouldn't run"):
             self._map_to_destination(tool, user, datasets, vortex_config_paths=[config_first, config_second])
 
         # an intermediate file size should compute correct values
-        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=7*1024*1024))]
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=7*1024**3))]
         destination = self._map_to_destination(tool, user, datasets, vortex_config_paths=[config_first, config_second])
         self.assertEqual(destination.id, "k8s_environment")
         self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_JOB_SLOTS'], ['2'])
@@ -73,11 +73,11 @@ class TestMapperMergeMultipleConfigs(unittest.TestCase):
         config_second = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-merge-multiple-local.yml')
 
         # the highmem rule should take effect
-        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=42*1024*1024))]
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=42*1024**3))]
         with self.assertRaisesRegex(JobMappingException, "a different kind of error"):
             self._map_to_destination(tool, user, datasets, vortex_config_paths=[config_first])
 
         # the highmem rule should not take effect for this size, as we've overridden it
-        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=42*1024*1024))]
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=42*1024**3))]
         destination = self._map_to_destination(tool, user, datasets, vortex_config_paths=[config_first, config_second])
         self.assertEqual(destination.id, "another_k8s_environment")
