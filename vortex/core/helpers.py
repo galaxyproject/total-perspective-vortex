@@ -25,7 +25,7 @@ def input_size(job):
 
 
 def weighted_random_sampling(destinations):
-    if destinations == []:
-        return destinations
+    if not destinations:
+        return []
     rankings = [(d.params.get('weight', 1) if d.params else 1) for d in destinations]
     return random.choices(destinations, weights=rankings, k=len(destinations))
