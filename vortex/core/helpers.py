@@ -41,7 +41,7 @@ def get_keys_from_dict(dl, keys_list):
             get_keys_from_dict(x, keys_list)
 
 
-def job_arguments_match(job, app, arguments):
+def job_args_match(job, app, args):
     # Check whether a dictionary of arguments matches a job's parameters.  This code is
     # from galaxyproject/galaxy lib/galaxy/jobs/dynamic_tool_destination.py
     if not arguments or not isinstance(arguments, dict):
