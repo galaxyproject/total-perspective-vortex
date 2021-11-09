@@ -37,6 +37,7 @@ class EntityToDestinationMapper(object):
         evaluated = []
         for entity in entities:
             context.update({
+                'entities': entities,
                 'entity': entity,
                 'self': entity
             })
