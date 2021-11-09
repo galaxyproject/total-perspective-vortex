@@ -29,7 +29,7 @@ def weighted_random_sampling(destinations):
     return random.choices(destinations, weights=rankings, k=len(destinations))
 
 
-def get_keys_from_dict(dl, keys_list):
+def __get_keys_from_dict(dl, keys_list):
     # This function builds a list using the keys from nest dictionaries
     # (copied from galaxyproject/galaxy lib/galaxy/jobs/dynamic_tool_destination.py)
     if isinstance(dl, dict):
