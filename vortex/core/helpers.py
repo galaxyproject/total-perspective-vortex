@@ -35,24 +35,24 @@ def __get_keys_from_dict(dl, keys_list):
     if isinstance(dl, dict):
         keys_list.extend(dl.keys())
         for x in dl.values():
-            get_keys_from_dict(x, keys_list)
+            __get_keys_from_dict(x, keys_list)
     elif isinstance(dl, list):
         for x in dl:
-            get_keys_from_dict(x, keys_list)
+            __get_keys_from_dict(x, keys_list)
 
 
 def job_args_match(job, app, args):
     # Check whether a dictionary of arguments matches a job's parameters.  This code is
     # from galaxyproject/galaxy lib/galaxy/jobs/dynamic_tool_destination.py
-    if not arguments or not isinstance(arguments, dict):
+    if not args or not isinstance(args, dict):
         return False
     options = job.get_param_values(app)
     matched = True
     # check if the args in the config file are available
-    for arg in arguments:
-        arg_dict = {arg: arguments[arg]}
+    for arg in args:
+        arg_dict = {arg: args[arg]}
         arg_keys_list = []
-        get_keys_from_dict(arg_dict, arg_keys_list)
+        __get_keys_from_dict(arg_dict, arg_keys_list)
         try:
             options_value = reduce(dict.__getitem__, arg_keys_list, options)
             arg_value = reduce(dict.__getitem__, arg_keys_list, arg_dict)
