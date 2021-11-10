@@ -12,11 +12,13 @@ from galaxy.jobs.mapper import JobNotReadyException
 class TestMapperRules(unittest.TestCase):
 
     @staticmethod
-    def _map_to_destination(tool, user, datasets, vortex_config_path=None):
+    def _map_to_destination(tool, user, datasets, param_values=None, vortex_config_path=None):
         galaxy_app = mock_galaxy.App()
         job = mock_galaxy.Job()
         for d in datasets:
             job.add_input_dataset(d)
+        if param_values:
+            job.param_values = param_values
         vortex_config = vortex_config_path or os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rules.yml')
         gateway.ACTIVE_DESTINATION_MAPPER = None
         return gateway.map_tool_to_destination(galaxy_app, job, tool, user, vortex_config_files=[vortex_config])
@@ -105,3 +107,20 @@ class TestMapperRules(unittest.TestCase):
         with self.assertRaises(JobNotReadyException):
             vortex_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rule-execute.yml')
             self._map_to_destination(tool, user, datasets, vortex_config_path=vortex_config)
+
+    def test_job_args_match_helper(self):
+        tool = mock_galaxy.Tool('limbo')
+        user = mock_galaxy.User('gag', 'gaghalfrunt@vortex.org')
+        vortex_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rule-argument-based.yml')
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=7*1024**3))]
+        param_values = {
+            'output_style': 'flat',
+            'colour': {'nighttime': 'blue'},
+            'input_opts': {'tabs_to_spaces': False, 'db_selector': 'db'},
+        }
+        destination = self._map_to_destination(tool, user, datasets, param_values, vortex_config_path=vortex_config)
+        self.assertEqual(destination.id, 'k8s_environment')
+
+        param_values['input_opts']['db_selector'] = 'history'
+        destination = self._map_to_destination(tool, user, datasets, param_values, vortex_config_path=vortex_config)
+        self.assertEqual(destination.id, 'local')

@@ -19,6 +19,11 @@ class Job:
         self.input_datasets.append(dataset)
 
 
+    def get_param_values(self, app):
+        return self.param_values
+
+
+
 class DatasetAssociation:
     def __init__(self, name, dataset):
         self.name = name
