@@ -21,7 +21,7 @@ def calculate_dataset_total(datasets):
 
 
 def input_size(job):
-    return calculate_dataset_total(job.input_datasets)/GIGABYTES
+    return float(calculate_dataset_total(job.input_datasets))/GIGABYTES
 
 
 def weighted_random_sampling(destinations):
