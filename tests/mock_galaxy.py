@@ -15,13 +15,17 @@ class Job:
         self.param_values = dict()
         self.parameters = []
 
-    def add_input_dataset(self, dataset):
-        self.input_datasets.append(dataset)
-
+    def add_input_dataset(self, dataset_association):
+        self.input_datasets.append(JobToInputDatasetAssociation(dataset_association.name, dataset_association))
 
     def get_param_values(self, app):
         return self.param_values
 
+
+class JobToInputDatasetAssociation:
+    def __init__(self, name, dataset):
+        self.name = name
+        self.dataset = dataset
 
 
 class DatasetAssociation:
