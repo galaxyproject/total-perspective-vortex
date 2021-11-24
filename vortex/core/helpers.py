@@ -4,8 +4,8 @@ from functools import reduce
 GIGABYTES = 1024.0**3
 
 
-def get_dataset_size(dataset_association):
-    return dataset_association.dataset.file_size
+def get_dataset_size(input_dataset):
+    return input_dataset.dataset.dataset.file_size
 
 
 def sum_total(prev, current):
