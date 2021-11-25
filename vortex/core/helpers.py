@@ -5,7 +5,7 @@ GIGABYTES = 1024.0**3
 
 
 def get_dataset_size(input_dataset):
-    return input_dataset.dataset.dataset.file_size
+    return input_dataset.dataset.dataset.file_size if input_dataset.dataset else 0.0
 
 
 def sum_total(prev, current):
@@ -17,7 +17,7 @@ def calculate_dataset_total(datasets):
         return reduce(sum_total,
                       map(get_dataset_size, datasets))
     else:
-        return 0
+        return 0.0
 
 
 def input_size(job):
