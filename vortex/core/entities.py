@@ -379,7 +379,7 @@ class EntityWithRules(Entity):
         return new_entity
 
     def evaluate_early(self, context):
-        new_entity = self
+        new_entity = copy.deepcopy(self)
         for rule in self.rules.values():
             if rule.is_matching(context):
                 rule = rule.evaluate_early(context)
@@ -391,7 +391,7 @@ class EntityWithRules(Entity):
         return super(EntityWithRules, new_entity).evaluate_early(context)
 
     def evaluate_late(self, context):
-        new_entity = self
+        new_entity = copy.deepcopy(self)
         for rule in self.rules.values():
             if rule.is_matching(context):
                 rule = rule.evaluate_late(context)
