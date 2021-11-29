@@ -1,0 +1,10 @@
+tools:
+  bwa:
+    scheduling:
+      require:
+        - pulsar
+    rules:
+      - id: firstrule
+        match: input_size <= 10
+        cores: 5
+        mem: cores * 4
