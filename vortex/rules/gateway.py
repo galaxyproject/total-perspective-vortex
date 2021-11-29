@@ -9,6 +9,7 @@ log = logging.getLogger(__name__)
 
 
 ACTIVE_DESTINATION_MAPPER = None
+CONFIG_WATCHERS = {}
 
 
 def load_destination_mapper(vortex_config_files, reload=False):
@@ -25,7 +26,6 @@ def load_destination_mapper(vortex_config_files, reload=False):
 
 def setup_destination_mapper(app, vortex_config_files):
     mapper = load_destination_mapper(vortex_config_files)
-    job_rule_watcher = get_watcher(app.config, 'watch_job_rules', monitor_what_str='job rules')
 
     def reload_destination_mapper(path=None):
         # reload all config files when one file changes to preserve order of loading the files
@@ -35,8 +35,11 @@ def setup_destination_mapper(app, vortex_config_files):
     for vortex_config_file in vortex_config_files:
         if os.path.isfile(vortex_config_file):
             log.info(f"Watching for changes in file: {vortex_config_file}")
-            job_rule_watcher.watch_file(vortex_config_file, callback=reload_destination_mapper)
-            job_rule_watcher.start()
+            CONFIG_WATCHERS[vortex_config_file] = (
+                    CONFIG_WATCHERS.get(vortex_config_file) or
+                    get_watcher(app.config, 'watch_job_rules', monitor_what_str='job rules'))
+            CONFIG_WATCHERS[vortex_config_file].watch_file(vortex_config_file, callback=reload_destination_mapper)
+            CONFIG_WATCHERS[vortex_config_file].start()
     return mapper
 
 
