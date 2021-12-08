@@ -12,8 +12,8 @@ from galaxy.jobs.mapper import JobNotReadyException
 class TestMapperRules(unittest.TestCase):
 
     @staticmethod
-    def _map_to_destination(tool, user, datasets, param_values=None, vortex_config_files=None):
-        galaxy_app = mock_galaxy.App()
+    def _map_to_destination(tool, user, datasets, param_values=None, vortex_config_files=None, app=None):
+        galaxy_app = app or mock_galaxy.App()
         job = mock_galaxy.Job()
         for d in datasets:
             job.add_input_dataset(d)
@@ -150,6 +150,68 @@ class TestMapperRules(unittest.TestCase):
         destination = self._map_to_destination(tool, user, datasets, param_values, vortex_config_files=[vortex_config])
         self.assertEqual(destination.id, 'k8s_environment')
 
-        param_values['input_opts']['db_selector'] = 'history'
-        destination = self._map_to_destination(tool, user, datasets, param_values, vortex_config_files=[vortex_config])
+    def test_concurrent_job_count_helper(self):
+
+        def create_user(app, mock_user):
+            sa_session = app.model.context
+            user = app.model.User(
+                username=mock_user.username,
+                email=mock_user.email,
+                password='helloworld',
+            )
+            sa_session.add(user)
+            sa_session.flush()
+            return user.id
+
+        def create_job(app, mock_user, mock_tool):
+            sa_session = app.model.context
+
+            # get user
+            query = app.model.context.query(app.model.User)
+            query = query.filter(app.model.User.table.c.email == mock_user.email)
+            user = query.first()
+
+            job = app.model.Job()
+            job.user = user
+            job.tool_id = mock_tool.id
+            job.state = "running"
+            job.destination_id = 'local'
+            sa_session.add(job)
+            sa_session.flush()
+            return job.id
+
+        tool_user_limit_2 = mock_galaxy.Tool('toolshed.g2.bx.psu.edu/repos/rnateam/mafft/rbc_mafft/7.221.3')
+        tool_total_limit_3 = mock_galaxy.Tool('toolshed.g2.bx.psu.edu/repos/artbio/repenrich/repenrich/1.6.1')
+        user_eccentrica = mock_galaxy.User('eccentrica', 'eccentricagallumbits@vortex.org')
+        user_roosta = mock_galaxy.User('roosta', 'roosta@vortex.org')
+
+        app = mock_galaxy.App(job_conf='fixtures/job_conf.yml', create_model=True)
+
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=7*1024**3))]
+        vortex_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rule-tool-limits.yml')
+
+        user_roosta.id = create_user(app, user_roosta)
+        user_eccentrica.id = create_user(app, user_eccentrica)
+
+        # set 2 jobs rbc_mafft jobs running for user roosta
+        create_job(app, user_roosta, tool_user_limit_2)
+        create_job(app, user_roosta, tool_user_limit_2)
+
+        # roosta cannot create another rbc_mafft job
+        with self.assertRaises(JobNotReadyException):
+            vortex_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rule-tool-limits.yml')
+            self._map_to_destination(tool_user_limit_2, user_roosta, datasets, vortex_config_files=[vortex_config], app=app)
+
+        # eccentrica can run a rbc_mafft job
+        destination = self._map_to_destination(tool_user_limit_2, user_eccentrica, datasets, vortex_config_files=[vortex_config], app=app)
         self.assertEqual(destination.id, 'local')
+
+        # set up 3 running jobs for repenrich tool
+        create_job(app, user_eccentrica, tool_total_limit_3)
+        create_job(app, user_eccentrica, tool_total_limit_3)
+        create_job(app, user_eccentrica, tool_total_limit_3)
+
+        # roosta cannot create another repenrich job
+        with self.assertRaises(JobNotReadyException):
+            vortex_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rule-tool-limits.yml')
+            self._map_to_destination(tool_total_limit_3, user_roosta, datasets, vortex_config_files=[vortex_config], app=app)

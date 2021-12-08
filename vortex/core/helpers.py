@@ -1,8 +1,6 @@
 import random
-import re
 from functools import reduce
 from galaxy import model
-from vortex.core.entities import Tool
 
 GIGABYTES = 1024.0**3
 
@@ -68,17 +66,11 @@ def job_args_match(job, app, args):
     return matched
 
 
-def concurrent_job_count_for_tool(app, entity, user=None):  # requires galaxy version >= 21.09
-    if isinstance(entity, Tool):
-        try:
-            get_tool_id_regex = re.compile('Tool: (?P<tool_id_regex>[^,]*)')
-            tool_id_regex = re.match(get_tool_id_regex, entity.id).groupdict()['tool_id_regex']
-        except Exception:
-            return 0
-        query = app.model.context.query(model.Job)
-        if user:
-            query = query.filter(model.Job.table.c.user_id == user.id)
-        query = query.filter(model.Job.table.c.state.in_(['queued', 'running']))
-        query = query.filter(model.Job.table.c.tool_id.regexp_match(tool_id_regex))
-        return query.count()
-    return 0  # if entity is not tool, return 0
+def concurrent_job_count_for_tool(app, tool, user=None):  # requires galaxy version >= 21.09
+    tool_id_regex = '/'.join(tool.id.split('/')[:-1]) + '/.*' if '/' in tool.id else tool.id
+    query = app.model.context.query(model.Job)
+    if user:
+        query = query.filter(model.Job.table.c.user_id == user.id)
+    query = query.filter(model.Job.table.c.state.in_(['queued', 'running']))
+    query = query.filter(model.Job.table.c.tool_id.regexp_match(tool_id_regex))
+    return query.count()
