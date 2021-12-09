@@ -1,5 +1,6 @@
 import random
 from functools import reduce
+from galaxy import model
 
 GIGABYTES = 1024.0**3
 
@@ -63,3 +64,15 @@ def job_args_match(job, app, args):
         except KeyError:
             matched = False
     return matched
+
+
+def concurrent_job_count_for_tool(app, tool, user=None):  # requires galaxy version >= 21.09
+    # Match all tools, regardless of version. For example, a tool id such as "fastqc/0.1.0+galaxy1" is
+    # turned into "fastqc/.*"
+    tool_id_regex = '/'.join(tool.id.split('/')[:-1]) + '/.*' if '/' in tool.id else tool.id
+    query = app.model.context.query(model.Job)
+    if user:
+        query = query.filter(model.Job.table.c.user_id == user.id)
+    query = query.filter(model.Job.table.c.state.in_(['queued', 'running']))
+    query = query.filter(model.Job.table.c.tool_id.regexp_match(tool_id_regex))
+    return query.count()
