@@ -1,5 +1,5 @@
-Configuring Vortex Rules
-========================
+Vortex by example
+=================
 
 Simple configuration
 --------------------
@@ -36,7 +36,7 @@ as it has insufficient cores. If resource requirements are omitted in the tool o
 Default inheritance
 -------------------
 
-Inheritance provides a mechanism for an entity to inherit properties from other entity, reducing repetition.
+Inheritance provides a mechanism for an entity to inherit properties from another entity, reducing repetition.
 
 .. code-block:: yaml
    :linenos:
