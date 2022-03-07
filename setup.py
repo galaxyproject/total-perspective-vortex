@@ -35,14 +35,14 @@ REQS_DEV = (['sphinx', 'sphinx_rtd_theme'] + REQS_TEST)
 
 setuptools.setup(
     name="total-perspective-vortex",
-    description="A library for routing entities to destinations in Galaxy",
+    description="A library for routing entities (jobs, users or groups) to destinations in Galaxy",
     version=version,
     author="Galaxy and GVL projects",
     author_email="help@genome.edu.au",
     license="MIT",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/usegalaxy-au/total-perspective-vortex",
+    url="https://github.com/galaxyproject/total-perspective-vortex",
     packages=setuptools.find_packages(),
     install_requires=REQS_FULL,
     extras_require={
@@ -55,7 +55,7 @@ setuptools.setup(
         ]
     },
     classifiers=[
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 5 - Production/Stable",
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
         "Intended Audience :: Developers",

@@ -20,7 +20,7 @@ class TestMapperMergeMultipleConfigs(unittest.TestCase):
         tool = mock_galaxy.Tool('bwa')
         user = mock_galaxy.User('ford', 'prefect@vortex.org')
 
-        config_first = "https://github.com/usegalaxy-au/total-perspective-vortex/raw/main/" \
+        config_first = "https://github.com/galaxyproject/total-perspective-vortex/raw/main/" \
                        "tests/fixtures/mapping-merge-multiple-remote.yml"
         config_second = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-merge-multiple-local.yml')
 
