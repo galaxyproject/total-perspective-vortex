@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# GalaxyCloudRunner documentation build configuration file, created by
+# total-perspective-vortex documentation build configuration file, created by
 # sphinx-quickstart on Sat Nov 10 18:16:35 2018.
 #
 # This file is execfile()d with the current directory set to its

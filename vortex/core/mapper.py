@@ -116,7 +116,8 @@ class EntityToDestinationMapper(object):
         # 7. Return destination with params
         if destination:
             destination = app.job_config.get_destination(destination.id)
-            destination.env += [dict(name=k, value=v) for (k, v) in evaluated.env.items()]
+            if evaluated.env:
+                destination.env += [dict(name=k, value=v) for (k, v) in evaluated.env.items()]
             destination.params.update(evaluated.params or {})
             return destination
         else:
