@@ -57,3 +57,11 @@ class TestMapperInheritance(unittest.TestCase):
         self.assertEqual(destination.id, "local")
         self.assertFalse([env['value'] for env in destination.env if env['name'] == 'TEST_JOB_SLOTS'])
         self.assertEqual(destination.params['another_spec'], '--gpus 4')
+
+    def test_map_inherit_no_default_no_tool_def(self):
+        tool = mock_galaxy.Tool('some_random_tool')
+        user = mock_galaxy.User('gargravarr', 'fairycake@vortex.org')
+        vortex_config_path = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-inheritance-no-default.yml')
+
+        destination = self._map_to_destination(tool, user, datasets=[], vortex_config_path=vortex_config_path)
+        self.assertEqual(destination.id, "local")

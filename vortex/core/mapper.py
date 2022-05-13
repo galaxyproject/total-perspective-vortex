@@ -2,6 +2,7 @@ import functools
 import logging
 import re
 
+from .entities import Tool
 from .loader import VortexConfigLoader
 
 log = logging.getLogger(__name__)
@@ -60,6 +61,8 @@ class EntityToDestinationMapper(object):
 
     def _find_matching_entities(self, tool, user):
         tool_entity = self._find_entity_by_id_regex(self.tools, tool.id)
+        if not tool_entity:
+            tool_entity = Tool.from_dict(self.loader, {'id': tool.id})
 
         entity_list = [tool_entity]
 
