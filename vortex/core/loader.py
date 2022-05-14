@@ -80,6 +80,8 @@ class VortexConfigLoader(object):
         validated = {}
         for entity_id, entity_dict in entity_list.items():
             try:
+                if not entity_dict:
+                    entity_dict = {}
                 entity_dict['id'] = entity_id
                 entity_class.from_dict(self, entity_dict)
                 validated[entity_id] = entity_class.from_dict(self, entity_dict)

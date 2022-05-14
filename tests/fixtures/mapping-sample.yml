@@ -1,0 +1,12 @@
+global:
+  default_inherits: default
+
+tools:
+  default:
+    cores: 2
+    mem: cores * 2
+    params:
+      local_slots: "{cores}"
+
+destinations:
+  local:
