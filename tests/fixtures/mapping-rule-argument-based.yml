@@ -14,7 +14,7 @@ tools:
         - general
   limbo:
     rules:
-      - match: |
+      - if: |
           helpers.job_args_match(job, app, {'input_opts': {'db_selector': 'db'}})
         scheduling:
           prefer:

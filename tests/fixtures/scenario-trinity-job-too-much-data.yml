@@ -46,11 +46,11 @@ tools:
       reject:
         - offline
     rules:
-      - match: input_size >= 0.1
+      - if: input_size >= 0.1
         scheduling:
           require:
             - highmem
-      - match: input_size >= 200
+      - if: input_size >= 200
         fail: "Input file size of {input_size}GB is > maximum allowed 200GB limit"
 destinations:
   slurm:

@@ -46,7 +46,7 @@ tools:
       reject:
         - offline
     rules:
-      - match: input_size >= 0.1
+      - if: input_size >= 0.1
         scheduling:
           require:
             - highmem

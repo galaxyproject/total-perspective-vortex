@@ -16,22 +16,22 @@ tools:
       reject:
         - pulsar
     rules:
-      - match: input_size < 5
+      - if: input_size < 5
         fail: We don't run piddling datasets
   bwa:
     scheduling:
       require:
         - pulsar
     rules:
-      - match: input_size <= 10
+      - if: input_size <= 10
         mem: cores * 4
       - id: highmem_rule
-        match: input_size > 40
+        if: input_size > 40
         fail: ""
         scheduling:
           require:
             - highmem
-      - match: input_size >= 20 and input_size <= 30
+      - if: input_size >= 20 and input_size <= 30
         fail: Too much data, shouldn't run
 users:
   fairycake@vortex.org:

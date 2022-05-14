@@ -46,9 +46,9 @@ tools:
       reject:
         - offline
     rules:
-      - match: input_size >= 10
+      - if: input_size >= 10
         cores: 16
-      - match: input_size >= 20
+      - if: input_size >= 20
         scheduling:
           require:
             - highmem
