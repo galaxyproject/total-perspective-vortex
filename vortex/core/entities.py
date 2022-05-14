@@ -481,7 +481,8 @@ class Rule(Entity):
             params=entity_dict.get('params'),
             tags=entity_dict.get('scheduling'),
             inherits=entity_dict.get('inherits'),
-            match=entity_dict.get('if'),
+            # TODO: Remove deprecated match clause in future
+            match=entity_dict.get('if') or entity_dict.get('match'),
             execute=entity_dict.get('execute'),
             fail=entity_dict.get('fail')
         )
