@@ -17,21 +17,21 @@ tools:
       reject:
         - pulsar
     rules:
-      - match: input_size < 5
+      - if: input_size < 5
         fail: We don't run piddling datasets
   bwa:
     scheduling:
       require:
         - pulsar
     rules:
-      - match: input_size <= 10
+      - if: input_size <= 10
         cores: 4
         mem: cores * 4
-      - match: input_size > 10 and input_size < 20
+      - if: input_size > 10 and input_size < 20
         scheduling:
           require:
             - highmem
-      - match: input_size >= 20
+      - if: input_size >= 20
         fail: Too much data, shouldn't run
 users:
   fairycake@vortex.org:
@@ -47,10 +47,10 @@ users:
       require:
         - earth
     rules:
-      - match: True
+      - if: True
         cores: 6
         mem: cores * 6
-      - match: input_size >= 5
+      - if: input_size >= 5
         fail: Just because
   improbable@vortex.org:
     scheduling:

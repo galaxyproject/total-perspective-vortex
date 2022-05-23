@@ -181,7 +181,7 @@ Rules provide a means by which to conditionally change entity requirements.
         mem: cores * 3
         rules:
           - id: my_overridable_rule
-            match: input_size < 5
+            if: input_size < 5
             fail: We don't run piddling datasets of {input_size}GB
       bwa:
         scheduling:
@@ -189,22 +189,22 @@ Rules provide a means by which to conditionally change entity requirements.
             - pulsar
         rules:
           - id: my_overridable_rule
-            match: input_size < 1
+            if: input_size < 1
             fail: We don't run piddling datasets
-          - match: input_size <= 10
+          - if: input_size <= 10
             cores: 4
             mem: cores * 4
             execute: |
                from galaxy.jobs.mapper import JobNotReadyException
                raise JobNotReadyException()
-          - match: input_size > 10 and input_size < 20
+          - if: input_size > 10 and input_size < 20
             scheduling:
               require:
                 - highmem
-          - match: input_size >= 20
+          - if: input_size >= 20
             fail: Input size: {input_size} is too large shouldn't run
 
-The match clause can contain arbitrary python code, including multi-line python code. The only requirement is that the
+The if clause can contain arbitrary python code, including multi-line python code. The only requirement is that the
 last statement in the code block must evaluate to a boolean value. In this example, the `input_size` variable is an
 automatically available contextual variable which is computed by totalling the sizes of all inputs to the job.
 Additional available variables include app, job, tool, and user.

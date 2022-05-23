@@ -5,6 +5,6 @@ tools:
         - pulsar
     rules:
       - id: firstrule
-        match: input_size <= 10
+        if: input_size <= 10
         cores: 3
         mem: cores * 4

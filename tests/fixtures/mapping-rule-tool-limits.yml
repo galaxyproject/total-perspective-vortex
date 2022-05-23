@@ -14,14 +14,14 @@ tools:
         - general
   toolshed.g2.bx.psu.edu/repos/rnateam/mafft/rbc_mafft/.*:
     rules:
-      - match: |
+      - if: |
           helpers.concurrent_job_count_for_tool(app, tool, user) >= 2  # concurrent jobs per user
         execute: |
           from galaxy.jobs.mapper import JobNotReadyException
           raise JobNotReadyException()          
   toolshed.g2.bx.psu.edu/repos/artbio/repenrich/repenrich/.*:
     rules:
-      - match: |
+      - if: |
           helpers.concurrent_job_count_for_tool(app, tool) >= 3  # total concurrent jobs
         execute: |
           from galaxy.jobs.mapper import JobNotReadyException

@@ -18,7 +18,7 @@ tools:
       reject:
         - pulsar
     rules:
-      - match: input_size < 5
+      - if: input_size < 5
         fail: We don't run piddling datasets
   bwa:
     gpus: 2
@@ -26,10 +26,10 @@ tools:
       require:
         - pulsar
     rules:
-      - match: input_size <= 10
+      - if: input_size <= 10
         cores: 4
         mem: cores * 4
-      - match: input_size >= 20
+      - if: input_size >= 20
         fail: Too much data, shouldn't run
   trinity:
     inherits: bwa

@@ -481,7 +481,8 @@ class Rule(Entity):
             params=entity_dict.get('params'),
             tags=entity_dict.get('scheduling'),
             inherits=entity_dict.get('inherits'),
-            match=entity_dict.get('match'),
+            # TODO: Remove deprecated match clause in future
+            match=entity_dict.get('if') or entity_dict.get('match'),
             execute=entity_dict.get('execute'),
             fail=entity_dict.get('fail')
         )
@@ -494,7 +495,7 @@ class Rule(Entity):
         return new_entity
 
     def __repr__(self):
-        return super().__repr__() + f", match={self.match[:10] if self.match else ''}, " \
+        return super().__repr__() + f", if={self.match[:10] if self.match else ''}, " \
                                     f"execute={self.execute[:10] if self.execute else ''}, " \
                                     f"fail={self.fail[:10] if self.fail else ''}"
 

@@ -35,14 +35,13 @@ tools:
       prefer:
         - pulsar
     rules:
-      - match: input_size >= 0.2
+      - if: input_size >= 0.2
         cores: 16
 
 users:
   default:
     rules:
-      - match: |
-          False
+      - if: False
         fail: "You cannot have more than 4 high-mem jobs running concurrently"
 destinations:
   slurm:

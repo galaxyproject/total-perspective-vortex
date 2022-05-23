@@ -47,7 +47,7 @@ tools:
       reject:
         - offline
     rules:
-      - match: input_size >= 0.1
+      - if: input_size >= 0.1
         scheduling:
           require:
             - highmem
@@ -55,7 +55,7 @@ tools:
 users:
   default:
     rules:
-      - match: |
+      - if: |
           from galaxy.jobs.rule_helper import RuleHelper
           from vortex.core.entities import TagType
 
