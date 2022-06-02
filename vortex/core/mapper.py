@@ -22,17 +22,20 @@ class EntityToDestinationMapper(object):
     def __compile_tool_regex(self, key):
         return re.compile(key)
 
-    def _find_entity_by_id_regex(self, entity_list, entity_name):
-        # shortcut for direct match
-        if entity_list.get(entity_name):
-            return entity_list.get(entity_name)
-        else:
-            for key in entity_list.keys():
-                if self.lookup_tool_regex(key).match(entity_name):
-                    return entity_list[key]
-            if self.default_inherits:
-                return entity_list.get(self.default_inherits)
-            return None
+    def _find_entities_matching_id(self, entity_list, entity_name):
+        matches = []
+        for key in entity_list.keys():
+            if self.lookup_tool_regex(key).match(entity_name):
+                matches.append(entity_list[key])
+        if not matches and self.default_inherits:
+            default_match = entity_list.get(self.default_inherits)
+            if default_match:
+                matches.append(default_match)
+        return matches
+
+    def _inherit_all_matching_entities(self, entity_list, entity_name):
+        matches = self._find_entities_matching_id(entity_list, entity_name)
+        return self.inherit_entities(matches)
 
     def evaluate_early(self, entities, context):
         evaluated = []
@@ -44,6 +47,12 @@ class EntityToDestinationMapper(object):
             })
             evaluated.append(entity.evaluate_early(context))
         return evaluated
+
+    def inherit_entities(self, entities):
+        if entities:
+            return functools.reduce(lambda a, b: b.inherit(a), entities)
+        else:
+            return None
 
     def combine_entities(self, entities):
         combined_entity = entities[0]
@@ -60,14 +69,14 @@ class EntityToDestinationMapper(object):
         return rankings[0] if rankings else None
 
     def _find_matching_entities(self, tool, user):
-        tool_entity = self._find_entity_by_id_regex(self.tools, tool.id)
+        tool_entity = self._inherit_all_matching_entities(self.tools, tool.id)
         if not tool_entity:
             tool_entity = Tool.from_dict(self.loader, {'id': tool.id})
 
         entity_list = [tool_entity]
 
         if user:
-            role_entities = (self._find_entity_by_id_regex(self.roles, role.name)
+            role_entities = (self._inherit_all_matching_entities(self.roles, role.name)
                              for role in user.all_roles() if not role.deleted)
             # trim empty
             user_role_entities = (role for role in role_entities if role)
@@ -75,7 +84,7 @@ class EntityToDestinationMapper(object):
             if user_role_entity:
                 entity_list += [user_role_entity]
 
-            user_entity = self._find_entity_by_id_regex(self.users, user.email)
+            user_entity = self._inherit_all_matching_entities(self.users, user.email)
             if user_entity:
                 entity_list += [user_entity]
 

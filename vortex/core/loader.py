@@ -77,6 +77,7 @@ class VortexConfigLoader(object):
             entities[key] = self.process_inheritance(entities, entity)
 
     def validate_entities(self, entity_class: type, entity_list: dict) -> dict:
+        # This code relies on dict ordering guarantees provided since python 3.6
         validated = {}
         for entity_id, entity_dict in entity_list.items():
             try:

@@ -33,6 +33,10 @@ users:
       reject:
         - pulsar
     rules: []
+  .*@vortex.org:
+    scheduling:
+      require:
+        - pulsar
   fairycake@vortex.org:
     cores: 1
     mem: 16
@@ -44,15 +48,13 @@ users:
     scheduling:
       require:
         - earth
+      reject:
+        - pulsar
   improbable@vortex.org:
     scheduling:
       require:
         - pulsar
       reject:
-        - pulsar
-  .*@vortex.org:
-    scheduling:
-      require:
         - pulsar
 
 destinations:
