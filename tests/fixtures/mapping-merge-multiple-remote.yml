@@ -17,3 +17,16 @@ tools:
     scheduling:
       require:
         - pulsar
+  hisat2:
+    rules:
+      - id: highmem_rule
+        if: input_size > 40
+        cores: 4
+  hisat*:
+    rules:
+      - id: highmem_rule
+        if: input_size > 40
+        cores: 5
+        scheduling:
+          require:
+            - highmem
