@@ -12,12 +12,15 @@ class EntityToDestinationMapper(object):
 
     def __init__(self, loader: VortexConfigLoader):
         self.loader = loader
-        self.tools = loader.tools
-        self.users = loader.users
-        self.roles = loader.roles
+        self.entities = {
+            "tools": loader.tools,
+            "users": loader.users,
+            "roles": loader.roles
+        }
         self.destinations = loader.destinations
         self.default_inherits = loader.global_settings.get('default_inherits')
         self.lookup_tool_regex = functools.lru_cache(maxsize=None)(self.__compile_tool_regex)
+        self.inherit_matching_entities = functools.lru_cache(maxsize=None)(self.__inherit_matching_entities)
 
     def __compile_tool_regex(self, key):
         return re.compile(key)
@@ -33,7 +36,8 @@ class EntityToDestinationMapper(object):
                 matches.append(default_match)
         return matches
 
-    def _inherit_all_matching_entities(self, entity_list, entity_name):
+    def __inherit_matching_entities(self, entity_type, entity_name):
+        entity_list = self.entities.get(entity_type)
         matches = self._find_entities_matching_id(entity_list, entity_name)
         return self.inherit_entities(matches)
 
@@ -69,14 +73,14 @@ class EntityToDestinationMapper(object):
         return rankings[0] if rankings else None
 
     def _find_matching_entities(self, tool, user):
-        tool_entity = self._inherit_all_matching_entities(self.tools, tool.id)
+        tool_entity = self.inherit_matching_entities("tools", tool.id)
         if not tool_entity:
             tool_entity = Tool.from_dict(self.loader, {'id': tool.id})
 
         entity_list = [tool_entity]
 
         if user:
-            role_entities = (self._inherit_all_matching_entities(self.roles, role.name)
+            role_entities = (self.inherit_matching_entities("roles", role.name)
                              for role in user.all_roles() if not role.deleted)
             # trim empty
             user_role_entities = (role for role in role_entities if role)
@@ -84,7 +88,7 @@ class EntityToDestinationMapper(object):
             if user_role_entity:
                 entity_list += [user_role_entity]
 
-            user_entity = self._inherit_all_matching_entities(self.users, user.email)
+            user_entity = self.inherit_matching_entities("users", user.email)
             if user_entity:
                 entity_list += [user_entity]
 
