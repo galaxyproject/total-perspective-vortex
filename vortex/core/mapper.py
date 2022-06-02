@@ -55,10 +55,10 @@ class EntityToDestinationMapper(object):
             return None
 
     def combine_entities(self, entities):
-        combined_entity = entities[0]
-        for entity in entities[1:]:
-            combined_entity = combined_entity.combine(entity)
-        return combined_entity
+        if entities:
+            return functools.reduce(lambda a, b: a.combine(b), entities)
+        else:
+            return None
 
     def rank(self, entity, destinations, context):
         return entity.rank_destinations(destinations, context)
