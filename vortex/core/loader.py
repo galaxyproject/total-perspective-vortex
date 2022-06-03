@@ -77,6 +77,7 @@ class VortexConfigLoader(object):
             entities[key] = self.process_inheritance(entities, entity)
 
     def validate_entities(self, entity_class: type, entity_list: dict) -> dict:
+        # This code relies on dict ordering guarantees provided since python 3.6
         validated = {}
         for entity_id, entity_dict in entity_list.items():
             try:
@@ -103,7 +104,10 @@ class VortexConfigLoader(object):
     def inherit_existing_entities(self, entities_current, entities_new):
         for entity in entities_new.values():
             if entities_current.get(entity.id):
-                entities_current[entity.id] = entity.inherit(entities_current.get(entity.id))
+                current_entity = entities_current.get(entity.id)
+                del entities_current[entity.id]
+                # reinsert at the end
+                entities_current[entity.id] = entity.inherit(current_entity)
             else:
                 entities_current[entity.id] = entity
         self.recompute_inheritance(entities_current)

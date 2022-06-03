@@ -33,6 +33,15 @@ tools:
             - highmem
       - if: input_size >= 20 and input_size <= 30
         fail: Too much data, shouldn't run
+  hisat2:
+    rules:
+      - id: highmem_rule
+        if: input_size > 40
+        cores: 6
+        scheduling:
+          require:
+            - pulsar
+
 users:
   fairycake@vortex.org:
     env:

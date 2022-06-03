@@ -81,3 +81,20 @@ class TestMapperMergeMultipleConfigs(unittest.TestCase):
         datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=42*1024**3))]
         destination = self._map_to_destination(tool, user, datasets, vortex_config_paths=[config_first, config_second])
         self.assertEqual(destination.id, "another_k8s_environment")
+
+    def test_merge_rules_with_multiple_matches(self):
+        tool = mock_galaxy.Tool('hisat2')
+        user = mock_galaxy.User('ford', 'prefect@vortex.org')
+
+        config_first = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-merge-multiple-remote.yml')
+        config_second = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-merge-multiple-local.yml')
+
+        # the highmem rule should take effect, with local override winning
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=42*1024**3))]
+        destination = self._map_to_destination(tool, user, datasets, vortex_config_paths=[config_first, config_second])
+        self.assertEqual(destination.id, "another_k8s_environment")
+        # since the last defined hisat2 contains overridden defaults, those defaults will apply
+        self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_JOB_SLOTS'], ['6'])
+        # this var is not overridden by the last defined defaults, and therefore, the remote value of cores*2 applies
+        self.assertEqual([env['value'] for env in destination.env if env['name'] == 'MORE_JOB_SLOTS'], ['12'])
+        self.assertEqual(destination.params['native_spec'], '--mem 18 --cores 6')
