@@ -10,6 +10,8 @@ tools:
       - if: input_size < 5
         fail: We don't run piddling datasets
   bwa:
+    env:
+      TEST_JOB_SLOTS: "{cores*2}"
     rules:
       - id: highmem_rule
         if: input_size > 40
@@ -18,11 +20,15 @@ tools:
       require:
         - pulsar
   hisat2:
+    env:
+      MORE_JOB_SLOTS: "{cores*2}"
     rules:
       - id: highmem_rule
         if: input_size > 40
         cores: 4
-  hisat*:
+  hisat.*:
+    env:
+      MORE_JOB_SLOTS: "{cores*3}"
     rules:
       - id: highmem_rule
         if: input_size > 40
