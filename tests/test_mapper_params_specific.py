@@ -10,7 +10,7 @@ class TestParamsSpecific(unittest.TestCase):
     def _map_to_destination(tool, user):
         galaxy_app = mock_galaxy.App()
         job = mock_galaxy.Job()
-        vortex_config = os.path.join(os.path.dirname(__file__), 'fixtures/params-specific.yml')
+        vortex_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-params-specific.yml')
         gateway.ACTIVE_DESTINATION_MAPPER = None
         return gateway.map_tool_to_destination(galaxy_app, job, tool, user, vortex_config_files=[vortex_config])
 
@@ -27,3 +27,10 @@ class TestParamsSpecific(unittest.TestCase):
 
         destination = self._map_to_destination(tool, user)
         self.assertTrue('JAVA_MEM' not in [e['name'] for e in destination.env])
+
+    def test_map_complex_parameter(self):
+        tool = mock_galaxy.Tool('bwa')
+        user = mock_galaxy.User('gargravarr', 'fairycake@vortex.org')
+
+        destination = self._map_to_destination(tool, user)
+        self.assertEqual(destination.params['container_override'][0]['identifier'], 'busybox:ubuntu-14.04-2')

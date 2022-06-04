@@ -176,6 +176,28 @@ class Entity(object):
         self.inherits = inherits
         self.validate()
 
+    def process_complex_property(self, prop, context, func):
+        if isinstance(prop, str):
+            return func(prop, context)
+        elif isinstance(prop, dict):
+            evaluated_params = {key: self.process_complex_property(childprop, context, func)
+                                for key, childprop in prop.items()}
+            return evaluated_params
+        elif isinstance(prop, list):
+            evaluated_params = [self.process_complex_property(childprop, context, func)
+                                for childprop in prop]
+            return evaluated_params
+        else:
+            return prop
+
+    def compile_complex_property(self, prop, context):
+        return self.process_complex_property(
+            prop, context, lambda p, c: self.loader.compile_code_block(p, as_f_string=True))
+
+    def evaluate_complex_property(self, prop, context):
+        return self.process_complex_property(
+            prop, context, lambda p, c: self.loader.eval_code_block(p, c, as_f_string=True))
+
     def validate(self):
         """
         Validates each code block and makes sure the code can be compiled.
@@ -189,11 +211,9 @@ class Entity(object):
         if self.gpus:
             self.loader.compile_code_block(self.gpus)
         if self.env:
-            for key, entry in self.env.items():
-                self.loader.compile_code_block(entry, as_f_string=True)
+            self.compile_complex_property(self.env, context=None)
         if self.params:
-            for key, param in self.params.items():
-                self.loader.compile_code_block(param, as_f_string=True)
+            self.compile_complex_property(self.params, context=None)
         if self.rank:
             self.loader.compile_code_block(self.rank)
 
@@ -306,16 +326,10 @@ class Entity(object):
         context['cores'] = new_entity.cores
         context['mem'] = new_entity.mem
         if self.env:
-            evaluated_env = {}
-            for key, entry in self.env.items():
-                evaluated_env[key] = self.loader.eval_code_block(entry, context, as_f_string=True)
-            new_entity.env = evaluated_env
+            new_entity.env = self.evaluate_complex_property(self.env, context)
             context['env'] = new_entity.env
         if self.params:
-            evaluated_params = {}
-            for key, param in self.params.items():
-                evaluated_params[key] = self.loader.eval_code_block(param, context, as_f_string=True)
-            new_entity.params = evaluated_params
+            new_entity.params = self.evaluate_complex_property(self.params, context)
             context['params'] = new_entity.params
         return new_entity
 
