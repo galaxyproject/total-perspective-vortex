@@ -9,6 +9,15 @@ tools:
       TEST_JOB_SLOTS: "{cores}"
     params:
       native_spec: "--mem {mem} --cores {cores}"
+      container_override:
+        - type: docker
+          shell: '/bin/sh'
+          resolve_dependencies: false
+          identifier: 'busybox:ubuntu-14.04-{cores}'
+        - type: singularity
+          shell: '/bin/sh'
+          resolve_dependencies: false
+          identifier: '/path/to/default/container'
     scheduling:
       require: []
       prefer:
