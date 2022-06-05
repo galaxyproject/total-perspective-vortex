@@ -1,0 +1,17 @@
+runners:
+  local:
+    load: galaxy.jobs.runners.local:LocalJobRunner
+    workers: 4
+
+execution:
+  default: vortex_dispatcher
+  environments:
+    vortex_dispatcher:
+      runner: dynamic
+      type: python
+      function: map_tool_to_destination
+      rules_module: vortex.rules
+      vortex_config_files:
+        - tests/fixtures/mapping-resubmit.yml
+    local:
+      runner: local

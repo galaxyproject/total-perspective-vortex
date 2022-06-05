@@ -10,3 +10,9 @@ galaxy-web-framework@git+https://github.com/galaxyproject/galaxy.git@release_21.
 galaxy-web-stack@git+https://github.com/galaxyproject/galaxy.git@release_21.09#subdirectory=packages/web_stack
 galaxy-app@git+https://github.com/galaxyproject/galaxy.git@release_21.09#subdirectory=packages/app
 -e ".[test]"
+# The following packages are needed for resubmit integration testing
+edam-ontology
+dictobj
+galaxy-webapps@git+https://github.com/galaxyproject/galaxy.git@release_21.09#subdirectory=packages/webapps
+galaxy-test-driver@git+https://github.com/galaxyproject/galaxy.git@release_21.09#subdirectory=packages/test_driver
+galaxy-job-execution@git+https://github.com/galaxyproject/galaxy.git@release_21.09#subdirectory=packages/job_execution

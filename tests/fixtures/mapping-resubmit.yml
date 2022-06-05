@@ -1,0 +1,44 @@
+global:
+  default_inherits: default
+
+tools:
+  default:
+    cores: 2
+    mem: 12
+    env:
+      GALAXY_MEMORY_MB: "{mem * int(job.destination_params.get('SCALING_FACTOR', 1)) if job.destination_params else 1}"
+    scheduling:
+      require: []
+      prefer:
+        - general
+      accept:
+      reject:
+        - pulsar
+    params:
+      SCALING_FACTOR: "{2 * int(job.destination_params.get('SCALING_FACTOR', 2)) if job.destination_params else 2}"
+    rules: []
+  exit_code_oom_with_resubmit:
+    cores: 2
+    mem: 4
+    resubmit:
+      with_more_mem_on_failure:
+        condition: any_failure and attempt <= 3
+        destination: vortex_dispatcher
+  exit_code_oom_no_resubmit:
+    cores: 2
+    mem: 4
+
+destinations:
+  local:
+    cores: 4
+    mem: 16
+    scheduling:
+      prefer:
+        - general
+  k8s_environment:
+    cores: 16
+    mem: 64
+    gpus: 2
+    scheduling:
+      prefer:
+        - pulsar

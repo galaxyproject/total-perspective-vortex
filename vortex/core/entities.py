@@ -162,8 +162,8 @@ class TagSetManager(object):
 
 class Entity(object):
 
-    def __init__(self, loader, id=None, cores=None, mem=None, gpus=None, env=None, params=None, tags=None, rank=None,
-                 inherits=None):
+    def __init__(self, loader, id=None, cores=None, mem=None, gpus=None, env=None, params=None, resubmit=None,
+                 tags=None, rank=None, inherits=None):
         self.loader = loader
         self.id = id
         self.cores = cores
@@ -171,6 +171,7 @@ class Entity(object):
         self.gpus = gpus
         self.env = env
         self.params = params
+        self.resubmit = resubmit
         self.tags = TagSetManager.from_dict(tags or {})
         self.rank = rank
         self.inherits = inherits
@@ -180,19 +181,19 @@ class Entity(object):
         if isinstance(prop, str):
             return func(prop, context)
         elif isinstance(prop, dict):
-            evaluated_params = {key: self.process_complex_property(childprop, context, func)
-                                for key, childprop in prop.items()}
-            return evaluated_params
+            evaluated_props = {key: self.process_complex_property(childprop, context, func)
+                               for key, childprop in prop.items()}
+            return evaluated_props
         elif isinstance(prop, list):
-            evaluated_params = [self.process_complex_property(childprop, context, func)
-                                for childprop in prop]
-            return evaluated_params
+            evaluated_props = [self.process_complex_property(childprop, context, func)
+                               for childprop in prop]
+            return evaluated_props
         else:
             return prop
 
-    def compile_complex_property(self, prop, context):
+    def compile_complex_property(self, prop):
         return self.process_complex_property(
-            prop, context, lambda p, c: self.loader.compile_code_block(p, as_f_string=True))
+            prop, None, lambda p, c: self.loader.compile_code_block(p, as_f_string=True))
 
     def evaluate_complex_property(self, prop, context):
         return self.process_complex_property(
@@ -211,16 +212,18 @@ class Entity(object):
         if self.gpus:
             self.loader.compile_code_block(self.gpus)
         if self.env:
-            self.compile_complex_property(self.env, context=None)
+            self.compile_complex_property(self.env)
         if self.params:
-            self.compile_complex_property(self.params, context=None)
+            self.compile_complex_property(self.params)
+        if self.resubmit:
+            self.compile_complex_property(self.resubmit)
         if self.rank:
             self.loader.compile_code_block(self.rank)
 
     def __repr__(self):
         return f"{self.__class__} id={self.id}, cores={self.cores}, mem={self.mem}, gpus={self.gpus}, " \
-               f"env={self.env}, params={self.params}, tags={self.tags}, rank={self.rank[:10] if self.rank else ''}, " \
-               f"inherits={self.inherits}"
+               f"env={self.env}, params={self.params}, resubmit={self.resubmit}, tags={self.tags}, " \
+               f"rank={self.rank[:10] if self.rank else ''}, inherits={self.inherits}"
 
     def override(self, entity):
         new_entity = copy.copy(entity)
@@ -232,6 +235,8 @@ class Entity(object):
         new_entity.env.update(self.env or {})
         new_entity.params = copy.copy(entity.params) or {}
         new_entity.params.update(self.params or {})
+        new_entity.resubmit = copy.copy(entity.resubmit) or {}
+        new_entity.resubmit.update(self.resubmit or {})
         new_entity.rank = self.rank if self.rank is not None else entity.rank
         new_entity.inherits = self.inherits if self.inherits is not None else entity.inherits
         return new_entity
@@ -316,7 +321,7 @@ class Entity(object):
     def evaluate_late(self, context):
         """
         Evaluate expressions in entity properties that must be evaluated as late as possible, which is
-        to say, after combining entity requirements. This includes env and params, that rely on
+        to say, after combining entity requirements. This includes env, params and resubmit, that rely on
         properties such as cores, mem and gpus after they are combined.
         :param context:
         :return:
@@ -331,6 +336,9 @@ class Entity(object):
         if self.params:
             new_entity.params = self.evaluate_complex_property(self.params, context)
             context['params'] = new_entity.params
+        if self.resubmit:
+            new_entity.resubmit = self.evaluate_complex_property(self.resubmit, context)
+            context['resubmit'] = new_entity.resubmit
         return new_entity
 
     def rank_destinations(self, destinations, context):
@@ -352,8 +360,8 @@ class Entity(object):
 class EntityWithRules(Entity):
 
     def __init__(self, loader, id=None, cores=None, mem=None, gpus=None, env=None,
-                 params=None, tags=None, rank=None, inherits=None, rules=None):
-        super().__init__(loader, id, cores, mem, gpus, env, params, tags, rank, inherits)
+                 params=None, resubmit=None, tags=None, rank=None, inherits=None, rules=None):
+        super().__init__(loader, id, cores, mem, gpus, env, params, resubmit, tags, rank, inherits)
         self.rules = self.validate_rules(rules)
 
     def validate_rules(self, rules: list) -> list:
@@ -377,6 +385,7 @@ class EntityWithRules(Entity):
             gpus=entity_dict.get('gpus'),
             env=entity_dict.get('env'),
             params=entity_dict.get('params'),
+            resubmit=entity_dict.get('resubmit'),
             tags=entity_dict.get('scheduling'),
             rank=entity_dict.get('rank'),
             inherits=entity_dict.get('inherits'),
@@ -423,29 +432,29 @@ class EntityWithRules(Entity):
 class Tool(EntityWithRules):
 
     def __init__(self, loader, id=None, cores=None, mem=None, gpus=None,
-                 env=None, params=None, tags=None, rank=None, inherits=None, rules=None):
-        super().__init__(loader, id, cores, mem, gpus, env, params, tags, rank, inherits, rules)
+                 env=None, params=None, resubmit=None, tags=None, rank=None, inherits=None, rules=None):
+        super().__init__(loader, id, cores, mem, gpus, env, params, resubmit, tags, rank, inherits, rules)
 
 
 class User(EntityWithRules):
 
     def __init__(self, loader, id=None, cores=None, mem=None, gpus=None,
-                 env=None, params=None, tags=None, rank=None, inherits=None, rules=None):
-        super().__init__(loader, id, cores, mem, gpus, env, params, tags, rank, inherits, rules)
+                 env=None, params=None, resubmit=None, tags=None, rank=None, inherits=None, rules=None):
+        super().__init__(loader, id, cores, mem, gpus, env, params, resubmit, tags, rank, inherits, rules)
 
 
 class Role(EntityWithRules):
 
     def __init__(self, loader, id=None, cores=None, mem=None, gpus=None,
-                 env=None, params=None, tags=None, rank=None, inherits=None, rules=None):
-        super().__init__(loader, id, cores, mem, gpus, env, params, tags, rank, inherits, rules)
+                 env=None, params=None, resubmit=None, tags=None, rank=None, inherits=None, rules=None):
+        super().__init__(loader, id, cores, mem, gpus, env, params, resubmit, tags, rank, inherits, rules)
 
 
 class Destination(EntityWithRules):
 
     def __init__(self, loader, id=None, cores=None, mem=None, gpus=None,
-                 env=None, params=None, tags=None, inherits=None, rules=None):
-        super().__init__(loader, id, cores, mem, gpus, env, params, tags, inherits, rules=rules)
+                 env=None, params=None, resubmit=None, tags=None, inherits=None, rules=None):
+        super().__init__(loader, id, cores, mem, gpus, env, params, resubmit, tags, inherits, rules=rules)
 
     @staticmethod
     def from_dict(loader, entity_dict):
@@ -457,6 +466,7 @@ class Destination(EntityWithRules):
             gpus=entity_dict.get('gpus'),
             env=entity_dict.get('env'),
             params=entity_dict.get('params'),
+            resubmit=entity_dict.get('resubmit'),
             tags=entity_dict.get('scheduling'),
             inherits=entity_dict.get('inherits'),
             rules=entity_dict.get('rules')
@@ -468,11 +478,11 @@ class Rule(Entity):
     rule_counter = 0
 
     def __init__(self, loader, id=None, cores=None, mem=None, gpus=None,
-                 env=None, params=None, tags=None, inherits=None, match=None, execute=None, fail=None):
+                 env=None, params=None, resubmit=None, tags=None, inherits=None, match=None, execute=None, fail=None):
         if not id:
             Rule.rule_counter += 1
             id = f"vortex_rule_{Rule.rule_counter}"
-        super().__init__(loader, id, cores, mem, gpus, env, params, tags, inherits=inherits)
+        super().__init__(loader, id, cores, mem, gpus, env, params, resubmit, tags, inherits=inherits)
         self.match = match
         self.execute = execute
         self.fail = fail
@@ -493,6 +503,7 @@ class Rule(Entity):
             gpus=entity_dict.get('gpus'),
             env=entity_dict.get('env'),
             params=entity_dict.get('params'),
+            resubmit=entity_dict.get('resubmit'),
             tags=entity_dict.get('scheduling'),
             inherits=entity_dict.get('inherits'),
             # TODO: Remove deprecated match clause in future
