@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<toolbox tool_path="${tool_conf_dir}" is_shed_conf="false">
+  <tool file="exit_code_oom_with_resubmit.xml" />
+  <tool file="exit_code_oom_no_resubmit.xml" />
+</toolbox>

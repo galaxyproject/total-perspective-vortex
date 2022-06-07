@@ -135,6 +135,8 @@ class EntityToDestinationMapper(object):
             if evaluated.env:
                 destination.env += [dict(name=k, value=v) for (k, v) in evaluated.env.items()]
             destination.params.update(evaluated.params or {})
+            if evaluated.resubmit:
+                destination.resubmit += evaluated.resubmit.values()
             return destination
         else:
             from galaxy.jobs.mapper import JobMappingException

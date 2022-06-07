@@ -1,0 +1,34 @@
+<tool id="exit_code_oom_no_resubmit" name="exit_code_oom_no_resubmit" version="0.1.1" profile="16.04">
+    <!-- tool errors out with identified OOM error if less than 10MB are allocated. -->
+    <command detect_errors="exit_code" oom_exit_code="42"><![CDATA[
+mv hi.txt '$out_file1' &&
+echo "\$OOM_TOOL_MEMORY" &&
+if [ "\$OOM_TOOL_MEMORY" -lt 10 ]; then
+    exit 42;
+else
+    exit 0;
+fi
+    ]]></command>
+    <configfiles>
+        <!-- also tests that configfiles are placed in working dir and that this works on resubmission as well -->
+        <configfile filename="hi.txt">Hello</configfile>
+    </configfiles>
+    <inputs>
+        <param name="input" type="integer" label="Dummy" value="6" />
+    </inputs>
+    <outputs>
+        <data name="out_file1" />
+    </outputs>
+    <tests>
+        <test>
+            <param name="input" value="5" />
+            <output name="out_file1">
+                <assert_contents>
+                    <has_line line="Hello" />
+                </assert_contents>
+            </output>
+        </test>
+    </tests>
+    <help>
+    </help>
+</tool>
