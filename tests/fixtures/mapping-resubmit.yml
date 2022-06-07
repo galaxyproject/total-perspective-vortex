@@ -6,7 +6,7 @@ tools:
     cores: 2
     mem: 12
     env:
-      GALAXY_MEMORY_MB: "{mem * int(job.destination_params.get('SCALING_FACTOR', 1)) if job.destination_params else 1}"
+      OOM_TOOL_MEMORY: "{mem * int(job.destination_params.get('SCALING_FACTOR', 1)) if job.destination_params else 1}"
     scheduling:
       require: []
       prefer:

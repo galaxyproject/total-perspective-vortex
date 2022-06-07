@@ -2,10 +2,8 @@
     <!-- tool errors out with identified OOM error if less than 10MB are allocated. -->
     <command detect_errors="exit_code" oom_exit_code="42"><![CDATA[
 mv hi.txt '$out_file1' &&
-echo "\$GALAXY_MEMORY_MB" &&
-: \${GALAXY_MEMORY_MB:=20} &&
-echo "\$GALAXY_MEMORY_MB" &&
-if [ "\$GALAXY_MEMORY_MB" -lt 10 ]; then
+echo "\$OOM_TOOL_MEMORY" &&
+if [ "\$OOM_TOOL_MEMORY" -lt 10 ]; then
     exit 42;
 else
     exit 0;
