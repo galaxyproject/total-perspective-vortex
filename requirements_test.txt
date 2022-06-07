@@ -6,13 +6,13 @@ galaxy-containers@git+https://github.com/galaxyproject/galaxy.git@release_21.09#
 galaxy-job-execution@git+https://github.com/galaxyproject/galaxy.git@release_21.09#subdirectory=packages/job_execution
 galaxy-job-metrics@git+https://github.com/galaxyproject/galaxy.git@release_21.09#subdirectory=packages/job_metrics
 galaxy-tool-util@git+https://github.com/galaxyproject/galaxy.git@release_21.09#subdirectory=packages/tool_util
-galaxy-web-framework@git+https://github.com/galaxyproject/galaxy.git@release_21.09#subdirectory=packages/web_framework
 galaxy-web-stack@git+https://github.com/galaxyproject/galaxy.git@release_21.09#subdirectory=packages/web_stack
-galaxy-app@git+https://github.com/galaxyproject/galaxy.git@release_21.09#subdirectory=packages/app
+galaxy-web-framework@git+https://github.com/galaxyproject/galaxy.git@release_21.09#subdirectory=packages/web_framework
 -e ".[test]"
-# The following packages are needed for resubmit integration testing
+# The following packages are needed for resubmit integration testing (except galaxy-app)
+galaxy-job-execution@git+https://github.com/galaxyproject/galaxy.git@release_21.09#subdirectory=packages/job_execution
 edam-ontology
 dictobj
+galaxy-app@git+https://github.com/galaxyproject/galaxy.git@release_21.09#subdirectory=packages/app
 galaxy-webapps@git+https://github.com/galaxyproject/galaxy.git@release_21.09#subdirectory=packages/webapps
 galaxy-test-driver@git+https://github.com/galaxyproject/galaxy.git@release_21.09#subdirectory=packages/test_driver
-galaxy-job-execution@git+https://github.com/galaxyproject/galaxy.git@release_21.09#subdirectory=packages/job_execution
