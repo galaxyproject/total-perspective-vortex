@@ -17,12 +17,12 @@ class InvalidParentException(Exception):
     pass
 
 
-class VortexConfigLoader(object):
+class TPVConfigLoader(object):
 
-    def __init__(self, vortex_config: dict):
+    def __init__(self, tpv_config: dict):
         self.compile_code_block = functools.lru_cache(maxsize=None)(self.__compile_code_block)
-        self.global_settings = vortex_config.get('global', {})
-        entities = self.load_entities(vortex_config)
+        self.global_settings = tpv_config.get('global', {})
+        entities = self.load_entities(tpv_config)
         self.tools = entities.get('tools')
         self.users = entities.get('users')
         self.roles = entities.get('roles')
@@ -92,12 +92,12 @@ class VortexConfigLoader(object):
         self.recompute_inheritance(validated)
         return validated
 
-    def load_entities(self, vortex_config: dict) -> dict:
+    def load_entities(self, tpv_config: dict) -> dict:
         validated = {
-            'tools': self.validate_entities(Tool, vortex_config.get('tools', {})),
-            'users': self.validate_entities(User, vortex_config.get('users', {})),
-            'roles': self.validate_entities(Role, vortex_config.get('roles', {})),
-            'destinations': self.validate_entities(Destination, vortex_config.get('destinations', {}))
+            'tools': self.validate_entities(Tool, tpv_config.get('tools', {})),
+            'users': self.validate_entities(User, tpv_config.get('users', {})),
+            'roles': self.validate_entities(Role, tpv_config.get('roles', {})),
+            'destinations': self.validate_entities(Destination, tpv_config.get('destinations', {}))
         }
         return validated
 
@@ -112,7 +112,7 @@ class VortexConfigLoader(object):
                 entities_current[entity.id] = entity
         self.recompute_inheritance(entities_current)
 
-    def merge_loader(self, loader: VortexConfigLoader):
+    def merge_loader(self, loader: TPVConfigLoader):
         self.global_settings.update(loader.global_settings)
         self.inherit_existing_entities(self.tools, loader.tools)
         self.inherit_existing_entities(self.users, loader.users)
@@ -123,9 +123,9 @@ class VortexConfigLoader(object):
     def from_url_or_path(url_or_path: str):
         if os.path.isfile(url_or_path):
             with open(url_or_path, 'r') as f:
-                vortex_config = yaml.safe_load(f)
-                return VortexConfigLoader(vortex_config)
+                tpv_config = yaml.safe_load(f)
+                return TPVConfigLoader(tpv_config)
         else:
             with requests.get(url_or_path) as r:
-                vortex_config = yaml.safe_load(r.content)
-                return VortexConfigLoader(vortex_config)
+                tpv_config = yaml.safe_load(r.content)
+                return TPVConfigLoader(tpv_config)

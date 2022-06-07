@@ -481,7 +481,7 @@ class Rule(Entity):
                  env=None, params=None, resubmit=None, tags=None, inherits=None, match=None, execute=None, fail=None):
         if not id:
             Rule.rule_counter += 1
-            id = f"vortex_rule_{Rule.rule_counter}"
+            id = f"tpv_rule_{Rule.rule_counter}"
         super().__init__(loader, id, cores, mem, gpus, env, params, resubmit, tags, inherits=inherits)
         self.match = match
         self.execute = execute

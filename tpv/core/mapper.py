@@ -3,14 +3,14 @@ import logging
 import re
 
 from .entities import Tool
-from .loader import VortexConfigLoader
+from .loader import TPVConfigLoader
 
 log = logging.getLogger(__name__)
 
 
 class EntityToDestinationMapper(object):
 
-    def __init__(self, loader: VortexConfigLoader):
+    def __init__(self, loader: TPVConfigLoader):
         self.loader = loader
         self.entities = {
             "tools": loader.tools,

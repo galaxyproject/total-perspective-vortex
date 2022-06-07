@@ -6,14 +6,14 @@ import responses
 import shutil
 import unittest
 from galaxy.jobs.mapper import JobMappingException
-from vortex.rules import gateway
+from tpv.rules import gateway
 from . import mock_galaxy
 
 
 class TestScenarios(unittest.TestCase):
 
     @staticmethod
-    def _map_to_destination(tool, user, datasets=[], vortex_config_path=None, job_conf=None, app=None):
+    def _map_to_destination(tool, user, datasets=[], tpv_config_path=None, job_conf=None, app=None):
         if job_conf:
             galaxy_app = mock_galaxy.App(job_conf=job_conf)
         elif app:
@@ -23,9 +23,9 @@ class TestScenarios(unittest.TestCase):
         job = mock_galaxy.Job()
         for d in datasets:
             job.add_input_dataset(d)
-        vortex_config = vortex_config_path or os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rules.yml')
+        tpv_config = tpv_config_path or os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rules.yml')
         gateway.ACTIVE_DESTINATION_MAPPER = None
-        return gateway.map_tool_to_destination(galaxy_app, job, tool, user, vortex_config_files=[vortex_config])
+        return gateway.map_tool_to_destination(galaxy_app, job, tool, user, tpv_config_files=[tpv_config])
 
     def test_scenario_node_marked_offline(self):
         with tempfile.NamedTemporaryFile('w+t') as tmp_file:
@@ -35,7 +35,7 @@ class TestScenarios(unittest.TestCase):
             tool = mock_galaxy.Tool('bwa')
             user = mock_galaxy.User('gargravarr', 'fairycake@vortex.org')
 
-            destination = self._map_to_destination(tool, user, vortex_config_path=tmp_file.name)
+            destination = self._map_to_destination(tool, user, tpv_config_path=tmp_file.name)
             self.assertEqual(destination.id, "k8s_environment")
 
             # update the rule file with one node marked offline
@@ -46,7 +46,7 @@ class TestScenarios(unittest.TestCase):
             time.sleep(0.5)
 
             # should now map to the available node
-            destination = self._map_to_destination(tool, user, vortex_config_path=tmp_file.name)
+            destination = self._map_to_destination(tool, user, tpv_config_path=tmp_file.name)
             self.assertEqual(destination.id, "local")
 
     @responses.activate
@@ -67,7 +67,7 @@ class TestScenarios(unittest.TestCase):
         user = mock_galaxy.User('simon', 'simon@unimelb.edu.au')
         datasets = [mock_galaxy.DatasetAssociation("input", mock_galaxy.Dataset("input.fastq", file_size=10*1024**3))]
         rules_file = os.path.join(os.path.dirname(__file__), 'fixtures/scenario-job-too-small-for-highmem.yml')
-        destination = self._map_to_destination(tool, user, datasets=datasets, vortex_config_path=rules_file,
+        destination = self._map_to_destination(tool, user, datasets=datasets, tpv_config_path=rules_file,
                                                job_conf='fixtures/job_conf_scenario_usegalaxy_au.yml')
         self.assertEqual(destination.id, "general_pulsar_2")
 
@@ -90,7 +90,7 @@ class TestScenarios(unittest.TestCase):
         datasets = [mock_galaxy.DatasetAssociation("input", mock_galaxy.Dataset("input.fastq",
                                                                                 file_size=0.1*1024**3))]
         rules_file = os.path.join(os.path.dirname(__file__), 'fixtures/scenario-node-offline-high-cpu.yml')
-        destination = self._map_to_destination(tool, user, datasets=datasets, vortex_config_path=rules_file,
+        destination = self._map_to_destination(tool, user, datasets=datasets, tpv_config_path=rules_file,
                                                job_conf='fixtures/job_conf_scenario_usegalaxy_au.yml')
         self.assertEqual(destination.id, "general_pulsar_2")
 
@@ -112,7 +112,7 @@ class TestScenarios(unittest.TestCase):
         datasets = [mock_galaxy.DatasetAssociation("input", mock_galaxy.Dataset("input.fastq",
                                                                                 file_size=0.1*1024**3))]
         rules_file = os.path.join(os.path.dirname(__file__), 'fixtures/scenario-trinity-job-with-rules.yml')
-        destination = self._map_to_destination(tool, user, datasets=datasets, vortex_config_path=rules_file,
+        destination = self._map_to_destination(tool, user, datasets=datasets, tpv_config_path=rules_file,
                                                job_conf='fixtures/job_conf_scenario_usegalaxy_au.yml')
         self.assertEqual(destination.id, "highmem_pulsar_2")
 
@@ -136,7 +136,7 @@ class TestScenarios(unittest.TestCase):
         rules_file = os.path.join(os.path.dirname(__file__), 'fixtures/scenario-trinity-job-too-much-data.yml')
         with self.assertRaisesRegex(JobMappingException,
                                     "Input file size of 1000.0GB is > maximum allowed 200GB limit"):
-            self._map_to_destination(tool, user, datasets=datasets, vortex_config_path=rules_file,
+            self._map_to_destination(tool, user, datasets=datasets, tpv_config_path=rules_file,
                                      job_conf='fixtures/job_conf_scenario_usegalaxy_au.yml')
 
     @responses.activate
@@ -157,7 +157,7 @@ class TestScenarios(unittest.TestCase):
         datasets = [mock_galaxy.DatasetAssociation("input", mock_galaxy.Dataset("input.fastq",
                                                                                 file_size=1000*1024**3))]
         rules_file = os.path.join(os.path.dirname(__file__), 'fixtures/scenario-non-pulsar-enabled-job.yml')
-        destination = self._map_to_destination(tool, user, datasets=datasets, vortex_config_path=rules_file,
+        destination = self._map_to_destination(tool, user, datasets=datasets, tpv_config_path=rules_file,
                                                job_conf='fixtures/job_conf_scenario_usegalaxy_au.yml')
         self.assertEqual(destination.id, "slurm")
 
@@ -179,7 +179,7 @@ class TestScenarios(unittest.TestCase):
         datasets = [mock_galaxy.DatasetAssociation("input", mock_galaxy.Dataset("input.fastq",
                                                                                 file_size=1000*1024**3))]
         rules_file = os.path.join(os.path.dirname(__file__), 'fixtures/scenario-jenkins-bot-user.yml')
-        destination = self._map_to_destination(tool, user, datasets=datasets, vortex_config_path=rules_file,
+        destination = self._map_to_destination(tool, user, datasets=datasets, tpv_config_path=rules_file,
                                                job_conf='fixtures/job_conf_scenario_usegalaxy_au.yml')
         self.assertEqual(destination.id, "slurm")
 
@@ -202,7 +202,7 @@ class TestScenarios(unittest.TestCase):
         datasets = [mock_galaxy.DatasetAssociation("input", mock_galaxy.Dataset("input.fastq",
                                                                                 file_size=1000*1024**3))]
         rules_file = os.path.join(os.path.dirname(__file__), 'fixtures/scenario-admin-group-user.yml')
-        destination = self._map_to_destination(tool, user, datasets=datasets, vortex_config_path=rules_file,
+        destination = self._map_to_destination(tool, user, datasets=datasets, tpv_config_path=rules_file,
                                                job_conf='fixtures/job_conf_scenario_usegalaxy_au.yml')
         self.assertEqual(destination.id, "highmem_pulsar_2")
 
@@ -243,7 +243,7 @@ class TestScenarios(unittest.TestCase):
         datasets = [mock_galaxy.DatasetAssociation("input", mock_galaxy.Dataset("input.fastq",
                                                                                 file_size=1000*1024**3))]
         rules_file = os.path.join(os.path.dirname(__file__), 'fixtures/scenario-too-many-highmem-jobs.yml')
-        destination = self._map_to_destination(tool, user, datasets=datasets, vortex_config_path=rules_file, app=app)
+        destination = self._map_to_destination(tool, user, datasets=datasets, tpv_config_path=rules_file, app=app)
         self.assertEqual(destination.id, "highmem_pulsar_1")
 
         # exceed the limit
@@ -251,7 +251,7 @@ class TestScenarios(unittest.TestCase):
 
         with self.assertRaisesRegex(
                 JobMappingException, "You cannot have more than 4 high-mem jobs running concurrently"):
-            self._map_to_destination(tool, user, datasets=datasets, vortex_config_path=rules_file, app=app)
+            self._map_to_destination(tool, user, datasets=datasets, tpv_config_path=rules_file, app=app)
 
     @responses.activate
     def test_scenario_usegalaxy_dev(self):
@@ -263,11 +263,11 @@ class TestScenarios(unittest.TestCase):
         datasets = [mock_galaxy.DatasetAssociation("input", mock_galaxy.Dataset("input.fastq",
                                                                                 file_size=1000*1024**3))]
         rules_file = os.path.join(os.path.dirname(__file__), 'fixtures/scenario-usegalaxy-dev.yml')
-        destination = self._map_to_destination(tool, user, datasets=datasets, vortex_config_path=rules_file,
+        destination = self._map_to_destination(tool, user, datasets=datasets, tpv_config_path=rules_file,
                                                job_conf='fixtures/job_conf_scenario_usegalaxy_au.yml')
         self.assertEqual(destination.id, "slurm")
 
         tool = mock_galaxy.Tool('hifiasm')
-        destination = self._map_to_destination(tool, user, datasets=datasets, vortex_config_path=rules_file,
+        destination = self._map_to_destination(tool, user, datasets=datasets, tpv_config_path=rules_file,
                                                job_conf='fixtures/job_conf_scenario_usegalaxy_au.yml')
         self.assertEqual(destination.id, "pulsar-nci-test")

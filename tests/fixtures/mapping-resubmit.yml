@@ -23,7 +23,7 @@ tools:
     resubmit:
       with_more_mem_on_failure:
         condition: any_failure and attempt <= 3
-        destination: vortex_dispatcher
+        destination: tpv_dispatcher
   exit_code_oom_no_resubmit:
     cores: 2
     mem: 4

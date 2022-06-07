@@ -2,14 +2,14 @@ import argparse
 import logging
 import sys
 
-from .loader import VortexConfigLoader
+from .loader import TPVConfigLoader
 
 log = logging.getLogger(__name__)
 
 
-def vortex_lint_config_file(args):
+def tpv_lint_config_file(args):
     try:
-        VortexConfigLoader.from_url_or_path(args.config)
+        TPVConfigLoader.from_url_or_path(args.config)
         log.info("lint successful.")
         return 0
     except Exception:
@@ -30,12 +30,12 @@ def create_parser():
     # File copy commands
     lint_parser = subparsers.add_parser(
         'lint',
-        help='loads a vortex configuration file and checks it for syntax errors',
+        help='loads a TPV configuration file and checks it for syntax errors',
         description="The linter will check yaml syntax and compile python code blocks")
     lint_parser.add_argument(
         'config', type=str,
-        help="Path to the vortex config file to lint. Can be a local path or http url.")
-    lint_parser.set_defaults(func=vortex_lint_config_file)
+        help="Path to the TPV config file to lint. Can be a local path or http url.")
+    lint_parser.set_defaults(func=tpv_lint_config_file)
 
     return parser
 

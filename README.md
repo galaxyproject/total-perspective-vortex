@@ -2,9 +2,9 @@
 [![Coverage Status](https://coveralls.io/repos/github/galaxyproject/total-perspective-vortex/badge.svg?branch=main)](https://coveralls.io/github/galaxyproject/total-perspective-vortex?branch=main)
 [![Documentation Status](https://readthedocs.org/projects/total-perspective-vortex/badge/?version=latest)](http://total-perspective-vortex.readthedocs.org/en/latest/?badge=latest)
 
-## <img src="https://raw.githubusercontent.com/galaxyproject/total-perspective-vortex/main/docs/images/vortex-logo-wide.png" width="800" height="100">
+## <img src="https://raw.githubusercontent.com/galaxyproject/total-perspective-vortex/main/docs/images/tpv-logo-wide.png" width="800" height="100">
 
-TotalPerspectiveVortex (Vortex) provides an installable set of dynamic rules for the
+TotalPerspectiveVortex (TPV) provides an installable set of dynamic rules for the
 [Galaxy application](https://galaxyproject.org/) that can route entities (Tools, Users, Roles) to appropriate
 job destinations based on a configurable yaml file.
 

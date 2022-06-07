@@ -1,10 +1,10 @@
-Vortex by example
-=================
+TPV by example
+==============
 
 Simple configuration
 --------------------
 
-The simplest possible example of a useful vortex config might look like the following:
+The simplest possible example of a useful TPV config might look like the following:
 
 .. code-block:: yaml
    :linenos:
@@ -30,7 +30,7 @@ The simplest possible example of a useful vortex config might look like the foll
 Here, we define one tool and its resource requirements, the destinations available, and the total resources available
 at each destination (optional). The tools are matched by tool id, and can be a regular expression. Note how
 resource requirements can also be computed as python expressions. If resource requirements are defined at the
-destination, vortex will check whether the job will fit. For example, hisat2 will not schedule on `general_pulsar_1`
+destination, TPV will check whether the job will fit. For example, hisat2 will not schedule on `general_pulsar_1`
 as it has insufficient cores. If resource requirements are omitted in the tool or destination, it is considered a match.
 
 Default inheritance

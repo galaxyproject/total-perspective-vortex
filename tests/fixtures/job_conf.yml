@@ -22,11 +22,11 @@ execution:
     another_k8s_environment:
       runner: k8s
       docker_enabled: true
-    vortex_dispatcher:
+    tpv_dispatcher:
       runner: dynamic
       type: python
       function: map_tool_to_destination
-      rules_module: vortex.rules
-      vortex_config_files:
-        - https://github.com/galaxyproject/total-perspective-vortex/raw/main/vortex/tests/fixtures/mapping-rules.yml
-        - config/vortex_rules_local.yml
+      rules_module: tpv.rules
+      tpv_config_files:
+        - https://github.com/galaxyproject/total-perspective-vortex/raw/main/tpv/tests/fixtures/mapping-rules.yml
+        - config/tpv_rules_local.yml
