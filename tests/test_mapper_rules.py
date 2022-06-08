@@ -3,7 +3,7 @@ import time
 import tempfile
 import shutil
 import unittest
-from vortex.rules import gateway
+from tpv.rules import gateway
 from . import mock_galaxy
 from galaxy.jobs.mapper import JobMappingException
 from galaxy.jobs.mapper import JobNotReadyException
@@ -12,16 +12,16 @@ from galaxy.jobs.mapper import JobNotReadyException
 class TestMapperRules(unittest.TestCase):
 
     @staticmethod
-    def _map_to_destination(tool, user, datasets, param_values=None, vortex_config_files=None, app=None):
+    def _map_to_destination(tool, user, datasets, param_values=None, tpv_config_files=None, app=None):
         galaxy_app = app or mock_galaxy.App()
         job = mock_galaxy.Job()
         for d in datasets:
             job.add_input_dataset(d)
         if param_values:
             job.param_values = param_values
-        vortex_configs = vortex_config_files or [os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rules.yml')]
+        tpv_configs = tpv_config_files or [os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rules.yml')]
         gateway.ACTIVE_DESTINATION_MAPPER = None
-        return gateway.map_tool_to_destination(galaxy_app, job, tool, user, vortex_config_files=vortex_configs)
+        return gateway.map_tool_to_destination(galaxy_app, job, tool, user, tpv_config_files=tpv_configs)
 
     def test_map_rule_size_small(self):
         tool = mock_galaxy.Tool('bwa')
@@ -76,7 +76,7 @@ class TestMapperRules(unittest.TestCase):
             user = mock_galaxy.User('gargravarr', 'fairycake@vortex.org')
             datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=5*1024**3))]
 
-            destination = self._map_to_destination(tool, user, datasets, vortex_config_files=[tmp_file.name])
+            destination = self._map_to_destination(tool, user, datasets, tpv_config_files=[tmp_file.name])
             self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_JOB_SLOTS_USER'], ['4'])
 
             # update the rule file
@@ -87,7 +87,7 @@ class TestMapperRules(unittest.TestCase):
             time.sleep(0.5)
 
             # should have loaded the new rules
-            destination = self._map_to_destination(tool, user, datasets, vortex_config_files=[tmp_file.name])
+            destination = self._map_to_destination(tool, user, datasets, tpv_config_files=[tmp_file.name])
             self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_JOB_SLOTS_USER'], ['8'])
 
     def test_multiple_files_automatically_reload_on_update(self):
@@ -101,7 +101,7 @@ class TestMapperRules(unittest.TestCase):
             user = mock_galaxy.User('gargravarr', 'fairycake@vortex.org')
             datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=5*1024**3))]
 
-            destination = self._map_to_destination(tool, user, datasets, vortex_config_files=[
+            destination = self._map_to_destination(tool, user, datasets, tpv_config_files=[
                 tmp_file1.name, tmp_file2.name])
             self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_JOB_SLOTS_USER'], ['3'])
 
@@ -115,7 +115,7 @@ class TestMapperRules(unittest.TestCase):
             time.sleep(0.5)
 
             # should have loaded the new rules
-            destination = self._map_to_destination(tool, user, datasets, vortex_config_files=[
+            destination = self._map_to_destination(tool, user, datasets, tpv_config_files=[
                 tmp_file1.name, tmp_file2.name])
             self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_JOB_SLOTS_USER'], ['10'])
 
@@ -125,8 +125,8 @@ class TestMapperRules(unittest.TestCase):
         datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=1*1024**3))]
 
         with self.assertRaises(SyntaxError):
-            vortex_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-syntax-error.yml')
-            self._map_to_destination(tool, user, datasets, vortex_config_files=[vortex_config])
+            tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-syntax-error.yml')
+            self._map_to_destination(tool, user, datasets, tpv_config_files=[tpv_config])
 
     def test_map_with_execute_block(self):
         tool = mock_galaxy.Tool('bwa')
@@ -134,20 +134,20 @@ class TestMapperRules(unittest.TestCase):
         datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=7*1024**3))]
 
         with self.assertRaises(JobNotReadyException):
-            vortex_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rule-execute.yml')
-            self._map_to_destination(tool, user, datasets, vortex_config_files=[vortex_config])
+            tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rule-execute.yml')
+            self._map_to_destination(tool, user, datasets, tpv_config_files=[tpv_config])
 
     def test_job_args_match_helper(self):
         tool = mock_galaxy.Tool('limbo')
         user = mock_galaxy.User('gag', 'gaghalfrunt@vortex.org')
-        vortex_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rule-argument-based.yml')
+        tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rule-argument-based.yml')
         datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=7*1024**3))]
         param_values = {
             'output_style': 'flat',
             'colour': {'nighttime': 'blue'},
             'input_opts': {'tabs_to_spaces': False, 'db_selector': 'db'},
         }
-        destination = self._map_to_destination(tool, user, datasets, param_values, vortex_config_files=[vortex_config])
+        destination = self._map_to_destination(tool, user, datasets, param_values, tpv_config_files=[tpv_config])
         self.assertEqual(destination.id, 'k8s_environment')
 
     def test_concurrent_job_count_helper(self):
@@ -188,7 +188,7 @@ class TestMapperRules(unittest.TestCase):
         app = mock_galaxy.App(job_conf='fixtures/job_conf.yml', create_model=True)
 
         datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=7*1024**3))]
-        vortex_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rule-tool-limits.yml')
+        tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rule-tool-limits.yml')
 
         user_roosta.id = create_user(app, user_roosta)
         user_eccentrica.id = create_user(app, user_eccentrica)
@@ -199,11 +199,11 @@ class TestMapperRules(unittest.TestCase):
 
         # roosta cannot create another rbc_mafft job
         with self.assertRaises(JobNotReadyException):
-            vortex_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rule-tool-limits.yml')
-            self._map_to_destination(tool_user_limit_2, user_roosta, datasets, vortex_config_files=[vortex_config], app=app)
+            tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rule-tool-limits.yml')
+            self._map_to_destination(tool_user_limit_2, user_roosta, datasets, tpv_config_files=[tpv_config], app=app)
 
         # eccentrica can run a rbc_mafft job
-        destination = self._map_to_destination(tool_user_limit_2, user_eccentrica, datasets, vortex_config_files=[vortex_config], app=app)
+        destination = self._map_to_destination(tool_user_limit_2, user_eccentrica, datasets, tpv_config_files=[tpv_config], app=app)
         self.assertEqual(destination.id, 'local')
 
         # set up 3 running jobs for repenrich tool
@@ -213,5 +213,5 @@ class TestMapperRules(unittest.TestCase):
 
         # roosta cannot create another repenrich job
         with self.assertRaises(JobNotReadyException):
-            vortex_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rule-tool-limits.yml')
-            self._map_to_destination(tool_total_limit_3, user_roosta, datasets, vortex_config_files=[vortex_config], app=app)
+            tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rule-tool-limits.yml')
+            self._map_to_destination(tool_total_limit_3, user_roosta, datasets, tpv_config_files=[tpv_config], app=app)

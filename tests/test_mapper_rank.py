@@ -1,6 +1,6 @@
 import os
 import unittest
-from vortex.rules import gateway
+from tpv.rules import gateway
 from . import mock_galaxy
 
 
@@ -10,9 +10,9 @@ class TestMapperRank(unittest.TestCase):
     def _map_to_destination(tool, user):
         galaxy_app = mock_galaxy.App()
         job = mock_galaxy.Job()
-        vortex_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rank.yml')
+        tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rank.yml')
         gateway.ACTIVE_DESTINATION_MAPPER = None
-        return gateway.map_tool_to_destination(galaxy_app, job, tool, user, vortex_config_files=[vortex_config])
+        return gateway.map_tool_to_destination(galaxy_app, job, tool, user, tpv_config_files=[tpv_config])
 
     def test_map_custom_rank(self):
         tool = mock_galaxy.Tool('bwa')

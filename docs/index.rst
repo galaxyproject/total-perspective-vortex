@@ -1,19 +1,19 @@
-.. image:: images/vortex-logo-wide.png
+.. image:: images/tpv-logo-wide.png
 
 .. centered::
 
    **Dynamic rules for routing Galaxy entities to destinations**
 
-TotalPerspectiveVortex (Vortex) provides an installable set of dynamic rules for the
+TotalPerspectiveVortex (TPV) provides an installable set of dynamic rules for the
 `Galaxy application`_ that can route entities (Tools, Users, Roles) to appropriate
-destinations based on a configurable yaml file. The aim of Vortex is to build on and
+destinations based on a configurable yaml file. The aim of TPV is to build on and
 unify previous efforts, such as `Dynamic Tool Destinations`_, the `Job Router`_ and
 `Sorting Hat`_, into a configurable set of rules that that can be extended arbitrarily
 with custom Python logic.
 
 How it works
 ------------
-Vortex provides a dynamic rule that can be plugged into Galaxy via ``job_conf.xml``.
+TPV provides a dynamic rule that can be plugged into Galaxy via ``job_conf.xml``.
 The dynamic rule will also have an associated configuration file, that maps entities
 (tools, users, roles) to specific destination through a flexible tagging system.
 Destinations can have arbitrary tags defined, and each entity can express a preference
@@ -28,8 +28,8 @@ Getting Started
 ---------------
 
 1. `pip install total-perspective-vortex` into Galaxy's python virtual environment
-2. Configure Galaxy to use Vortex's dynamic destination rule
-3. Create the vortex job mapping yaml file, indicating job routing preferences
+2. Configure Galaxy to use TPV's dynamic destination rule
+3. Create the TPV job mapping yaml file, indicating job routing preferences
 4. Submit jobs as usual
 
 
@@ -37,7 +37,7 @@ Getting Started
    :maxdepth: 2
    :caption: Contents:
 
-   topics/vortex_by_example.rst
+   topics/tpv_by_example.rst
    topics/concepts.rst
    topics/configure_galaxy.rst
    topics/shell_commands.rst

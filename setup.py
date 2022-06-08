@@ -5,7 +5,7 @@ import re
 import setuptools
 
 reg = re.compile(r"__version__\s*=\s*(.+)")
-with open(os.path.join("vortex", "__init__.py")) as f:
+with open(os.path.join("tpv", "__init__.py")) as f:
     for line in f:
         m = reg.match(line)
         if m:
@@ -51,7 +51,7 @@ setuptools.setup(
     },
     entry_points={
         'console_scripts': [
-            'vortex = vortex.core.shell:main'
+            'tpv = tpv.core.shell:main'
         ]
     },
     classifiers=[
