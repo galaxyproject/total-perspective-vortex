@@ -19,6 +19,7 @@ class EntityToDestinationMapper(object):
         }
         self.destinations = loader.destinations
         self.default_inherits = loader.global_settings.get('default_inherits')
+        self.global_context = loader.global_settings.get('context')
         self.lookup_tool_regex = functools.lru_cache(maxsize=None)(self.__compile_tool_regex)
         self.inherit_matching_entities = functools.lru_cache(maxsize=None)(self.__inherit_matching_entities)
 
@@ -106,13 +107,15 @@ class EntityToDestinationMapper(object):
         entity_list = self._find_matching_entities(tool, user)
 
         # 2. Create evaluation context - these are the common variables available within any code block
-        context = {
+        context = {}
+        context.update(self.global_context or {})
+        context.update({
             'app': app,
             'tool': tool,
             'user': user,
             'job': job,
             'mapper': self
-        }
+        })
 
         # 3. Evaluate entity properties that must be evaluated early, prior to combining
         early_evaluated_entities = self.evaluate_entities_early(entity_list, context)

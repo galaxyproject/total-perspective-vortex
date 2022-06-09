@@ -1,5 +1,8 @@
 global:
   default_inherits: default
+  context:
+    test_var_local: "local var"
+    test_var_override: "local override"
 
 tools:
   default:
@@ -8,6 +11,8 @@ tools:
       TEST_JOB_SLOTS: "{cores}"
     params:
       native_spec: "--mem {mem} --cores {cores}"
+      custom_context_local: "{test_var_local}"
+      custom_context_override: "{test_var_override}"
     scheduling:
       require: []
       prefer:
