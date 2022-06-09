@@ -42,6 +42,7 @@ class TestMapperDestinations(unittest.TestCase):
         destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
         self.assertEqual(destination.id, "another_k8s_environment")
         self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_JOB_SLOTS'], ['2'])
+        self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_ENTITY_PRIORITY'], ['2'])
         self.assertEqual([env['value'] for env in destination.env if env['name'] == 'SPECIAL_FLAG'], ['second'])
         self.assertEqual([env['value'] for env in destination.env if env['name'] == 'DOCKER_ENABLED'], [])
         self.assertEqual(destination.params['memory_requests'], '12')

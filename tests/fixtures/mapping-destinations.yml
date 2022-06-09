@@ -7,6 +7,7 @@ tools:
     mem: cores * 3
     env:
       TEST_JOB_SLOTS: "{cores}"
+      TEST_ENTITY_PRIORITY: "{cores}"
     scheduling:
       require: []
       prefer:
@@ -51,6 +52,7 @@ destinations:
     gpus: 2
     env:
       SPECIAL_FLAG: "second"
+      TEST_ENTITY_PRIORITY: "{cores*2}"
     params:
       memory_requests: "{mem*2}"
       k8s_walltime_limit: 20
