@@ -22,6 +22,12 @@ tools:
     scheduling:
       require:
         - pulsar
+  inheritance_test_tool:
+    scheduling:
+      accept:
+        - pulsar
+      require:
+        - inherited
 
 destinations:
   local:
@@ -63,3 +69,15 @@ destinations:
       prefer:
         - pulsar
         - highmem
+  inherited_k8s_environment:
+    inherits: another_k8s_environment
+    cores: 16
+    mem: 64
+    gpus: 2
+    env:
+      SPECIAL_FLAG: "third"
+    params:
+      memory_requests: "{mem*3}"
+    scheduling:
+      require:
+        - inherited

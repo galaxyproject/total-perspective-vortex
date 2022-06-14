@@ -57,3 +57,19 @@ class TestMapperDestinations(unittest.TestCase):
         datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=22*1024**3))]
         with self.assertRaisesRegex(JobMappingException, "No destinations are available to fulfill request: bwa"):
             self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
+
+    def test_destination_inheritance(self):
+        tool = mock_galaxy.Tool('inheritance_test_tool')
+        user = mock_galaxy.User('ford', 'prefect@vortex.org')
+
+        config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-destinations.yml')
+
+        # an intermediate file size should compute correct values
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=12*1024**3))]
+        destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
+        self.assertEqual(destination.id, "inherited_k8s_environment")
+        self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_JOB_SLOTS'], ['2'])
+        self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_ENTITY_PRIORITY'], ['2'])
+        self.assertEqual([env['value'] for env in destination.env if env['name'] == 'SPECIAL_FLAG'], ['third'])
+        self.assertEqual([env['value'] for env in destination.env if env['name'] == 'DOCKER_ENABLED'], [])
+        self.assertEqual(destination.params['memory_requests'], '18')
