@@ -101,6 +101,13 @@ class TPVConfigLoader(object):
         }
         return validated
 
+    def inherit_globals(self, globals_other):
+        if globals_other:
+            self.global_settings.update({'default_inherits': globals_other.get('default_inherits')}
+                                        if globals_other.get('default_inherits') else {})
+            self.global_settings['context'] = self.global_settings.get('context') or {}
+            self.global_settings['context'].update(globals_other.get('context') or {})
+
     def inherit_existing_entities(self, entities_current, entities_new):
         for entity in entities_new.values():
             if entities_current.get(entity.id):
@@ -113,7 +120,7 @@ class TPVConfigLoader(object):
         self.recompute_inheritance(entities_current)
 
     def merge_loader(self, loader: TPVConfigLoader):
-        self.global_settings.update(loader.global_settings)
+        self.inherit_globals(loader.global_settings)
         self.inherit_existing_entities(self.tools, loader.tools)
         self.inherit_existing_entities(self.users, loader.users)
         self.inherit_existing_entities(self.roles, loader.roles)
