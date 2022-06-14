@@ -1,0 +1,61 @@
+global:
+  default_inherits: default
+  context:
+    small_jpb_cores: 1
+    medium_job_cores: 2
+    large_job_cores: 4
+    small_input_size: 2
+    medium_input_size: 10
+    large_input_size: 20
+
+tools:
+  default:
+    context:
+      medium_job_cores: 3
+      medium_input_size: 12
+    cores: medium_job_cores
+    mem: cores * 3
+    gpus: 1
+    env:
+      TEST_JOB_SLOTS: "{cores}"
+    params:
+      native_spec: "--mem {mem} --cores {cores} --gpus {gpus}"
+    scheduling:
+      require: []
+      prefer:
+        - general
+      accept:
+      reject:
+        - pulsar
+    rules:
+      - if: input_size < small_input_size
+        fail: We don't run piddling datasets
+  bwa:
+    context:
+      medium_job_cores: 5
+    gpus: 2
+    scheduling:
+      require:
+        - pulsar
+    rules:
+      - if: input_size <= medium_input_size
+        gpus: 4
+      - if: input_size >= large_input_size
+        fail: Too much data, shouldn't run
+  trinity:
+    gpus: 3
+
+destinations:
+  local:
+    cores: 4
+    mem: 16
+    scheduling:
+      prefer:
+        - general
+  k8s_environment:
+    cores: 16
+    mem: 64
+    gpus: 5
+    scheduling:
+      prefer:
+        - pulsar

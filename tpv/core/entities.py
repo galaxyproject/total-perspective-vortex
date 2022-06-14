@@ -163,7 +163,7 @@ class TagSetManager(object):
 class Entity(object):
 
     def __init__(self, loader, id=None, cores=None, mem=None, gpus=None, env=None, params=None, resubmit=None,
-                 tags=None, rank=None, inherits=None):
+                 tags=None, rank=None, inherits=None, context=None):
         self.loader = loader
         self.id = id
         self.cores = cores
@@ -175,6 +175,7 @@ class Entity(object):
         self.tags = TagSetManager.from_dict(tags or {})
         self.rank = rank
         self.inherits = inherits
+        self.context = context
         self.validate()
 
     def process_complex_property(self, prop, context, func):
@@ -223,7 +224,7 @@ class Entity(object):
     def __repr__(self):
         return f"{self.__class__} id={self.id}, cores={self.cores}, mem={self.mem}, gpus={self.gpus}, " \
                f"env={self.env}, params={self.params}, resubmit={self.resubmit}, tags={self.tags}, " \
-               f"rank={self.rank[:10] if self.rank else ''}, inherits={self.inherits}"
+               f"rank={self.rank[:10] if self.rank else ''}, inherits={self.inherits}, context={self.context}"
 
     def override(self, entity):
         new_entity = copy.copy(entity)
@@ -239,6 +240,8 @@ class Entity(object):
         new_entity.resubmit.update(self.resubmit or {})
         new_entity.rank = self.rank if self.rank is not None else entity.rank
         new_entity.inherits = self.inherits if self.inherits is not None else entity.inherits
+        new_entity.context = copy.copy(entity.context) or {}
+        new_entity.context.update(self.context or {})
         return new_entity
 
     def inherit(self, entity):
@@ -308,6 +311,7 @@ class Entity(object):
         :return:
         """
         new_entity = copy.deepcopy(self)
+        context.update(self.context or {})
         if self.gpus:
             new_entity.gpus = self.loader.eval_code_block(self.gpus, context)
             context['gpus'] = new_entity.gpus
@@ -327,6 +331,7 @@ class Entity(object):
         :return:
         """
         new_entity = copy.deepcopy(self)
+        context.update(self.context or {})
         context['gpus'] = new_entity.gpus
         context['cores'] = new_entity.cores
         context['mem'] = new_entity.mem
@@ -360,8 +365,9 @@ class Entity(object):
 class EntityWithRules(Entity):
 
     def __init__(self, loader, id=None, cores=None, mem=None, gpus=None, env=None,
-                 params=None, resubmit=None, tags=None, rank=None, inherits=None, rules=None):
-        super().__init__(loader, id, cores, mem, gpus, env, params, resubmit, tags, rank, inherits)
+                 params=None, resubmit=None, tags=None, rank=None, inherits=None, context=None, rules=None):
+        super().__init__(loader, id=id, cores=cores, mem=mem, gpus=gpus, env=env, params=params, resubmit=resubmit,
+                         tags=tags, rank=rank, inherits=inherits, context=context)
         self.rules = self.validate_rules(rules)
 
     def validate_rules(self, rules: list) -> list:
@@ -389,6 +395,7 @@ class EntityWithRules(Entity):
             tags=entity_dict.get('scheduling'),
             rank=entity_dict.get('rank'),
             inherits=entity_dict.get('inherits'),
+            context=entity_dict.get('context'),
             rules=entity_dict.get('rules')
         )
 
@@ -432,31 +439,33 @@ class EntityWithRules(Entity):
 class Tool(EntityWithRules):
 
     def __init__(self, loader, id=None, cores=None, mem=None, gpus=None,
-                 env=None, params=None, resubmit=None, tags=None, rank=None, inherits=None, rules=None):
-        super().__init__(loader, id, cores, mem, gpus, env, params, resubmit, tags, rank, inherits, rules)
+                 env=None, params=None, resubmit=None, tags=None, rank=None, inherits=None, context=None, rules=None):
+        super().__init__(loader, id=id, cores=cores, mem=mem, gpus=gpus, env=env, params=params, resubmit=resubmit,
+                         tags=tags, rank=rank, inherits=inherits, context=context, rules=rules)
 
 
 class User(EntityWithRules):
 
     def __init__(self, loader, id=None, cores=None, mem=None, gpus=None,
-                 env=None, params=None, resubmit=None, tags=None, rank=None, inherits=None, rules=None):
-        super().__init__(loader, id, cores, mem, gpus, env, params, resubmit, tags, rank, inherits, rules)
+                 env=None, params=None, resubmit=None, tags=None, rank=None, inherits=None, context=None, rules=None):
+        super().__init__(loader, id=id, cores=cores, mem=mem, gpus=gpus, env=env, params=params, resubmit=resubmit,
+                         tags=tags, rank=rank, inherits=inherits, context=context, rules=rules)
 
 
 class Role(EntityWithRules):
 
     def __init__(self, loader, id=None, cores=None, mem=None, gpus=None,
-                 env=None, params=None, resubmit=None, tags=None, rank=None, inherits=None, rules=None):
+                 env=None, params=None, resubmit=None, tags=None, rank=None, inherits=None, context=None, rules=None):
         super().__init__(loader, id=id, cores=cores, mem=mem, gpus=gpus, env=env, params=params, resubmit=resubmit,
-                         tags=tags, rank=rank, inherits=inherits, rules=rules)
+                         tags=tags, rank=rank, inherits=inherits, context=context, rules=rules)
 
 
 class Destination(EntityWithRules):
 
     def __init__(self, loader, id=None, cores=None, mem=None, gpus=None,
-                 env=None, params=None, resubmit=None, tags=None, inherits=None, rules=None):
+                 env=None, params=None, resubmit=None, tags=None, inherits=None, context=None, rules=None):
         super().__init__(loader, id=id, cores=cores, mem=mem, gpus=gpus, env=env, params=params, resubmit=resubmit,
-                         tags=tags, inherits=inherits, rules=rules)
+                         tags=tags, inherits=inherits, context=context, rules=rules)
 
     @staticmethod
     def from_dict(loader, entity_dict):
@@ -471,6 +480,7 @@ class Destination(EntityWithRules):
             resubmit=entity_dict.get('resubmit'),
             tags=entity_dict.get('scheduling'),
             inherits=entity_dict.get('inherits'),
+            context=entity_dict.get('context'),
             rules=entity_dict.get('rules')
         )
 
@@ -479,12 +489,13 @@ class Rule(Entity):
 
     rule_counter = 0
 
-    def __init__(self, loader, id=None, cores=None, mem=None, gpus=None,
-                 env=None, params=None, resubmit=None, tags=None, inherits=None, match=None, execute=None, fail=None):
+    def __init__(self, loader, id=None, cores=None, mem=None, gpus=None, env=None, params=None, resubmit=None,
+                 tags=None, inherits=None, context=None, match=None, execute=None, fail=None):
         if not id:
             Rule.rule_counter += 1
             id = f"tpv_rule_{Rule.rule_counter}"
-        super().__init__(loader, id, cores, mem, gpus, env, params, resubmit, tags, inherits=inherits)
+        super().__init__(loader, id=id, cores=cores, mem=mem, gpus=gpus, env=env, params=params, resubmit=resubmit,
+                         tags=tags, context=context, inherits=inherits)
         self.match = match
         self.execute = execute
         self.fail = fail
@@ -508,6 +519,7 @@ class Rule(Entity):
             resubmit=entity_dict.get('resubmit'),
             tags=entity_dict.get('scheduling'),
             inherits=entity_dict.get('inherits'),
+            context=entity_dict.get('context'),
             # TODO: Remove deprecated match clause in future
             match=entity_dict.get('if') or entity_dict.get('match'),
             execute=entity_dict.get('execute'),
