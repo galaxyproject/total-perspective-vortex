@@ -447,14 +447,16 @@ class Role(EntityWithRules):
 
     def __init__(self, loader, id=None, cores=None, mem=None, gpus=None,
                  env=None, params=None, resubmit=None, tags=None, rank=None, inherits=None, rules=None):
-        super().__init__(loader, id, cores, mem, gpus, env, params, resubmit, tags, rank, inherits, rules)
+        super().__init__(loader, id=id, cores=cores, mem=mem, gpus=gpus, env=env, params=params, resubmit=resubmit,
+                         tags=tags, rank=rank, inherits=inherits, rules=rules)
 
 
 class Destination(EntityWithRules):
 
     def __init__(self, loader, id=None, cores=None, mem=None, gpus=None,
                  env=None, params=None, resubmit=None, tags=None, inherits=None, rules=None):
-        super().__init__(loader, id, cores, mem, gpus, env, params, resubmit, tags, inherits, rules=rules)
+        super().__init__(loader, id=id, cores=cores, mem=mem, gpus=gpus, env=env, params=params, resubmit=resubmit,
+                         tags=tags, inherits=inherits, rules=rules)
 
     @staticmethod
     def from_dict(loader, entity_dict):

@@ -1,0 +1,83 @@
+global:
+  default_inherits: default
+
+tools:
+  default:
+    cores: 2
+    mem: cores * 3
+    env:
+      TEST_JOB_SLOTS: "{cores}"
+      TEST_ENTITY_PRIORITY: "{cores}"
+    scheduling:
+      require: []
+      prefer:
+        - general
+      accept:
+      reject:
+        - pulsar
+    rules:
+      - if: input_size < 2
+        fail: Data size too small
+  bwa:
+    scheduling:
+      require:
+        - pulsar
+  inheritance_test_tool:
+    scheduling:
+      accept:
+        - pulsar
+      require:
+        - inherited
+
+destinations:
+  local:
+    cores: 4
+    mem: 16
+    scheduling:
+      prefer:
+        - general
+  k8s_environment:
+    cores: 16
+    mem: 64
+    gpus: 2
+    env:
+      DOCKER_ENABLED: "true"
+      SPECIAL_FLAG: "first"
+    params:
+      memory_requests: "{mem}"
+      k8s_walltime_limit: 10
+    rules:
+      - if: input_size > 10
+        fail: job size too large for this destination
+    scheduling:
+      prefer:
+        - pulsar
+  another_k8s_environment:
+    cores: 16
+    mem: 64
+    gpus: 2
+    env:
+      SPECIAL_FLAG: "second"
+      TEST_ENTITY_PRIORITY: "{cores*2}"
+    params:
+      memory_requests: "{mem*2}"
+      k8s_walltime_limit: 20
+    rules:
+      - if: input_size > 20
+        fail: job size too large for this destination too
+    scheduling:
+      prefer:
+        - pulsar
+        - highmem
+  inherited_k8s_environment:
+    inherits: another_k8s_environment
+    cores: 16
+    mem: 64
+    gpus: 2
+    env:
+      SPECIAL_FLAG: "third"
+    params:
+      memory_requests: "{mem*3}"
+    scheduling:
+      require:
+        - inherited
