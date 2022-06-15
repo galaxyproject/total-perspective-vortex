@@ -5,10 +5,10 @@ Concepts and Organisation
 Object types
 ============
 
-Conceptually, Vortex consists of the following types of objects.
+Conceptually, TPV consists of the following types of objects.
 
 1. Entities - An entity is anything that will be considered for scheduling
-by vortex. Entities include Tools, Users, Groups, Rules and Destinations.
+by TPV. Entities include Tools, Users, Groups, Rules and Destinations.
 All entities have some common properties (id, cores, mem, env, params,
 scheduling tags).
 
@@ -76,7 +76,7 @@ User > Role > Tool.
 
 3. Evaluate
 -----------
-This operation evaluates any python expressions in the vortex config. It is divided into two steps, evaluate_early()
+This operation evaluates any python expressions in the TPV config. It is divided into two steps, evaluate_early()
 and evaluate_late(). The former runs before the combine step and evaluates expressions for cores, mem and gpus.
 This ensures that at the time of combining entities, these values are concrete and can be compared. After the combine()
 step, the evaluate_late() function evaluates all remaining variables, ensuring that they have the latest possible
@@ -102,7 +102,7 @@ candidate destinations.
 Job Dispatch Process
 ====================
 
-When a typical job is dispatched, vortex follows the process below.
+When a typical job is dispatched, TPV follows the process below.
 
 .. image:: ../images/job-dispatch-process.svg
 
@@ -112,17 +112,18 @@ When a typical job is dispatched, vortex follows the process below.
 3. combine() - Combines entity requirements to create a merged entity. Uses lower of gpu, cores and mem requirements
 4. evaluate_late() - Evaluates remaining expressions as late as possible
 5. match() - Matches the combined entity requirements with a suitable destination
-6. rank() - The matching destinations are ranked and the best match chosen
+6. rank() - The matching destinations are ranked
+7. choose - The ranked destinations are evaluated, with the first non-failing match chosen (no rule failures)
 
 
 Expressions
 ===========
 
-Most vortex properties can be expressed as python expressions. The rule of thumb is that all string expressions
+Most TPV properties can be expressed as python expressions. The rule of thumb is that all string expressions
 are evaluated as python f-strings, and all integers or boolean expressions are evaluated as python code blocks.
 For example, cpu, cores and mem are evaluated as python code blocks, as they evaluate to integer/float values.
 However, env and params are evaluated as f-strings, as they result in string values. This is to improve the readability
-and syntactic simplicity of vortex config files.
+and syntactic simplicity of TPV config files.
 
 At the point of evaluating these functions, there is an evaluation context, which is a default set of variables
 that are available to that expression. The following default variables are available to all expressions:
@@ -140,12 +141,18 @@ Default evaluation context
 +----------+-----------------------------------------------------------------------------+
 | job      | the Galaxy job object                                                       |
 +----------+-----------------------------------------------------------------------------+
-| mapper   | the vortex mapper object, which can be used to access parsed vortex configs |
+| mapper   | the TPV mapper object, which can be used to access parsed TPV configs |
 +----------+-----------------------------------------------------------------------------+
-| entity   | the vortex entity being currently evaluated. Can be a combined entity.      |
+| entity   | the TPV entity being currently evaluated. Can be a combined entity.      |
 +----------+-----------------------------------------------------------------------------+
-| self     | an alias for the current vortex entity.                                     |
+| self     | an alias for the current TPV entity.                                     |
 +----------+-----------------------------------------------------------------------------+
+
+Custom evaluation contexts
+---------------------------
+These are user defined context values that can be defined globally, or locally at the level of each
+entity. Any defined context value is available as a regular variable at the time the entity is evaluated.
+
 
 Special evaluation contexts
 ---------------------------
@@ -159,13 +166,13 @@ expressions can be based on gpu values. mem expressions can refer to both cores 
 refer to evaluated env expressions.
 
 *rank functions* - these can refer to all prior expressions, and are additional passed in a `candidate_destinations`
-array, which is a list of matching vortex destinations.
+array, which is a list of matching TPV destinations.
 
 
 Scheduling
 ==========
 
-Vortex offers several mechanisms for controlling scheduling, all of which are optional.
+TPV offers several mechanisms for controlling scheduling, all of which are optional.
 In its simplest form, no scheduling constraints would be defined at all, in which case
 the entity would schedule on the first available entity. Admins can use additional
 
@@ -216,7 +223,19 @@ can execute that tool. Of course, the destination must also be marked as not rej
 
 Scheduling by rules
 -------------------
-
+Rules can be used to conditionally modify any entity requirement. Rules can be given an ID,
+which can subsequently be used by an inheriting entity to override thr rule. If no ID is
+specified, a unique ID is generated, and the rule can no longer be overridden. Rules
+are typically evaluted through an `if` clause, which specifies the logical condition under
+which the rule matches. If the rule matches, any cores, memory, scheduling tags etc. can be
+specified to override inherited values. The special clause `fail` can be used to immediately
+fail the job with an error message. The `execute` clause can be used to execute an arbitrary
+code block on rule match.
 
 Scheduling by custom ranking functions
 --------------------------------------
+The default rank function sorts destinations by scoring how well the tags match the job's requirements.
+Since this may often be too simplistic, the rank function can be overridden by specifying a custom
+rank clause. The rank clause can contain an arbitrary code block, which can do the desired sorting,
+for example by determining destination load by querying the job manager, influx statistics etc.
+The final statement in the rank clause must be the list of sorted destinations.
