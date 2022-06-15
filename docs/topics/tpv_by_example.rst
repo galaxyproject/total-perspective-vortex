@@ -366,7 +366,7 @@ or at the level of each entity, with entity level context variables overriding g
         gpus: 1
 
 
-In this example, these global context variables are defined, which are made available to all entities.
+In this example, three global context variables are defined, which are made available to all entities.
 Variable names follow Python conventions, where all uppercase variables indicate constants that cannot be overridden.
 Lower case indicates a public variable that can be overridden and changed, even across multiple TPV config files.
 An underscore indicates a protected variable that can be overridden within the same file, but not across files.
@@ -380,3 +380,58 @@ however, the large_file_size rule would not kick in, as it has been overridden t
 example is that variables are bound late, and therefore, rules and params can be crafted to allow inheriting
 tools to conveniently override values, even across files. While this capability can be powerful, it needs to be
 treated with the same care as any global variable in a programming language.
+
+Multiple matches
+---------------
+If multiple regular expressions match, the matches are applied in order of appearance. Therefore, the convention is
+to specify more general rule matches first, and more specific matches later. This matching also applies across
+multiple TPV config files, again based on order of appearance.
+
+.. code-block:: yaml
+   :linenos:
+
+    tools:
+      default:
+        cores: 2
+        mem: 4
+        params:
+          nativeSpecification: "--nodes=1 --ntasks={cores} --ntasks-per-node={cores} --mem={mem*1024}"
+
+      https://toolshed.g2.bx.psu.edu/repos/iuc/hisat2/hisat2/*:
+        mem: cores * 4
+        gpus: 1
+
+      https://toolshed.g2.bx.psu.edu/repos/iuc/hisat2/hisat2/2.1.0+galaxy7:
+        env:
+           MY_ADDITIONAL_FLAG: "test"
+
+
+In this example, dispatching a hisat2 job would result in a mem value of 8, with 1 gpu. However, dispatching
+the specific version of `2.1.0+galaxy7` would result in the additional env variable, with mem remaining at 8.
+
+Job Resubmission
+----------------
+TPV has explict support for job resubmissions, so that advanced control over job resubmission is possible.
+
+.. code-block:: yaml
+   :linenos:
+
+    tools:
+      default:
+        cores: 2
+        mem: 4 * int(job.destination_params.get('SCALING_FACTOR', 1)) if job.destination_params else 1
+        params:
+          SCALING_FACTOR: "{2 * int(job.destination_params.get('SCALING_FACTOR', 2)) if job.destination_params else 2}"
+        resubmit:
+          with_more_mem_on_failure:
+            condition: memory_limit_reached and attempt <= 3
+            destination: tpv_dispatcher
+
+In this example, we have defined a resubmission handler that resubmits the job if the memory limited is reached.
+Note that the resubmit section looks exactly the same as Galaxy's, except that it follows a dictionary structure
+instead of being a list. Refer to the Galaxy job configuration docs for more information on resubmit handlers. One
+twist in this example is that we automatically increase the amount of memory provided to the job on each resubmission.
+This is done by setting the SCALING_FACTOR param, which is a custom parameter which we have chosen for this example,
+that we increase on each resubmission. Since each resubmission's destination is TPV, the param is re-evaluated on each
+resubmission, and scaled accordingly. The memory is allocated based on the scaling factor, which therefore, also
+scales accordingly.

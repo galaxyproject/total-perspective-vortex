@@ -224,10 +224,10 @@ can execute that tool. Of course, the destination must also be marked as not rej
 Scheduling by rules
 -------------------
 Rules can be used to conditionally modify any entity requirement. Rules can be given an ID,
-which can subsequently be used by an inheriting entity to override thr rule. If no ID is
+which can subsequently be used by an inheriting entity to override the rule. If no ID is
 specified, a unique ID is generated, and the rule can no longer be overridden. Rules
-are typically evaluted through an `if` clause, which specifies the logical condition under
-which the rule matches. If the rule matches, any cores, memory, scheduling tags etc. can be
+are typically evaluated through an `if` clause, which specifies the logical condition under
+which the rule matches. If the rule matches, cores, memory, scheduling tags etc. can be
 specified to override inherited values. The special clause `fail` can be used to immediately
 fail the job with an error message. The `execute` clause can be used to execute an arbitrary
 code block on rule match.
@@ -235,7 +235,7 @@ code block on rule match.
 Scheduling by custom ranking functions
 --------------------------------------
 The default rank function sorts destinations by scoring how well the tags match the job's requirements.
-Since this may often be too simplistic, the rank function can be overridden by specifying a custom
+As this may often be too simplistic, the rank function can be overridden by specifying a custom
 rank clause. The rank clause can contain an arbitrary code block, which can do the desired sorting,
 for example by determining destination load by querying the job manager, influx statistics etc.
 The final statement in the rank clause must be the list of sorted destinations.
