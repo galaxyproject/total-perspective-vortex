@@ -5,6 +5,8 @@ tools:
   default:
     cores: 2
     mem: cores * 3
+    params:
+      nativeSpec: '--cores {cores} --mem {mem}'
     env:
       TEST_JOB_SLOTS: "{cores}"
       TEST_ENTITY_PRIORITY: "{cores}"
@@ -28,14 +30,40 @@ tools:
         - pulsar
       require:
         - inherited
+  three_core_test_tool:
+    scheduling:
+      require:
+        - local
+    rules:
+      - if: input_size > 3
+        id: arbitrary_3_core_assignment
+        cores: 3
 
 destinations:
   local:
     cores: 4
     mem: 16
     scheduling:
+      accept:
+        - local
       prefer:
         - general
+    rules:
+      - if: |
+          from tpv.core.entities import Tool
+          is_three_core_job = False
+          try:
+            [tool_entity] = list(filter(lambda x: isinstance(x, Tool), entities))
+            is_three_core_job = tool_entity.cores == 3
+          except:
+            pass # too many or too few or something, dw
+          is_three_core_job
+        id: arbitrary_3_core_avoidance
+        env:
+          OK_SO_THIS_IS_MATCHING: it_is
+        execute: |
+          from galaxy.jobs.mapper import JobNotReadyException
+          raise JobNotReadyException()
   k8s_environment:
     cores: 16
     mem: 64
