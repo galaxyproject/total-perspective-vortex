@@ -76,7 +76,9 @@ destinations:
       k8s_walltime_limit: 10
     rules:
       - if: input_size > 10
-        fail: job size too large for this destination
+        execute: |
+          from tpv.core.entities import TryNextDestination
+          raise TryNextDestination("job size too large for this destination")
     scheduling:
       prefer:
         - pulsar
@@ -92,7 +94,9 @@ destinations:
       k8s_walltime_limit: 20
     rules:
       - if: input_size > 20
-        fail: job size too large for this destination too
+        execute: |
+          from tpv.core.entities import TryNextDestination
+          raise TryNextDestination("job size too large for this destination too")
     scheduling:
       prefer:
         - pulsar

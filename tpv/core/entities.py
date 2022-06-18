@@ -48,6 +48,10 @@ class IncompatibleTagsException(Exception):
             f" {[tag.value for tag in second_set.filter(TagType.REJECT)]}.")
 
 
+class TryNextDestination(Exception):
+    pass
+
+
 class TagSetManager(object):
 
     def __init__(self, tags=[]):

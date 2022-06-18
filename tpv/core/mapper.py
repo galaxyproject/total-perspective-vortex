@@ -2,7 +2,7 @@ import functools
 import logging
 import re
 
-from .entities import Tool
+from .entities import Tool, TryNextDestination
 from .loader import TPVConfigLoader
 
 log = logging.getLogger(__name__)
@@ -149,8 +149,9 @@ class EntityToDestinationMapper(object):
                     final_combined_entity = dest_combined_entity.evaluate_late(context)
                     gxy_destination = app.job_config.get_destination(d.id)
                     return self.configure_gxy_destination(gxy_destination, final_combined_entity)
-                except Exception as e:
-                    log.debug(f"Destination entity: {d} matched but could not fulfill requirements due to: {e}")
+                except TryNextDestination as e:
+                    log.debug(f"Destination entity: {d} matched but could not fulfill requirements due to: {e}."
+                              " Trying next candidate...")
 
         # 8. No matching destinations. Throw an exception
         from galaxy.jobs.mapper import JobMappingException
