@@ -45,7 +45,7 @@ class EntityToDestinationMapper(object):
     def evaluate_entity_early(self, entities, entity, context):
         context.update({
             'entities': entities,
-            'entity': entity,
+            'entity': entities[0] if entities else entity,
             'self': entity
         })
         return entity.evaluate_early(context)
@@ -144,7 +144,7 @@ class EntityToDestinationMapper(object):
             for d in ranked_dest_entities:
                 try:  # An exception here signifies that a destination rule did not match
                     # Evaluate the destinations as regular entities
-                    early_evaluated_destination = self.evaluate_entity_early([d, late_evaluated_entity], d, context)
+                    early_evaluated_destination = self.evaluate_entity_early([late_evaluated_entity, d], d, context)
                     dest_combined_entity = early_evaluated_destination.combine(late_evaluated_entity)
                     final_combined_entity = dest_combined_entity.evaluate_late(context)
                     gxy_destination = app.job_config.get_destination(d.id)
