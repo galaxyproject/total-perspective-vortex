@@ -2,8 +2,10 @@ import functools
 import logging
 import re
 
-from .entities import Tool, TryNextDestination
+from .entities import Tool, TryNextDestination, WaitForDestination
 from .loader import TPVConfigLoader
+
+from galaxy.jobs.mapper import JobNotReadyException
 
 log = logging.getLogger(__name__)
 
@@ -141,6 +143,7 @@ class EntityToDestinationMapper(object):
 
         # 7. Return galaxy destination with params added
         if ranked_dest_entities:
+            wait_exception_raised = False
             for d in ranked_dest_entities:
                 try:  # An exception here signifies that a destination rule did not match
                     # Evaluate the destinations as regular entities
@@ -149,9 +152,13 @@ class EntityToDestinationMapper(object):
                     final_combined_entity = dest_combined_entity.evaluate_late(context)
                     gxy_destination = app.job_config.get_destination(d.id)
                     return self.configure_gxy_destination(gxy_destination, final_combined_entity)
-                except TryNextDestination as e:
+                except (TryNextDestination, WaitForDestination) as e:
                     log.debug(f"Destination entity: {d} matched but could not fulfill requirements due to: {e}."
                               " Trying next candidate...")
+                    if isinstance(e, WaitForDestination):
+                        wait_exception_raised = True
+            if wait_exception_raised:
+                raise JobNotReadyException()
 
         # 8. No matching destinations. Throw an exception
         from galaxy.jobs.mapper import JobMappingException

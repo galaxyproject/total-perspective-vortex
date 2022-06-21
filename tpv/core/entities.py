@@ -49,6 +49,12 @@ class IncompatibleTagsException(Exception):
 
 
 class TryNextDestination(Exception):
+    # Try next destination, fail job if destination options exhausted
+    pass
+
+
+class WaitForDestination(Exception):
+    # Try next destination, raise JobNotReadyException if destination options exhausted
     pass
 
 
