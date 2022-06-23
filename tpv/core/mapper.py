@@ -2,7 +2,7 @@ import functools
 import logging
 import re
 
-from .entities import Tool, TryNextDestination, WaitForDestination
+from .entities import Tool, TryNextDestinationOrFail, TryNextDestinationOrWait
 from .loader import TPVConfigLoader
 
 from galaxy.jobs.mapper import JobNotReadyException
