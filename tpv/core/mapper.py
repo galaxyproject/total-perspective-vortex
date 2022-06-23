@@ -2,8 +2,10 @@ import functools
 import logging
 import re
 
-from .entities import Tool
+from .entities import Tool, TryNextDestinationOrFail, TryNextDestinationOrWait
 from .loader import TPVConfigLoader
+
+from galaxy.jobs.mapper import JobNotReadyException
 
 log = logging.getLogger(__name__)
 
@@ -45,7 +47,7 @@ class EntityToDestinationMapper(object):
     def evaluate_entity_early(self, entities, entity, context):
         context.update({
             'entities': entities,
-            'entity': entity,
+            'entity': entities[0] if entities else entity,
             'self': entity
         })
         return entity.evaluate_early(context)
@@ -141,16 +143,22 @@ class EntityToDestinationMapper(object):
 
         # 7. Return galaxy destination with params added
         if ranked_dest_entities:
+            wait_exception_raised = False
             for d in ranked_dest_entities:
                 try:  # An exception here signifies that a destination rule did not match
                     # Evaluate the destinations as regular entities
-                    early_evaluated_destination = self.evaluate_entity_early([d, late_evaluated_entity], d, context)
+                    early_evaluated_destination = self.evaluate_entity_early([late_evaluated_entity, d], d, context)
                     dest_combined_entity = early_evaluated_destination.combine(late_evaluated_entity)
                     final_combined_entity = dest_combined_entity.evaluate_late(context)
                     gxy_destination = app.job_config.get_destination(d.id)
                     return self.configure_gxy_destination(gxy_destination, final_combined_entity)
-                except Exception as e:
-                    log.debug(f"Destination entity: {d} matched but could not fulfill requirements due to: {e}")
+                except TryNextDestinationOrFail as ef:
+                    log.debug(f"Destination entity: {d} matched but could not fulfill requirements due to: {ef}."
+                              " Trying next candidate...")
+                except TryNextDestinationOrWait:
+                    wait_exception_raised = True
+            if wait_exception_raised:
+                raise JobNotReadyException()
 
         # 8. No matching destinations. Throw an exception
         from galaxy.jobs.mapper import JobMappingException

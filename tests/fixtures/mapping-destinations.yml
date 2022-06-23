@@ -5,6 +5,8 @@ tools:
   default:
     cores: 2
     mem: cores * 3
+    params:
+      nativeSpec: '--cores {cores} --mem {mem}'
     env:
       TEST_JOB_SLOTS: "{cores}"
       TEST_ENTITY_PRIORITY: "{cores}"
@@ -28,14 +30,32 @@ tools:
         - pulsar
       require:
         - inherited
+  three_core_test_tool:
+    scheduling:
+      require:
+        - local
+    rules:
+      - if: input_size > 3
+        id: arbitrary_3_core_assignment
+        cores: 3
 
 destinations:
   local:
     cores: 4
     mem: 16
     scheduling:
+      accept:
+        - local
       prefer:
         - general
+    rules:
+      - id: arbitrary_3_core_avoidance
+        if: entity.cores == 3
+        env:
+          OK_SO_THIS_IS_MATCHING: it_is
+        execute: |
+          from tpv.core.entities import TryNextDestinationOrWait
+          raise TryNextDestinationOrWait("Cannot run this job here at this time, may be available later, try elsewhere")
   k8s_environment:
     cores: 16
     mem: 64
@@ -48,7 +68,9 @@ destinations:
       k8s_walltime_limit: 10
     rules:
       - if: input_size > 10
-        fail: job size too large for this destination
+        execute: |
+          from tpv.core.entities import TryNextDestinationOrFail
+          raise TryNextDestinationOrFail("job size too large for this destination")
     scheduling:
       prefer:
         - pulsar
@@ -64,7 +86,9 @@ destinations:
       k8s_walltime_limit: 20
     rules:
       - if: input_size > 20
-        fail: job size too large for this destination too
+        execute: |
+          from tpv.core.entities import TryNextDestinationOrFail
+          raise TryNextDestinationOrFail("job size too large for this destination too")
     scheduling:
       prefer:
         - pulsar

@@ -73,3 +73,15 @@ class TestMapperDestinations(unittest.TestCase):
         self.assertEqual([env['value'] for env in destination.env if env['name'] == 'SPECIAL_FLAG'], ['third'])
         self.assertEqual([env['value'] for env in destination.env if env['name'] == 'DOCKER_ENABLED'], [])
         self.assertEqual(destination.params['memory_requests'], '18')
+
+    def test_destination_can_raise_not_ready_exception(self):
+        tool = mock_galaxy.Tool('three_core_test_tool')
+        user = mock_galaxy.User('tricia', 'tmcmillan@vortex.org')
+
+        config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-destinations.yml')
+
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=12*1024**3))]
+        from galaxy.jobs.mapper import JobNotReadyException
+        with self.assertRaises(JobNotReadyException):
+            destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
+            print(destination)
