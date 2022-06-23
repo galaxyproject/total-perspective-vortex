@@ -54,8 +54,8 @@ destinations:
         env:
           OK_SO_THIS_IS_MATCHING: it_is
         execute: |
-          from tpv.core.entities import WaitForDestination
-          raise WaitForDestination("Cannot run this job here at this time, may be available later, try elsewhere")
+          from tpv.core.entities import TryNextDestinationOrWait
+          raise TryNextDestinationOrWait("Cannot run this job here at this time, may be available later, try elsewhere")
   k8s_environment:
     cores: 16
     mem: 64
