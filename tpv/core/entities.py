@@ -53,7 +53,7 @@ class TryNextDestinationOrFail(Exception):
     pass
 
 
-class WaitForDestination(Exception):
+class TryNextDestinationOrWait(Exception):
     # Try next destination, raise JobNotReadyException if destination options exhausted
     pass
 
