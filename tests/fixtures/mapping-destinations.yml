@@ -87,8 +87,8 @@ destinations:
     rules:
       - if: input_size > 20
         execute: |
-          from tpv.core.entities import TryNextDestination
-          raise TryNextDestination("job size too large for this destination too")
+          from tpv.core.entities import TryNextDestinationOrFail
+          raise TryNextDestinationOrFail("job size too large for this destination too")
     scheduling:
       prefer:
         - pulsar
