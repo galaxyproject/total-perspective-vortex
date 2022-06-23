@@ -155,7 +155,7 @@ class EntityToDestinationMapper(object):
                 except TryNextDestinationOrFail as ef:
                     log.debug(f"Destination entity: {d} matched but could not fulfill requirements due to: {ef}."
                               " Trying next candidate...")
-                except TryNextDestinationOrWait as ew:
+                except TryNextDestinationOrWait:
                     wait_exception_raised = True
             if wait_exception_raised:
                 raise JobNotReadyException()
