@@ -48,7 +48,7 @@ class IncompatibleTagsException(Exception):
             f" {[tag.value for tag in second_set.filter(TagType.REJECT)]}.")
 
 
-class TryNextDestination(Exception):
+class TryNextDestinationOrFail(Exception):
     # Try next destination, fail job if destination options exhausted
     pass
 
