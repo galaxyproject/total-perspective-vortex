@@ -11,7 +11,7 @@ The simplest possible example of a useful TPV config might look like the followi
    :emphasize-lines: 4
 
     tools:
-      https://toolshed.g2.bx.psu.edu/repos/iuc/hisat2/.*:
+      toolshed.g2.bx.psu.edu/repos/iuc/hisat2/.*:
         cores: 12
         mem: cores * 4
         gpus: 1
@@ -51,7 +51,7 @@ Inheritance provides a mechanism for an entity to inherit properties from anothe
         mem: 4
         params:
           nativeSpecification: "--nodes=1 --ntasks={cores} --ntasks-per-node={cores} --mem={mem*1024}"
-      https://toolshed.g2.bx.psu.edu/repos/iuc/hisat2/hisat2/2.1.0+galaxy7:
+      toolshed.g2.bx.psu.edu/repos/iuc/hisat2/hisat2/2.1.0+galaxy7:
         cores: 12
         mem: cores * 4
         gpus: 1
@@ -82,12 +82,12 @@ Explicit inheritance provides a mechanism for exerting greater control over the 
         mem: 4
         params:
           nativeSpecification: "--nodes=1 --ntasks={cores} --ntasks-per-node={cores} --mem={mem*1024}"
-      https://toolshed.g2.bx.psu.edu/repos/iuc/hisat2/.*:
+      toolshed.g2.bx.psu.edu/repos/iuc/hisat2/.*:
         cores: 12
         mem: cores * 4
         gpus: 1
       .*minimap2.*:
-        inherits: https://toolshed.g2.bx.psu.edu/repos/iuc/hisat2/.*:
+        inherits: toolshed.g2.bx.psu.edu/repos/iuc/hisat2/.*:
         cores: 8
         gpus: 0
 
@@ -114,7 +114,7 @@ preferred destinations, or to explicitly control which users can execute which t
         scheduling:
           reject:
             - offline
-      https://toolshed.g2.bx.psu.edu/repos/iuc/hisat2/.*:
+      toolshed.g2.bx.psu.edu/repos/iuc/hisat2/.*:
         cores: 4
         mem: cores * 4
         gpus: 1
@@ -124,7 +124,7 @@ preferred destinations, or to explicitly control which users can execute which t
             - highmem
           accept:
           reject:
-      https://toolshed.g2.bx.psu.edu/repos/iuc/minimap2/.*:
+      toolshed.g2.bx.psu.edu/repos/iuc/minimap2/.*:
         cores: 4
         mem: cores * 4
         gpus: 1
@@ -358,7 +358,7 @@ or at the level of each entity, with entity level context variables overriding g
           - if: input_size > large_file_size
             cores: 10
 
-      https://toolshed.g2.bx.psu.edu/repos/iuc/hisat2/hisat2/2.1.0+galaxy7:
+      toolshed.g2.bx.psu.edu/repos/iuc/hisat2/hisat2/2.1.0+galaxy7:
         context:
           large_file_size: 20
           additional_spec: --overridden-param
@@ -397,11 +397,11 @@ multiple TPV config files, again based on order of appearance.
         params:
           nativeSpecification: "--nodes=1 --ntasks={cores} --ntasks-per-node={cores} --mem={mem*1024}"
 
-      https://toolshed.g2.bx.psu.edu/repos/iuc/hisat2/hisat2/*:
+      toolshed.g2.bx.psu.edu/repos/iuc/hisat2/hisat2/*:
         mem: cores * 4
         gpus: 1
 
-      https://toolshed.g2.bx.psu.edu/repos/iuc/hisat2/hisat2/2.1.0+galaxy7:
+      toolshed.g2.bx.psu.edu/repos/iuc/hisat2/hisat2/2.1.0+galaxy7:
         env:
            MY_ADDITIONAL_FLAG: "test"
 
