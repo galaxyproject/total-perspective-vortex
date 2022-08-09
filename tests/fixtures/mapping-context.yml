@@ -33,6 +33,7 @@ tools:
   bwa:
     context:
       medium_job_cores: 5
+      large_input_size: 60
     gpus: 2
     scheduling:
       require:
@@ -40,7 +41,13 @@ tools:
     rules:
       - if: input_size <= medium_input_size
         gpus: 4
-      - if: input_size >= large_input_size
+      - if: input_size >=  large_input_size
+        fail: Too much data, shouldn't run
+  canu:
+    context:
+      smallish_input_size: 4
+    rules:
+      - if: input_size >= smallish_input_size
         fail: Too much data, shouldn't run
   trinity:
     gpus: 3
