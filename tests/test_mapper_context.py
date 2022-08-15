@@ -2,7 +2,6 @@ import os
 import unittest
 from tpv.rules import gateway
 from . import mock_galaxy
-from tpv.core.loader import InvalidParentException
 
 
 class TestMapperContext(unittest.TestCase):
@@ -45,13 +44,13 @@ class TestMapperContext(unittest.TestCase):
         datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=40*1024**3))]
 
         destination = self._map_to_destination(tool, user, datasets)
-        self.assertEqual(destination.params['native_spec'], '--mem 15 --cores 5 --gpus 4')
+        self.assertEqual(destination.params['native_spec'], '--mem 15 --cores 5 --gpus 2')
 
     def test_context_variable_defined_for_tool_in_rule(self):
         # test that context variable set for tool entity but not set in ancestor entities is defined
         tool = mock_galaxy.Tool('canu')
         user = mock_galaxy.User('gargravarr', 'fairycake@vortex.org')
-        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=5*1024**3))]
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=3*1024**3))]
 
         destination = self._map_to_destination(tool, user, datasets)
         self.assertEqual(destination.params['native_spec'], '--mem 9 --cores 3 --gpus 1')

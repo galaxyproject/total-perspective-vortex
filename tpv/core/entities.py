@@ -410,6 +410,7 @@ class EntityWithRules(Entity):
 
     def evaluate_early(self, context):
         new_entity = copy.deepcopy(self)
+        context.update(new_entity.context or {})
         for rule in self.rules.values():
             if rule.is_matching(context):
                 rule = rule.evaluate_early(context)
