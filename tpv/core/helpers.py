@@ -5,8 +5,8 @@ from galaxy import model
 GIGABYTES = 1024.0**3
 
 
-def get_dataset_size(input_dataset):
-    return float(input_dataset.dataset.dataset.file_size) if input_dataset.dataset else 0.0
+def get_dataset_size(dataset):
+    return float(dataset.file_size)
 
 
 def sum_total(prev, current):
@@ -15,8 +15,9 @@ def sum_total(prev, current):
 
 def calculate_dataset_total(datasets):
     if datasets:
+        unique_datasets = {inp_ds.dataset.dataset.id: inp_ds.dataset.dataset for inp_ds in datasets if inp_ds.dataset}
         return reduce(sum_total,
-                      map(get_dataset_size, datasets))
+                      map(get_dataset_size, unique_datasets.values()))
     else:
         return 0.0
 
