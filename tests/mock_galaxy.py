@@ -35,7 +35,11 @@ class DatasetAssociation:
 
 
 class Dataset:
+    counter = 0
+
     def __init__(self, file_name, file_size):
+        self.id = self.counter
+        self.counter += 1
         self.file_name = file_name
         self.file_size = file_size
 
