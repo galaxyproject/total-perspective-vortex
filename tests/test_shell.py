@@ -83,3 +83,10 @@ class TPVShellTestCase(unittest.TestCase):
                          ["prefer", "accept", "reject", "require"])
         self.assertEqual(list(after_formatting['tools']['base_default']['scheduling'].keys()),
                          ["require", "prefer", "accept", "reject"])
+
+    def test_format_error(self):
+        tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/file-does-not-exist.yml')
+        output = self.call_shell_command("tpv", "format", tpv_config)
+        self.assertTrue(
+            "format failed" in output,
+            f"Expected format to fail but output was: {output}")
