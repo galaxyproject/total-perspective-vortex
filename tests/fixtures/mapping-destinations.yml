@@ -38,6 +38,10 @@ tools:
       - if: input_size > 3
         id: arbitrary_3_core_assignment
         cores: 3
+  custom_tool:
+    scheduling:
+      require:
+        - custom
 
 destinations:
   local:
@@ -105,3 +109,15 @@ destinations:
     scheduling:
       require:
         - inherited
+  custom_naming:
+    cores: 16
+    mem: 64
+    gpus: 2
+    env:
+      SPECIAL_FLAG: "third"
+    params:
+      memory_requests: "{mem*3}"
+      destination_name_override: 'my-dest-with-{cores}-cores-{mem}-mem'
+    scheduling:
+      require:
+        - custom

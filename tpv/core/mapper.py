@@ -151,6 +151,8 @@ class EntityToDestinationMapper(object):
                     dest_combined_entity = early_evaluated_destination.combine(late_evaluated_entity)
                     final_combined_entity = dest_combined_entity.evaluate_late(context)
                     gxy_destination = app.job_config.get_destination(d.id)
+                    if final_combined_entity.params.get('destination_name_override'):
+                        gxy_destination.id = final_combined_entity.params.get('destination_name_override')
                     return self.configure_gxy_destination(gxy_destination, final_combined_entity)
                 except TryNextDestinationOrFail as ef:
                     log.debug(f"Destination entity: {d} matched but could not fulfill requirements due to: {ef}."
