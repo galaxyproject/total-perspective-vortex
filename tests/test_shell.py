@@ -1,8 +1,10 @@
+from collections import OrderedDict
 import contextlib
 import io
 import os
 import sys
 import unittest
+import yaml
 
 from tpv.core.shell import main
 
@@ -52,3 +54,32 @@ class TPVShellTestCase(unittest.TestCase):
         self.assertTrue(
             "oops syntax!" in output,
             f"Expected lint to fail but output was: {output}")
+
+    def test_format_basic(self):
+        tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/formatter/formatter-basic.yml')
+        with open(tpv_config) as f:
+            before_formatting = yaml.safe_load(f)
+
+        output = self.call_shell_command("tpv", "format", tpv_config)
+        after_formatting = yaml.safe_load(output)
+
+        self.assertTrue(before_formatting == after_formatting,
+                        "Expected content to be the same after formatting")
+        self.assertTrue(OrderedDict(before_formatting) != OrderedDict(after_formatting),
+                        "Expected ordering to be different after formatting")
+
+        # keys should be in expected order
+        self.assertEqual(list(before_formatting.keys()), ["global", "destinations", "users", "tools"])
+        self.assertEqual(list(after_formatting.keys()), ["global", "tools", "users", "destinations"])
+
+        # default inherits should be first
+        self.assertEqual(list(before_formatting['tools']).index('base_default'), 3)
+        self.assertEqual(list(after_formatting['tools']).index('base_default'), 0)
+        self.assertEqual(list(before_formatting['destinations']).index('base_default'), 2)
+        self.assertEqual(list(after_formatting['destinations']).index('base_default'), 0)
+
+        # nested keys should be in expected order
+        self.assertEqual(list(before_formatting['tools']['base_default']['scheduling'].keys()),
+                         ["prefer", "accept", "reject", "require"])
+        self.assertEqual(list(after_formatting['tools']['base_default']['scheduling'].keys()),
+                         ["require", "prefer", "accept", "reject"])

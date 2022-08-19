@@ -153,8 +153,8 @@ class EntityToDestinationMapper(object):
                     gxy_destination = app.job_config.get_destination(d.id)
                     return self.configure_gxy_destination(gxy_destination, final_combined_entity)
                 except TryNextDestinationOrFail as ef:
-                    log.debug(f"Destination entity: {d} matched but could not fulfill requirements due to: {ef}."
-                              " Trying next candidate...")
+                    log.exception(f"Destination entity: {d} matched but could not fulfill requirements due to: {ef}."
+                                  " Trying next candidate...")
                 except TryNextDestinationOrWait:
                     wait_exception_raised = True
             if wait_exception_raised:
