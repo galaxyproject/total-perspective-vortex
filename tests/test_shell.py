@@ -90,3 +90,17 @@ class TPVShellTestCase(unittest.TestCase):
         self.assertTrue(
             "format failed" in output,
             f"Expected format to fail but output was: {output}")
+
+    def test_format_string_block_handling(self):
+        tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/formatter/formatter-string-types-input.yml')
+        output = self.call_shell_command("tpv", "format", tpv_config)
+        with open(os.path.join(os.path.dirname(__file__), 'fixtures/formatter/formatter-string-types-formatted.yml')) as f:
+            expected_output = f.read()
+        self.assertEqual(output, expected_output)
+
+    def test_format_lengthy_key_handling(self):
+        tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/formatter/formatter-long-key-input.yml')
+        output = self.call_shell_command("tpv", "format", tpv_config)
+        with open(os.path.join(os.path.dirname(__file__), 'fixtures/formatter/formatter-long-key-formatted.yml')) as f:
+            expected_output = f.read()
+        self.assertEqual(output, expected_output)

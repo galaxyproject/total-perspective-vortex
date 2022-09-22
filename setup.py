@@ -18,7 +18,8 @@ with open("README.md", "r") as fh:
 REQS_FULL = [
     "cachetools>=3.1.0",
     "watchdog",
-    "requests"
+    "requests",
+    "ruamel.yaml"
 ]
 
 REQS_TEST = ([

@@ -1,0 +1,15 @@
+tools:
+  default:
+    cores: 1
+    mem: cores * 3.8
+    env: {}
+    params: {}
+    scheduling:
+      reject:
+      - offline
+    rules: []
+    rank: |
+      helpers.weighted_random_sampling(candidate_destinations)
+  another_tool:
+    rank: |
+      helpers.weighted_random_sampling(candidate_destinations)

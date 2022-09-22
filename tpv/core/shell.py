@@ -1,18 +1,28 @@
 import argparse
 import logging
 import sys
-import yaml
+import ruamel.yaml as yaml
 
 from .formatter import TPVConfigFormatter
 from .loader import TPVConfigLoader
 
 log = logging.getLogger(__name__)
 
+
+# https://stackoverflow.com/a/64933809
+def repr_str(dumper: yaml.RoundTripRepresenter, data: str):
+    if '\n' in data:
+        return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
+    return dumper.represent_scalar('tag:yaml.org,2002:str', data)
+
+
+yaml.RoundTripRepresenter.add_representer(str, repr_str)
+
 # https://stackoverflow.com/a/37445121
-yaml.SafeDumper.add_representer(
+yaml.RoundTripRepresenter.add_representer(
     type(None),
     lambda dumper, value: dumper.represent_scalar(u'tag:yaml.org,2002:null', '')
-  )
+    )
 
 
 def tpv_lint_config_file(args):
@@ -28,7 +38,9 @@ def tpv_lint_config_file(args):
 def tpv_format_config_file(args):
     try:
         formatter = TPVConfigFormatter.from_url_or_path(args.config)
-        print(yaml.safe_dump(formatter.format(), sort_keys=False, default_flow_style=False))
+        dumper = yaml.RoundTripDumper
+        dumper.MAX_SIMPLE_KEY_LENGTH = 1024
+        print(yaml.dump(formatter.format(), default_flow_style=False, Dumper=dumper), end='')
         return 0
     except Exception:
         log.exception("format failed.")
