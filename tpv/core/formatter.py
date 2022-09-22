@@ -18,8 +18,8 @@ class TPVConfigFormatter(object):
                 index = list(keys_to_place_first).index(key)
             except ValueError:
                 index = len(keys_to_place_first)
-            # sort by keys to place first, then keys alphabetically, and finally, by length of key
-            return (index, key, len(key))
+            # sort by keys to place first, then potential toolshed tools, and finally alphabetically
+            return (index, "/" not in key, key)
         return sort_criteria
 
     @staticmethod

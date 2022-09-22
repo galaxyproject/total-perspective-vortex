@@ -104,3 +104,10 @@ class TPVShellTestCase(unittest.TestCase):
         with open(os.path.join(os.path.dirname(__file__), 'fixtures/formatter/formatter-long-key-formatted.yml')) as f:
             expected_output = f.read()
         self.assertEqual(output, expected_output)
+
+    def test_format_tool_sort_order(self):
+        tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/formatter/formatter-tool-sort-order-input.yml')
+        output = self.call_shell_command("tpv", "format", tpv_config)
+        with open(os.path.join(os.path.dirname(__file__), 'fixtures/formatter/formatter-tool-sort-order-formatted.yml')) as f:
+            expected_output = f.read()
+        self.assertEqual(output, expected_output)
