@@ -1,18 +1,18 @@
-galaxy-util@git+https://github.com/galaxyproject/galaxy.git@release_21.09#subdirectory=packages/util
-galaxy-objectstore@git+https://github.com/galaxyproject/galaxy.git@release_21.09#subdirectory=packages/objectstore
-galaxy-data@git+https://github.com/galaxyproject/galaxy.git@release_21.09#subdirectory=packages/data
-galaxy-auth@git+https://github.com/galaxyproject/galaxy.git@release_21.09#subdirectory=packages/auth
-galaxy-containers@git+https://github.com/galaxyproject/galaxy.git@release_21.09#subdirectory=packages/containers
-galaxy-job-execution@git+https://github.com/galaxyproject/galaxy.git@release_21.09#subdirectory=packages/job_execution
-galaxy-job-metrics@git+https://github.com/galaxyproject/galaxy.git@release_21.09#subdirectory=packages/job_metrics
-galaxy-tool-util@git+https://github.com/galaxyproject/galaxy.git@release_21.09#subdirectory=packages/tool_util
-galaxy-web-stack@git+https://github.com/galaxyproject/galaxy.git@release_21.09#subdirectory=packages/web_stack
-galaxy-web-framework@git+https://github.com/galaxyproject/galaxy.git@release_21.09#subdirectory=packages/web_framework
+galaxy-util@git+https://github.com/galaxyproject/galaxy.git@release_22.05#subdirectory=packages/util
+galaxy-objectstore@git+https://github.com/galaxyproject/galaxy.git@release_22.05#subdirectory=packages/objectstore
+galaxy-files@git+https://github.com/galaxyproject/galaxy.git@release_22.05#subdirectory=packages/files
+galaxy-data@git+https://github.com/galaxyproject/galaxy.git@release_22.05#subdirectory=packages/data
+galaxy-auth@git+https://github.com/galaxyproject/galaxy.git@release_22.05#subdirectory=packages/auth
+galaxy-job-execution@git+https://github.com/galaxyproject/galaxy.git@release_22.05#subdirectory=packages/job_execution
+galaxy-job-metrics@git+https://github.com/galaxyproject/galaxy.git@release_22.05#subdirectory=packages/job_metrics
+galaxy-tool-util@git+https://github.com/galaxyproject/galaxy.git@release_22.05#subdirectory=packages/tool_util
+galaxy-web-stack@git+https://github.com/galaxyproject/galaxy.git@release_22.05#subdirectory=packages/web_stack
+galaxy-web-framework@git+https://github.com/galaxyproject/galaxy.git@release_22.05#subdirectory=packages/web_framework
 -e ".[test]"
 # The following packages are needed for resubmit integration testing (except galaxy-app)
-galaxy-job-execution@git+https://github.com/galaxyproject/galaxy.git@release_21.09#subdirectory=packages/job_execution
+galaxy-job-execution@git+https://github.com/galaxyproject/galaxy.git@release_22.05#subdirectory=packages/job_execution
 edam-ontology
 dictobj
-galaxy-app@git+https://github.com/galaxyproject/galaxy.git@release_21.09#subdirectory=packages/app
-galaxy-webapps@git+https://github.com/galaxyproject/galaxy.git@release_21.09#subdirectory=packages/webapps
-galaxy-test-driver@git+https://github.com/galaxyproject/galaxy.git@release_21.09#subdirectory=packages/test_driver
+galaxy-app@git+https://github.com/galaxyproject/galaxy.git@release_22.05#subdirectory=packages/app
+galaxy-webapps@git+https://github.com/galaxyproject/galaxy.git@release_22.05#subdirectory=packages/webapps
+galaxy-test-driver@git+https://github.com/galaxyproject/galaxy.git@release_22.05#subdirectory=packages/test_driver
