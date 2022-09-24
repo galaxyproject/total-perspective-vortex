@@ -23,7 +23,7 @@ REQS_FULL = [
 ]
 
 REQS_TEST = ([
-    'nose',
+    'pytest',
     'galaxy-app',
     'responses',
     'tox>=2.9.1',
