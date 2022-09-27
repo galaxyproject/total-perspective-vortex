@@ -2,9 +2,24 @@ import argparse
 import logging
 import sys
 
+from ruamel.yaml import YAML, RoundTripRepresenter
+
+from .formatter import TPVConfigFormatter
 from .loader import TPVConfigLoader
 
 log = logging.getLogger(__name__)
+
+
+# https://stackoverflow.com/a/64933809
+def repr_str(dumper: RoundTripRepresenter, data: str):
+    if '\n' in data:
+        return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
+    return dumper.represent_scalar('tag:yaml.org,2002:str', data)
+
+
+# https://stackoverflow.com/a/37445121
+def repr_none(dumper: RoundTripRepresenter, data):
+    return dumper.represent_scalar(u'tag:yaml.org,2002:null', '')
 
 
 def tpv_lint_config_file(args):
@@ -14,6 +29,22 @@ def tpv_lint_config_file(args):
         return 0
     except Exception:
         log.info("lint failed.")
+        return 1
+
+
+def tpv_format_config_file(args):
+    try:
+        formatter = TPVConfigFormatter.from_url_or_path(args.config)
+        yaml = YAML(typ='unsafe', pure=True)
+        yaml.Representer = RoundTripRepresenter
+        yaml.Representer.add_representer(str, repr_str)
+        yaml.Representer.add_representer(type(None), repr_none)
+        yaml.default_flow_style = False
+        yaml.Emitter.MAX_SIMPLE_KEY_LENGTH = 1024
+        yaml.dump(formatter.format(), sys.stdout)
+        return 0
+    except Exception:
+        log.exception("format failed.")
         return 1
 
 
@@ -36,6 +67,15 @@ def create_parser():
         'config', type=str,
         help="Path to the TPV config file to lint. Can be a local path or http url.")
     lint_parser.set_defaults(func=tpv_lint_config_file)
+
+    format_parser = subparsers.add_parser(
+        'format',
+        help='Reformats a TPV configuration file and prints it to stdout.',
+        description="The formatter will reorder tools, users etc by name, moving defaults first")
+    format_parser.add_argument(
+        'config', type=str,
+        help="Path to the TPV config file to format. Can be a local path or http url.")
+    format_parser.set_defaults(func=tpv_format_config_file)
 
     return parser
 

@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [ '3.8' ]
+        python-version: [ '3.10' ]
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -28,13 +28,13 @@ jobs:
            python-version: ${{ matrix.python-version }}
 
       - name: Cache pip dir
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.cache/pip
           key: pip-cache-${{ matrix.python-version }}-${{ hashFiles('**/setup.py', '**/requirements.txt', '**/requirements_test.txt') }}-lint
 
       - name: Cache tox dir
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: .tox
           key: tox-cache-${{ matrix.python-version }}-${{ hashFiles('**/setup.py', '**/requirements.txt', '**/requirements_test.txt') }}-lint
@@ -54,7 +54,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.8']
+        python-version: ['3.10']
 
     steps:
       - name: Checkout code
@@ -66,16 +66,16 @@ jobs:
            python-version: ${{ matrix.python-version }}
 
       - name: Cache pip dir
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: pip-cache-${{ matrix.python-version }}-${{ hashFiles('**/setup.py', '**/requirements.txt', '**/requirements_test.txt') }}-py38
+          key: pip-cache-${{ matrix.python-version }}-${{ hashFiles('**/setup.py', '**/requirements.txt', '**/requirements_test.txt') }}-py310
 
       - name: Cache tox dir
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: .tox
-          key: tox-cache-${{ matrix.python-version }}-${{ hashFiles('**/setup.py', '**/requirements.txt', '**/requirements_test.txt') }}-py38
+          key: tox-cache-${{ matrix.python-version }}-${{ hashFiles('**/setup.py', '**/requirements.txt', '**/requirements_test.txt') }}-py310
 
       - name: Install required packages
         run: pip install tox

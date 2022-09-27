@@ -1,0 +1,74 @@
+global:
+  default_inherits: base_default
+
+destinations:
+  slurm:
+    cores: 4
+    mem: 15.5
+    scheduling:
+      accept:
+        - pulsar
+        - general
+  pulsar_destination:
+    cores: 4
+    mem: 7.77
+    scheduling:
+      accept:
+        - general
+      require:
+        - pulsar
+  base_default:
+    cores: 1
+    mem: 1
+  pulsar-nci-test:
+    cores: 32
+    mem: 96.38
+    scheduling:
+      accept:
+        - general
+      require:
+        - pulsar
+
+users:
+  default:
+    rules:
+      - if: False
+        fail: "You cannot have more than 4 high-mem jobs running concurrently"
+
+tools:
+  upload1:
+    cores: 2
+  '.*iuc/fasta_stats/fasta-stats.*':
+    cores: 2
+    params:
+      nativeSpecification: "--nodes=1 --ntasks={cores} --ntasks-per-node={cores} --mem=500"
+    scheduling:
+      accept:
+        - pulsar
+  '.*bwa_mem.*':
+    cores: 2
+    scheduling:
+      accept:
+        - pulsar
+  base_default:
+    mem: cores * 3 # note, some clusters will tolerate more than this
+    cores: 1
+    scheduling:
+      prefer:
+      accept:
+        - general
+      reject:
+        - offline
+      require:
+    params:
+      nativeSpecification: "--nodes=1 --ntasks={cores} --ntasks-per-node={cores} --mem={mem*1024}"
+    env: {}
+    rules: []
+  '.*hifiasm.*':
+    cores: 2
+    scheduling:
+      prefer:
+        - pulsar
+    rules:
+      - if: input_size >= 0.2
+        cores: 16

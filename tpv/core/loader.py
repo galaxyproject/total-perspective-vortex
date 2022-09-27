@@ -2,12 +2,9 @@ from __future__ import annotations
 import ast
 import functools
 import logging
-import os
-import yaml
-
-import requests
 
 from . import helpers
+from . import util
 from .entities import Tool, User, Role, Destination, Entity
 
 log = logging.getLogger(__name__)
@@ -128,11 +125,5 @@ class TPVConfigLoader(object):
 
     @staticmethod
     def from_url_or_path(url_or_path: str):
-        if os.path.isfile(url_or_path):
-            with open(url_or_path, 'r') as f:
-                tpv_config = yaml.safe_load(f)
-                return TPVConfigLoader(tpv_config)
-        else:
-            with requests.get(url_or_path) as r:
-                tpv_config = yaml.safe_load(r.content)
-                return TPVConfigLoader(tpv_config)
+        tpv_config = util.load_yaml_from_url_or_path(url_or_path)
+        return TPVConfigLoader(tpv_config)

@@ -18,11 +18,12 @@ with open("README.md", "r") as fh:
 REQS_FULL = [
     "cachetools>=3.1.0",
     "watchdog",
-    "requests"
+    "requests",
+    "ruamel.yaml"
 ]
 
 REQS_TEST = ([
-    'nose',
+    'pytest',
     'galaxy-app',
     'responses',
     'tox>=2.9.1',

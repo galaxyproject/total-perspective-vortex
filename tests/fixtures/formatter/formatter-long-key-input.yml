@@ -1,0 +1,10 @@
+tools:
+  toolshed.g2.bx.psu.edu/repos/computational-metabolomics/dimspy_blank_filter/dimspy_blank_filter/.*:
+    mem: 12
+  ? toolshed.g2.bx.psu.edu/repos/computational-metabolomics/dimspy_missing_values_sample_filter/dimspy_missing_values_sample_filter/.*
+  : mem: 12
+  toolshed.g2.bx.psu.edu/repos/computational-metabolomics/dimspy_sample_filter/dimspy_sample_filter/.*:
+    mem: 12
+  toolshed.g2.bx.psu.edu/repos/bgruening/hicexplorer_chicviewpointbackgroundmodel/hicexplorer_chicviewpointbackgroundmodel/.*:
+    cores: 20
+    mem: 60
