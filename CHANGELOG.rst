@@ -1,3 +1,12 @@
+1.3.0 - Sep 28, 2022. (sha 3e9342622ab8bb2b6b18ef1fd32625e246eec66a)
+--------------------------------------------------------------------
+
+* Added tpv format command for prettying and ordering tpv tool lists
+* Support for overriding destination name
+* Fix some bugs in context variable handling
+* Misc. bug fixes and refactoring
+
+
 1.2.0 - Jun 15, 2022. (sha 872d200f3bfeb7356ba76bb1ee14134a50608d92)
 --------------------------------------------------------------------
 
