@@ -8,6 +8,10 @@ TotalPerspectiveVortex (TPV) provides an installable set of dynamic rules for th
 [Galaxy application](https://galaxyproject.org/) that can route entities (Tools, Users, Roles) to appropriate
 job destinations based on a configurable yaml file.
 
+### Shared database
+
+A shared database of reusable rules are maintained in: https://github.com/galaxyproject/tpv-shared-database/
+
 ### Installing latest development version
 
 ```python

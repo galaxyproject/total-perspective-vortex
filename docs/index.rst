@@ -24,6 +24,13 @@ destinations. For example, a ranking function could query influx metrics to dete
 the least loaded destination, and route jobs there, providing a basic form of
 "metascheduling" functionality.
 
+Shared database
+---------------
+
+A shared database of TPV rules are maintained in: https://github.com/galaxyproject/tpv-shared-database/
+These rules are based on typical settings used in the usegalaxy.* federation, which you can override
+based on local resource availability.
+
 Getting Started
 ---------------
 
