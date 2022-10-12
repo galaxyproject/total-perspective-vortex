@@ -1,4 +1,4 @@
-name: Publish gravity to PyPI
+name: Publish TPV to PyPI
 on:
   release:
     types: [created]
