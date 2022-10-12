@@ -42,7 +42,7 @@ class TestMapperDestinations(unittest.TestCase):
         destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
         self.assertEqual(destination.id, "another_k8s_environment")
         self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_JOB_SLOTS'], ['2'])
-        self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_ENTITY_PRIORITY'], ['2'])
+        self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_ENTITY_PRIORITY'], ['4'])
         self.assertEqual([env['value'] for env in destination.env if env['name'] == 'SPECIAL_FLAG'], ['second'])
         self.assertEqual([env['value'] for env in destination.env if env['name'] == 'DOCKER_ENABLED'], [])
         self.assertEqual(destination.params['memory_requests'], '12')
@@ -69,7 +69,7 @@ class TestMapperDestinations(unittest.TestCase):
         destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
         self.assertEqual(destination.id, "inherited_k8s_environment")
         self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_JOB_SLOTS'], ['2'])
-        self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_ENTITY_PRIORITY'], ['2'])
+        self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_ENTITY_PRIORITY'], ['4'])
         self.assertEqual([env['value'] for env in destination.env if env['name'] == 'SPECIAL_FLAG'], ['third'])
         self.assertEqual([env['value'] for env in destination.env if env['name'] == 'DOCKER_ENABLED'], [])
         self.assertEqual(destination.params['memory_requests'], '18')
@@ -96,3 +96,15 @@ class TestMapperDestinations(unittest.TestCase):
         datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=12*1024**3))]
         destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
         self.assertEqual(destination.id, "my-dest-with-2-cores-6-mem")
+
+    def test_custom_capping_at_destination(self):
+        tool = mock_galaxy.Tool('cap_test_tool')
+        user = mock_galaxy.User('ford', 'prefect@vortex.org')
+
+        config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-destinations.yml')
+
+        # an intermediate file size should compute correct values
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=12*1024**3))]
+        destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
+        self.assertEqual(destination.id, "cap_test_environment")
+        self.assertEqual(destination.params['nativeSpec'], '--cores 9 --mem 31')

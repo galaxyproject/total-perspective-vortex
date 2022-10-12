@@ -148,7 +148,7 @@ class EntityToDestinationMapper(object):
                 try:  # An exception here signifies that a destination rule did not match
                     # Evaluate the destinations as regular entities
                     early_evaluated_destination = self.evaluate_entity_early([late_evaluated_entity, d], d, context)
-                    dest_combined_entity = early_evaluated_destination.combine(late_evaluated_entity)
+                    dest_combined_entity = late_evaluated_entity.combine(early_evaluated_destination)
                     final_combined_entity = dest_combined_entity.evaluate_late(context)
                     gxy_destination = app.job_config.get_destination(d.id)
                     if final_combined_entity.params.get('destination_name_override'):

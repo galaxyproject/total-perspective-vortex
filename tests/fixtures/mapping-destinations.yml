@@ -42,6 +42,12 @@ tools:
     scheduling:
       require:
         - custom
+  cap_test_tool:
+    cores: 42
+    mem: cores * 3
+    scheduling:
+      require:
+        - cap_test
 
 destinations:
   local:
@@ -109,10 +115,11 @@ destinations:
     scheduling:
       require:
         - inherited
+    rules:
+      - if: "True"
+        cores: max(9, entity.cores)
+        mem: max(31, entity.mem)
   custom_naming:
-    cores: 16
-    mem: 64
-    gpus: 2
     env:
       SPECIAL_FLAG: "third"
     params:
@@ -121,3 +128,9 @@ destinations:
     scheduling:
       require:
         - custom
+  cap_test_environment:
+    scheduling:
+      require:
+        - cap_test
+    params:
+      nativeSpec: '--cores {min(9, cores)} --mem {min(31, mem)}'
