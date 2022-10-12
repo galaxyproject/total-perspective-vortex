@@ -271,3 +271,17 @@ class TestScenarios(unittest.TestCase):
         destination = self._map_to_destination(tool, user, datasets=datasets, tpv_config_path=rules_file,
                                                job_conf='fixtures/job_conf_scenario_usegalaxy_au.yml')
         self.assertEqual(destination.id, "pulsar-nci-test")
+
+    @responses.activate
+    def test_scenario_usegalaxy_eu_training(self):
+        """
+        Check whether training groups are correctly generated. Specifically, this test checks whether
+        execute blocks can modify entity properties.
+        """
+        tool = mock_galaxy.Tool('bwa')
+        user = mock_galaxy.User('gargravarr', 'fairycake@vortex.org', roles=["training-group1", "training-group2"])
+
+        rules_file = os.path.join(os.path.dirname(__file__), 'fixtures/scenario-usegalaxy-eu-training.yml')
+        destination = self._map_to_destination(tool, user, tpv_config_path=rules_file)
+        self.assertEqual(destination.params['requirements'], '(GalaxyGroup == "compute") || ((GalaxyGroup == "training-group1") || (GalaxyGroup == "training-group2"))')
+        self.assertEqual(destination.params['+Group'], '"training-group1, training-group2"')

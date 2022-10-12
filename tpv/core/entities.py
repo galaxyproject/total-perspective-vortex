@@ -565,4 +565,6 @@ class Rule(Entity):
     def evaluate_late(self, context):
         if self.execute:
             self.loader.eval_code_block(self.execute, context, exec_only=True)
+            # return any changes made to the entity
+            return context['entity']
         return self
