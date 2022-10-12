@@ -1,3 +1,9 @@
+1.4.0 - Oct 12, 2022. (sha c4a49330a55f02107a9ece4ac84fd74f956f7017)
+--------------------------------------------------------------------
+
+* Added support for the execute block to change entity properties
+* Added link to TPV shared database.
+
 1.3.0 - Sep 28, 2022. (sha 3e9342622ab8bb2b6b18ef1fd32625e246eec66a)
 --------------------------------------------------------------------
 
