@@ -137,6 +137,16 @@ class TestMapperRules(unittest.TestCase):
             tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rule-execute.yml')
             self._map_to_destination(tool, user, datasets, tpv_config_files=[tpv_config])
 
+    def test_map_with_execute_block_side_effects(self):
+        tool = mock_galaxy.Tool('bwa')
+        user = mock_galaxy.User('ford', 'prefect@vortex.org')
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=11*1024**3))]
+
+        tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rule-execute.yml')
+        destination = self._map_to_destination(tool, user, datasets, tpv_config_files=[tpv_config])
+        self.assertEqual(destination.params['my_brand_new_param'], "hello_world")
+        self.assertEqual(destination.params['native_spec'], '--mem 6 --cores 8')
+
     def test_job_args_match_helper(self):
         tool = mock_galaxy.Tool('limbo')
         user = mock_galaxy.User('gag', 'gaghalfrunt@vortex.org')

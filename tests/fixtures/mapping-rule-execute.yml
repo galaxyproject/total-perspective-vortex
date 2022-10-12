@@ -31,6 +31,9 @@ tools:
           from galaxy.jobs.mapper import JobNotReadyException
           raise JobNotReadyException()
       - if: input_size > 10 and input_size < 20
+        execute: |
+          entity.params['my_brand_new_param'] = 'hello_world'
+          entity.cores = 8
         scheduling:
           require:
             - highmem
