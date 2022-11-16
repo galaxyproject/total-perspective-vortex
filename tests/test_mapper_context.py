@@ -1,7 +1,7 @@
 import os
 import unittest
 from tpv.rules import gateway
-from . import mock_galaxy
+from tpv.core.test import mock_galaxy
 
 
 class TestMapperContext(unittest.TestCase):
