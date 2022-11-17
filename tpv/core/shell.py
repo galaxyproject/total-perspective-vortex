@@ -1,6 +1,5 @@
 import argparse
 import logging
-import os.path
 import sys
 
 from ruamel.yaml import YAML, RoundTripRepresenter
@@ -65,8 +64,7 @@ def tpv_test_config_files(args):
         tool = mock_galaxy.Tool(args.tool)
     else:
         tool = None
-    job_conf = os.path.abspath(args.job_conf)
-    galaxy_app = mock_galaxy.App(job_conf=job_conf, create_model=True)
+    galaxy_app = mock_galaxy.App(job_conf=args.job_conf, create_model=True)
     job = mock_galaxy.Job()
     tpv_config_files = args.config
     gateway.ACTIVE_DESTINATION_MAPPER = None
