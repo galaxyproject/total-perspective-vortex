@@ -32,6 +32,13 @@ REQS_TEST = ([
     'flake8-import-order>=0.13'] + REQS_FULL
 )
 
+REQS_CLI_TEST = ([
+    'galaxy-data',
+    'galaxy-config',
+    'galaxy-app',
+    'galaxy-job-metrics'] + REQS_FULL
+)
+
 REQS_DEV = (['sphinx', 'sphinx_rtd_theme'] + REQS_TEST)
 
 setuptools.setup(
@@ -48,7 +55,8 @@ setuptools.setup(
     install_requires=REQS_FULL,
     extras_require={
         'dev': REQS_DEV,
-        'test': REQS_TEST
+        'test': REQS_TEST,
+        'cli-test': REQS_CLI_TEST,
     },
     entry_points={
         'console_scripts': [

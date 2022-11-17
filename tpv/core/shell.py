@@ -36,7 +36,6 @@ def tpv_lint_config_file(args):
 
 
 def tpv_format_config_file(args):
-    # FIXME: pip install galaxy-job-execution galaxy-config galaxy-job-metrics
     try:
         formatter = TPVConfigFormatter.from_url_or_path(args.config)
         yaml = YAML(typ='unsafe', pure=True)
