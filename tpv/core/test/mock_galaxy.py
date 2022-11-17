@@ -54,9 +54,9 @@ class Tool:
 
 # App mock=======================================================
 class App:
-    def __init__(self, job_conf='fixtures/job_conf.yml', create_model=False):
+    def __init__(self, job_conf=None, create_model=False):
         self.config = bunch.Bunch(
-            job_config_file=os.path.join(os.path.dirname(__file__), job_conf),
+            job_config_file=job_conf,
             use_tasked_jobs=False,
             job_resource_params_file="/tmp/fake_absent_path",
             config_dict={},
