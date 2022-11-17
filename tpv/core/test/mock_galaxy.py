@@ -1,5 +1,3 @@
-import os
-
 from galaxy.model import mapping
 from galaxy.job_metrics import JobMetrics
 from galaxy.jobs import JobConfiguration
