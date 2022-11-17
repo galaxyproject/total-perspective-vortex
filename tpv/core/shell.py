@@ -110,18 +110,20 @@ def create_parser():
         description="")
     test_parser.add_argument(
         '--job-conf', type=str,
-        help="Galaxy job conf")
+        required=True,
+        help="Galaxy job configuration file")
     test_parser.add_argument(
         '--tool', type=str,
-        help="Tool ID")
+        default='_default_',
+        help="Test mapping for Galaxy tool with given ID")
     test_parser.add_argument(
         '--user', type=str,
-        help="User"
+        help="Test mapping for Galaxy user with username or email"
     )
     test_parser.add_argument(
         'config',
         nargs='+',
-        help="TPV configs")
+        help="TPV configuration files")
     test_parser.set_defaults(func=tpv_test_config_files)
 
     return parser
