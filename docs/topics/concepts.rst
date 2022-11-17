@@ -141,11 +141,11 @@ Default evaluation context
 +----------+-----------------------------------------------------------------------------+
 | job      | the Galaxy job object                                                       |
 +----------+-----------------------------------------------------------------------------+
-| mapper   | the TPV mapper object, which can be used to access parsed TPV configs |
+| mapper   | the TPV mapper object, which can be used to access parsed TPV configs       |
 +----------+-----------------------------------------------------------------------------+
-| entity   | the TPV entity being currently evaluated. Can be a combined entity.      |
+| entity   | the TPV entity being currently evaluated. Can be a combined entity.         |
 +----------+-----------------------------------------------------------------------------+
-| self     | an alias for the current TPV entity.                                     |
+| self     | an alias for the current TPV entity.                                        |
 +----------+-----------------------------------------------------------------------------+
 
 Custom evaluation contexts
