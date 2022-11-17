@@ -51,7 +51,6 @@ def tpv_format_config_file(args):
 
 
 def tpv_test_config_files(args):
-    # pip install galaxy-job-execution galaxy-job-metrics galaxy-config galaxy-app
     if args.user is not None:
         if '@' in args.user:
             username, email = args.user.split('@', 1)
