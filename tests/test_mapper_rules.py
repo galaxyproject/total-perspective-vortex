@@ -13,7 +13,7 @@ class TestMapperRules(unittest.TestCase):
 
     @staticmethod
     def _map_to_destination(tool, user, datasets, param_values=None, tpv_config_files=None, app=None):
-        galaxy_app = app or mock_galaxy.App()
+        galaxy_app = app or mock_galaxy.App(job_conf=os.path.join(os.path.dirname(__file__), 'fixtures/job_conf.yml'))
         job = mock_galaxy.Job()
         for d in datasets:
             job.add_input_dataset(d)
@@ -195,7 +195,8 @@ class TestMapperRules(unittest.TestCase):
         user_eccentrica = mock_galaxy.User('eccentrica', 'eccentricagallumbits@vortex.org')
         user_roosta = mock_galaxy.User('roosta', 'roosta@vortex.org')
 
-        app = mock_galaxy.App(job_conf='fixtures/job_conf.yml', create_model=True)
+        app = mock_galaxy.App(
+            job_conf=os.path.join(os.path.dirname(__file__), 'fixtures/job_conf.yml'), create_model=True)
 
         datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=7*1024**3))]
         tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rule-tool-limits.yml')

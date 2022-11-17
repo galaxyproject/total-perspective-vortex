@@ -15,11 +15,11 @@ class TestScenarios(unittest.TestCase):
     @staticmethod
     def _map_to_destination(tool, user, datasets=[], tpv_config_path=None, job_conf=None, app=None):
         if job_conf:
-            galaxy_app = mock_galaxy.App(job_conf=job_conf)
+            galaxy_app = mock_galaxy.App(job_conf=os.path.join(os.path.dirname(__file__), job_conf))
         elif app:
             galaxy_app = app
         else:
-            galaxy_app = mock_galaxy.App()
+            galaxy_app = mock_galaxy.App(job_conf=os.path.join(os.path.dirname(__file__), 'fixtures/job_conf.yml'))
         job = mock_galaxy.Job()
         for d in datasets:
             job.add_input_dataset(d)
@@ -232,7 +232,9 @@ class TestScenarios(unittest.TestCase):
             sa_session.add(j)
             sa_session.flush()
 
-        app = mock_galaxy.App(job_conf='fixtures/job_conf_scenario_usegalaxy_au.yml', create_model=True)
+        app = mock_galaxy.App(
+            job_conf=os.path.join(os.path.dirname(__file__), 'fixtures/job_conf_scenario_usegalaxy_au.yml'),
+            create_model=True)
         create_job(app, "highmem_pulsar_1")
         create_job(app, "highmem_pulsar_2")
         create_job(app, "highmem_pulsar_1")
