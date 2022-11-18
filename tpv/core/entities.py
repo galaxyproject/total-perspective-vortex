@@ -188,6 +188,19 @@ class Entity(object):
         self.context = context
         self.validate()
 
+    def __deepcopy__(self, memodict={}):
+        # make sure we don't deepcopy the loader: https://github.com/galaxyproject/total-perspective-vortex/issues/53
+        # xref: https://stackoverflow.com/a/15774013
+        cls = self.__class__
+        result = cls.__new__(cls)
+        memodict[id(self)] = result
+        for k, v in self.__dict__.items():
+            if k == "loader":
+                setattr(result, k, v)
+            else:
+                setattr(result, k, copy.deepcopy(v, memodict))
+        return result
+
     def process_complex_property(self, prop, context, func):
         if isinstance(prop, str):
             return func(prop, context)
