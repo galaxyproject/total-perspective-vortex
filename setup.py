@@ -33,7 +33,6 @@ REQS_TEST = ([
 )
 
 REQS_CLI = (['galaxy-app'] + REQS_FULL)
-REQS_CLI = (['galaxy-app'] + REQS_FULL)
 
 REQS_TEST =   ([
     'pytest',

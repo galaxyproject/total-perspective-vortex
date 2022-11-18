@@ -46,34 +46,24 @@ example:
     
     To display the reasons for the failure, use the -v option to increase verbosity, with each additional v increasing log level.
 
-test
-----
+dry-run
+-------
 
 You can test that your TPV configuration returns the expected destination for a given tool and/or user using the ``tpv
-test`` command.
+dry-run`` command.
 
 .. code-block:: console
 
-    tpv test --job-conf <path_to_galaxy_job_conf_file> [--tool <tool_id>] \
-      [--user <user_name_or_email>] <tpv_config_file> [tpv_config_file ...]
+    tpv dry-run --job-conf <path_to_galaxy_job_conf_file> [--tool <tool_id>] [--user <user_name_or_email>] [tpv_config_file ...]
+
+If no TPV config files are specified on the command line, they will be read from the ``tpv_dispatcher`` execution
+environment (destination) definition in the specified Galaxy job configuration file.
 
 For example:
 
 .. code-block:: console
 
-    $ tree
-    .
-    ├── 00_default_tool.yml
-    ├── 05_tools.yml
-    ├── 10_destinations.yml
-    └── job_conf
-        └── job_conf.yml
-
-    1 directory, 4 files
-
-.. code-block:: console
-
-    $ tpv test --job-conf job_conf/job_conf.yml *.yml
+    $ tpv dry-run --job-conf /srv/galaxy/config/job_conf.yml
     !!python/object:galaxy.jobs.JobDestination
     converted: false
     env:
@@ -90,7 +80,7 @@ For example:
 
 .. code-block:: console
 
-    $ tpv test --job-conf job_conf/job_conf.yml --tool trinity *.yml
+    $ tpv dry-run --job-conf /srv/galaxy/config/job_conf.yml --tool trinity *.yml
     !!python/object:galaxy.jobs.JobDestination
     converted: false
     env:

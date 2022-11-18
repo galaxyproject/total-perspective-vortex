@@ -50,7 +50,7 @@ def tpv_format_config_file(args):
         return 1
 
 
-def tpv_test_config_files(args):
+def tpv_dry_run_config_files(args):
     if args.user is not None:
         if '@' in args.user:
             username, email = args.user.split('@', 1)
@@ -64,8 +64,11 @@ def tpv_test_config_files(args):
     else:
         tool = None
     galaxy_app = mock_galaxy.App(job_conf=args.job_conf, create_model=True)
+    if args.config:
+        tpv_config_files = args.config
+    else:
+        tpv_config_files = galaxy_app.job_config.get_destination('tpv_dispatcher').params['tpv_config_files']
     job = mock_galaxy.Job()
-    tpv_config_files = args.config
     gateway.ACTIVE_DESTINATION_MAPPER = None
     destination = gateway.map_tool_to_destination(galaxy_app, job, tool, user, tpv_config_files=tpv_config_files)
     yaml = YAML(typ='unsafe', pure=True)
@@ -101,27 +104,27 @@ def create_parser():
         help="Path to the TPV config file to format. Can be a local path or http url.")
     format_parser.set_defaults(func=tpv_format_config_file)
 
-    test_parser = subparsers.add_parser(
-        'test',
-        help="Test a TPV configuration.",
+    dry_run_parser = subparsers.add_parser(
+        'dry-run',
+        help="Perform a dry run test of a TPV configuration.",
         description="")
-    test_parser.add_argument(
+    dry_run_parser.add_argument(
         '--job-conf', type=str,
         required=True,
         help="Galaxy job configuration file")
-    test_parser.add_argument(
+    dry_run_parser.add_argument(
         '--tool', type=str,
         default='_default_',
         help="Test mapping for Galaxy tool with given ID")
-    test_parser.add_argument(
+    dry_run_parser.add_argument(
         '--user', type=str,
         help="Test mapping for Galaxy user with username or email"
     )
-    test_parser.add_argument(
+    dry_run_parser.add_argument(
         'config',
-        nargs='+',
-        help="TPV configuration files")
-    test_parser.set_defaults(func=tpv_test_config_files)
+        nargs='*',
+        help="TPV configuration files, overrides tpv_config_files in Galaxy job configuration if provided")
+    dry_run_parser.set_defaults(func=tpv_dry_run_config_files)
 
     return parser
 
