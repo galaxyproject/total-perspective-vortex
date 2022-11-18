@@ -43,8 +43,8 @@ def setup_destination_mapper(app, tpv_config_files):
     return mapper
 
 
-def map_tool_to_destination(app, job, tool, user, tpv_config_files):
+def map_tool_to_destination(app, job, tool, user, resource_params, tpv_config_files):
     global ACTIVE_DESTINATION_MAPPER
     if not ACTIVE_DESTINATION_MAPPER:
         ACTIVE_DESTINATION_MAPPER = setup_destination_mapper(app, tpv_config_files)
-    return ACTIVE_DESTINATION_MAPPER.map_to_destination(app, tool, user, job)
+    return ACTIVE_DESTINATION_MAPPER.map_to_destination(app, tool, user, job, resource_params)

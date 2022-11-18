@@ -93,7 +93,7 @@ class EntityToDestinationMapper(object):
 
         return entity_list
 
-    def match_combine_evaluate_entities(self, app, tool, user, job):
+    def match_combine_evaluate_entities(self, app, tool, user, job, resource_params):
         # 1. Find the entities relevant to this job
         entity_list = self._find_matching_entities(tool, user)
 
@@ -105,6 +105,7 @@ class EntityToDestinationMapper(object):
             'tool': tool,
             'user': user,
             'job': job,
+            'resource_params': resource_params,
             'mapper': self
         })
 
@@ -128,9 +129,9 @@ class EntityToDestinationMapper(object):
 
         return context, evaluated_entity
 
-    def map_to_destination(self, app, tool, user, job):
+    def map_to_destination(self, app, tool, user, job, resource_params):
         # 1. Find, combine and evaluate entities that match this tool and user
-        context, evaluated_entity = self.match_combine_evaluate_entities(app, tool, user, job)
+        context, evaluated_entity = self.match_combine_evaluate_entities(app, tool, user, job, resource_params)
 
         # 2. Shortlist destinations with tags that match the combined entity
         ranked_dest_entities = self.find_matching_destinations(evaluated_entity, self.destinations, context)
