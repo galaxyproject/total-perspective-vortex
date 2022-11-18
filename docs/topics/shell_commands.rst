@@ -43,6 +43,8 @@ example:
     INFO : tpv.core.shell: lint failed.
     $ echo $?
     1
+    
+    To display the reasons for the failure, use the -v option to increase verbosity, with each additional v increasing log level.
 
 test
 ----

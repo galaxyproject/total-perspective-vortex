@@ -33,7 +33,16 @@ REQS_TEST = ([
 )
 
 REQS_CLI = (['galaxy-app'] + REQS_FULL)
+REQS_CLI = (['galaxy-app'] + REQS_FULL)
 
+REQS_TEST =   ([
+    'pytest',
+    'responses',
+    'tox>=2.9.1',
+    'coverage>=4.4.1',
+    'flake8>=3.4.1',
+    'flake8-import-order>=0.13'] + REQS_CLI
+)
 REQS_DEV = (['sphinx', 'sphinx_rtd_theme'] + REQS_TEST)
 
 setuptools.setup(
