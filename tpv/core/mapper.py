@@ -104,7 +104,7 @@ class EntityToDestinationMapper(object):
 
         return entity_list
 
-    def map_to_destination(self, app, tool, user, job):
+    def match_combine_evaluate_entities(self, app, tool, user, job):
         # 1. Find the entities relevant to this job
         entity_list = self._find_matching_entities(tool, user)
 
@@ -124,7 +124,6 @@ class EntityToDestinationMapper(object):
 
         # 4. Combine entity requirements
         combined_entity = self.combine_entities(early_evaluated_entities)
-
         context.update({
             'entity': combined_entity,
             'self': combined_entity
@@ -132,16 +131,21 @@ class EntityToDestinationMapper(object):
 
         # 5. Evaluate remaining expressions after combining requirements
         late_evaluated_entity = combined_entity.evaluate_late(context)
-
         context.update({
             'entity': late_evaluated_entity,
             'self': late_evaluated_entity
         })
 
-        # 6. Find best matching destinations
+        return context, late_evaluated_entity
+
+    def map_to_destination(self, app, tool, user, job):
+        # 1. Find, combine and evaluate entities that match this tool and user
+        context, late_evaluated_entity = self.match_combine_evaluate_entities(app, tool, user, job)
+
+        # 2. Find best matching destination for the combined entity
         ranked_dest_entities = self.find_best_matches(late_evaluated_entity, self.destinations, context)
 
-        # 7. Return galaxy destination with params added
+        # 3. Return galaxy destination with params added
         if ranked_dest_entities:
             wait_exception_raised = False
             for d in ranked_dest_entities:
