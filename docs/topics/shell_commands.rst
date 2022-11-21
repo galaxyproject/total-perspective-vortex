@@ -54,7 +54,9 @@ dry-run`` command.
 
 .. code-block:: console
 
-    tpv dry-run --job-conf <path_to_galaxy_job_conf_file> [--tool <tool_id>] [--user <user_name_or_email>] [tpv_config_file ...]
+    tpv dry-run --job-conf <path_to_galaxy_job_conf_file> [--tool <tool_id>] \
+        [--user <user_name_or_email>] [--input-size <size_in_gb>] \
+        [tpv_config_file ...]
 
 If no TPV config files are specified on the command line, they will be read from the ``tpv_dispatcher`` execution
 environment (destination) definition in the specified Galaxy job configuration file.
@@ -80,7 +82,7 @@ For example:
 
 .. code-block:: console
 
-    $ tpv dry-run --job-conf /srv/galaxy/config/job_conf.yml --tool trinity *.yml
+    $ tpv dry-run --job-conf /srv/galaxy/config/job_conf.yml --tool trinity --input-size 40 *.yml
     !!python/object:galaxy.jobs.JobDestination
     converted: false
     env:

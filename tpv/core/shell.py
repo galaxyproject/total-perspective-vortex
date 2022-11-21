@@ -69,6 +69,11 @@ def tpv_dry_run_config_files(args):
     else:
         tpv_config_files = galaxy_app.job_config.get_destination('tpv_dispatcher').params['tpv_config_files']
     job = mock_galaxy.Job()
+    if args.input_size:
+        dataset = mock_galaxy.DatasetAssociation(
+            "test",
+            mock_galaxy.Dataset("test.txt", file_size=args.input_size*1024**3))
+        job.add_input_dataset(dataset)
     gateway.ACTIVE_DESTINATION_MAPPER = None
     destination = gateway.map_tool_to_destination(galaxy_app, job, tool, user, tpv_config_files=tpv_config_files)
     yaml = YAML(typ='unsafe', pure=True)
@@ -113,13 +118,15 @@ def create_parser():
         required=True,
         help="Galaxy job configuration file")
     dry_run_parser.add_argument(
+        '--input-size', type=int,
+        help="Input dataest size (in GB)")
+    dry_run_parser.add_argument(
         '--tool', type=str,
         default='_default_',
         help="Test mapping for Galaxy tool with given ID")
     dry_run_parser.add_argument(
         '--user', type=str,
-        help="Test mapping for Galaxy user with username or email"
-    )
+        help="Test mapping for Galaxy user with username or email")
     dry_run_parser.add_argument(
         'config',
         nargs='*',
