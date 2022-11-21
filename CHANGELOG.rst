@@ -1,3 +1,10 @@
+1.4.1 - Nov 21, 2022. (sha 396afc17d0ba2f78e0827e6f8319246977994172)
+--------------------------------------------------------------------
+
+* Avoid deepcopying loader when cloning entities  (PR #54)
+* Change remaining uses of pyyaml to ruaml.yaml (PR #51)
+* Automatic PyPi deployment action (#43)
+
 1.4.0 - Oct 12, 2022. (sha c4a49330a55f02107a9ece4ac84fd74f956f7017)
 --------------------------------------------------------------------
 
