@@ -4,9 +4,17 @@ import io
 import os
 import sys
 import unittest
+
+import pytest
 import yaml
+from galaxy.jobs.mapper import JobMappingException
 
 from tpv.core.shell import main
+
+
+@pytest.fixture
+def chdir_tests(monkeypatch):
+    monkeypatch.chdir(os.path.dirname(__file__))
 
 
 def run_python_script(command, args):
@@ -111,3 +119,59 @@ class TPVShellTestCase(unittest.TestCase):
         with open(os.path.join(os.path.dirname(__file__), 'fixtures/formatter/formatter-tool-sort-order-formatted.yml')) as f:
             expected_output = f.read()
         self.assertEqual(output, expected_output)
+
+    @pytest.mark.usefixtures("chdir_tests")
+    def test_dry_run_tpv_config_from_job_conf_default_tool(self):
+        job_config = 'fixtures/job_conf_dry_run.yml'
+        output = self.call_shell_command("tpv", "dry-run", "--job-conf", job_config)
+        self.assertTrue("id: local" in output,
+                        f"Expected 'id: local' destination\n{output}")
+
+    @pytest.mark.usefixtures("chdir_tests")
+    def test_dry_run_tpv_config_from_job_conf_pulsar_tool(self):
+        job_config = 'fixtures/job_conf_dry_run.yml'
+        output = self.call_shell_command("tpv", "dry-run", "--job-conf", job_config, "--tool", "bwa")
+        self.assertTrue("id: k8s_environment" in output,
+                        f"Expected 'id: k8s_environment' destination\n{output}")
+
+    @pytest.mark.usefixtures("chdir_tests")
+    def test_dry_run_tpv_config_from_job_conf_unschedulable_tool(self):
+        job_config = 'fixtures/job_conf_dry_run.yml'
+        with self.assertRaises(JobMappingException):
+            self.call_shell_command("tpv", "dry-run", "--job-conf", job_config, "--tool", "unschedulable_tool")
+
+    @pytest.mark.usefixtures("chdir_tests")
+    def test_dry_run_tpv_config_from_job_conf_regex_tool(self):
+        job_config = 'fixtures/job_conf_dry_run.yml'
+        output = self.call_shell_command("tpv", "dry-run", "--job-conf", job_config, "--tool", "regex_tool/hoopy_frood")
+        self.assertTrue("id: k8s_environment" in output,
+                        f"Expected 'id: k8s_environment' destination\n{output}")
+
+    def test_dry_run_input_size_piddling(self):
+        job_config = os.path.join(os.path.dirname(__file__), 'fixtures/job_conf_dry_run.yml')
+        tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rules.yml')
+        with self.assertRaises(JobMappingException):
+            self.call_shell_command("tpv", "dry-run", "--job-conf", job_config, tpv_config)
+
+    def test_dry_run_conditional_input_size_ok(self):
+        job_config = os.path.join(os.path.dirname(__file__), 'fixtures/job_conf_dry_run.yml')
+        tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rules.yml')
+        output = self.call_shell_command(
+            "tpv", "dry-run", "--job-conf", job_config, "--tool", "bwa", "--input-size", "6", tpv_config)
+        self.assertTrue("id: k8s_environment" in output,
+                        f"Expected 'id: k8s_environment' destination\n{output}")
+
+    def test_dry_run_conditional_input_size_too_big(self):
+        job_config = os.path.join(os.path.dirname(__file__), 'fixtures/job_conf_dry_run.yml')
+        tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rules.yml')
+        with self.assertRaises(JobMappingException):
+            self.call_shell_command(
+                "tpv", "dry-run", "--job-conf", job_config, "--tool", "bwa", "--input-size", "20", tpv_config)
+
+    def test_dry_run_user_email(self):
+        job_config = os.path.join(os.path.dirname(__file__), 'fixtures/job_conf_dry_run.yml')
+        tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rules.yml')
+        output = self.call_shell_command(
+            "tpv", "dry-run", "--job-conf", job_config, "--input-size", "6", "--user", "fairycake@vortex.org", tpv_config)
+        self.assertTrue("name: TEST_JOB_SLOTS" in output,
+                        f"Expected 'name: TEST_JOB_SLOTS' in destination\n{output}")
