@@ -46,49 +46,49 @@ tools:
 
 destinations:
   slurm:
-    cores: 16
-    mem: 64
+    dest_max_cores: 16
+    dest_max_mem: 64
   general_pulsar_1:
-    cores: 8
-    mem: 32
+    dest_max_cores: 8
+    dest_max_mem: 32
     scheduling:
       accept:
         - general
       require:
         - pulsar
   general_pulsar_2:
-    cores: 32
-    mem: 128
+    dest_max_cores: 32
+    dest_max_mem: 128
     scheduling:
       accept:
         - general
       require:
         - pulsar
   highmem_pulsar_1:
-    cores: 128
-    mem: 4096
+    dest_max_cores: 128
+    dest_max_mem: 4096
     scheduling:
       prefer:
         - highmem
       require:
         - pulsar
   highmem_pulsar_2:
-    cores: 128
-    mem: 4096
+    dest_max_cores: 128
+    dest_max_mem: 4096
     scheduling:
       prefer:
         - highmem
       require:
         - pulsar
   training_slurm:
-    cores: 16
-    mem: 64
+    dest_max_cores: 16
+    dest_max_mem: 64
     scheduling:
       require:
         - training
   training_pulsar:
-    cores: 8
-    mem: 32
+    dest_max_cores: 8
+    dest_max_mem: 32
     scheduling:
       require:
         - training

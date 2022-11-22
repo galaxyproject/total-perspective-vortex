@@ -30,9 +30,9 @@ tools:
 
 destinations:
   k8s_environment:
-    cores: 16
-    mem: 64
-    gpus: 2
+    dest_max_cores: 16
+    dest_max_mem: 64
+    dest_max_gpus: 2
     scheduling:
       prefer:
         - pulsar

@@ -316,11 +316,11 @@ class Entity(object):
         :param destination:
         :return:
         """
-        if destination.cores and self.cores and destination.cores < self.cores:
+        if destination.dest_max_cores and self.cores and destination.dest_max_cores < self.cores:
             return False
-        if destination.mem and self.mem and destination.mem < self.mem:
+        if destination.dest_max_mem and self.mem and destination.dest_max_mem < self.mem:
             return False
-        if destination.gpus and self.gpus and destination.gpus < self.gpus:
+        if destination.dest_max_gpus and self.gpus and destination.dest_max_gpus < self.gpus:
             return False
         return self.tags.match(destination.tags or {})
 
@@ -486,19 +486,22 @@ class Role(EntityWithRules):
 
 class Destination(EntityWithRules):
 
-    def __init__(self, loader, id=None, cores=None, mem=None, gpus=None,
+    def __init__(self, loader, id=None, dest_max_cores=None, dest_max_mem=None, dest_max_gpus=None,
                  env=None, params=None, resubmit=None, tags=None, inherits=None, context=None, rules=None):
-        super().__init__(loader, id=id, cores=cores, mem=mem, gpus=gpus, env=env, params=params, resubmit=resubmit,
+        super().__init__(loader, id=id, env=env, params=params, resubmit=resubmit,
                          tags=tags, inherits=inherits, context=context, rules=rules)
+        self.dest_max_cores = dest_max_cores
+        self.dest_max_mem = dest_max_mem
+        self.dest_max_gpus = dest_max_gpus
 
     @staticmethod
     def from_dict(loader, entity_dict):
         return Destination(
             loader=loader,
             id=entity_dict.get('id'),
-            cores=entity_dict.get('cores'),
-            mem=entity_dict.get('mem'),
-            gpus=entity_dict.get('gpus'),
+            dest_max_cores=entity_dict.get('dest_max_cores'),
+            dest_max_mem=entity_dict.get('dest_max_mem'),
+            dest_max_gpus=entity_dict.get('dest_max_gpus'),
             env=entity_dict.get('env'),
             params=entity_dict.get('params'),
             resubmit=entity_dict.get('resubmit'),

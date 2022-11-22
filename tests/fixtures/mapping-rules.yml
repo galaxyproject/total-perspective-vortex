@@ -65,15 +65,15 @@ users:
 
 destinations:
   local:
-    cores: 4
-    mem: 16
+    dest_max_cores: 4
+    dest_max_mem: 16
     scheduling:
       prefer:
         - general
   k8s_environment:
-    cores: 16
-    mem: 64
-    gpus: 2
+    dest_max_cores: 16
+    dest_max_mem: 64
+    dest_max_gpus: 2
     scheduling:
       prefer:
         - pulsar
