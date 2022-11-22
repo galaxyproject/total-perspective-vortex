@@ -55,15 +55,15 @@ users:
 
 destinations:
   local:
-    cores: 4
-    mem: 16
-    scheduling:
+    max_accepted_cores: 4
+    max_accepted_mem: 16
+    tags:
       prefer:
         - general
   k8s_environment:
-    cores: 16
-    mem: 64
-    gpus: 2
-    scheduling:
+    max_accepted_cores: 16
+    max_accepted_mem: 64
+    max_accepted_gpus: 2
+    tags:
       prefer:
         - pulsar

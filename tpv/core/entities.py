@@ -316,15 +316,24 @@ class Entity(object):
         :param destination:
         :return:
         """
-        if destination.cores and self.cores and destination.cores < self.cores:
+        if destination.dest_max_cores and self.cores and destination.dest_max_cores < self.cores:
             return False
-        if destination.mem and self.mem and destination.mem < self.mem:
+        if destination.dest_max_mem and self.mem and destination.dest_max_mem < self.mem:
             return False
-        if destination.gpus and self.gpus and destination.gpus < self.gpus:
+        if destination.dest_max_gpus and self.gpus and destination.dest_max_gpus < self.gpus:
             return False
         return self.tags.match(destination.tags or {})
 
-    def evaluate_early(self, context):
+    def match_resources(self, context):
+        if self.max_accepted_cores and self.cores and self.max_accepted_cores < self.cores:
+            return False
+        if self.max_accepted_mem and self.mem and self.max_accepted_mem < self.mem:
+            return False
+        if self.max_accepted_gpus and self.gpus and self.max_accepted_gpus < self.gpus:
+            return False
+        return True
+
+    def evaluate(self, context):
         """
         Evaluate expressions in entity properties that must be evaluated early, which
         is to say, evaluated prior to combining entity requirements. These properties
@@ -486,19 +495,37 @@ class Role(EntityWithRules):
 
 class Destination(EntityWithRules):
 
-    def __init__(self, loader, id=None, cores=None, mem=None, gpus=None,
-                 env=None, params=None, resubmit=None, tags=None, inherits=None, context=None, rules=None):
-        super().__init__(loader, id=id, cores=cores, mem=mem, gpus=gpus, env=env, params=params, resubmit=resubmit,
-                         tags=tags, inherits=inherits, context=context, rules=rules)
+    def __init__(self, loader, id=None, dest_name=None, cores=None, mem=None, gpus=None, min_cores=None, min_mem=None,
+                 min_gpus=None, max_cores=None, max_mem=None, max_gpus=None, max_accepted_cores=None, max_accepted_mem=None,
+                 max_accepted_gpus=None, env=None, params=None, resubmit=None, dest_tags=None, inherits=None, context=None,
+                 rules=None):
+        super().__init__(loader, id=id, cores=cores, mem=mem, gpus=gpus, min_cores=min_cores, min_mem=min_mem,
+                         min_gpus=min_gpus, max_cores=max_cores, max_mem=max_mem, max_gpus=max_gpus, env=env,
+                         params=params, resubmit=resubmit, tags=None, inherits=inherits, context=context, rules=rules)
+        self.dest_name = dest_name or id
+        self.max_accepted_cores = max_accepted_cores
+        self.max_accepted_mem = max_accepted_mem
+        self.max_accepted_gpus = max_accepted_gpus
+        self.dest_tags = TagSetManager.from_dict(dest_tags or {})
 
     @staticmethod
     def from_dict(loader, entity_dict):
         return Destination(
             loader=loader,
             id=entity_dict.get('id'),
+            dest_name=entity_dict.get('dest_name'),
             cores=entity_dict.get('cores'),
             mem=entity_dict.get('mem'),
             gpus=entity_dict.get('gpus'),
+            min_cores=entity_dict.get('min_cores'),
+            min_mem=entity_dict.get('min_mem'),
+            min_gpus=entity_dict.get('min_gpus'),
+            max_cores=entity_dict.get('max_cores'),
+            max_mem=entity_dict.get('max_mem'),
+            max_gpus=entity_dict.get('max_gpus'),
+            max_accepted_cores=entity_dict.get('max_accepted_cores'),
+            max_accepted_mem=entity_dict.get('max_accepted_mem'),
+            max_accepted_gpus=entity_dict.get('max_accepted_gpus'),
             env=entity_dict.get('env'),
             params=entity_dict.get('params'),
             resubmit=entity_dict.get('resubmit'),
@@ -507,6 +534,11 @@ class Destination(EntityWithRules):
             context=entity_dict.get('context'),
             rules=entity_dict.get('rules')
         )
+
+    def __repr__(self):
+        return super().__repr__() +\
+               f", dest_name={self.dest_name}, max_accepted_cores={self.max_accepted_cores}, max_accepted_mem={self.max_accepted_mem},"\
+               f" max_accepted_gpus={self.max_accepted_gpus}, dest_tags={self.dest_tags if self.dest_tags else ''} "
 
 
 class Rule(Entity):

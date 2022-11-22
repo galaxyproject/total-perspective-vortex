@@ -55,50 +55,50 @@ tools:
 
 destinations:
   slurm:
-    cores: 16
-    mem: 64
+    max_accepted_cores: 16
+    max_accepted_mem: 64
   general_pulsar_1:
-    cores: 8
-    mem: 32
-    scheduling:
+    max_accepted_cores: 8
+    max_accepted_mem: 32
+    tags:
       accept:
         - general
       require:
         - pulsar
   general_pulsar_2:
-    cores: 32
-    mem: 128
-    scheduling:
+    max_accepted_cores: 32
+    max_accepted_mem: 128
+    tags:
       accept:
         - general
       require:
         - pulsar
   highmem_pulsar_1:
-    cores: 128
-    mem: 4096
-    scheduling:
+    max_accepted_cores: 128
+    max_accepted_mem: 4096
+    tags:
       prefer:
         - highmem
       require:
         - pulsar
   highmem_pulsar_2:
-    cores: 128
-    mem: 4096
-    scheduling:
+    max_accepted_cores: 128
+    max_accepted_mem: 4096
+    tags:
       prefer:
         - highmem
       require:
         - pulsar
   training_slurm:
-    cores: 16
-    mem: 64
-    scheduling:
+    max_accepted_cores: 16
+    max_accepted_mem: 64
+    tags:
       require:
         - training
   training_pulsar:
-    cores: 8
-    mem: 32
-    scheduling:
+    max_accepted_cores: 8
+    max_accepted_mem: 32
+    tags:
       require:
         - training
         - pulsar
