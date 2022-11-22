@@ -62,40 +62,57 @@ class TPVConfigFormatter(object):
         :param sort_order_dict:
         :return:
         """
-        if not isinstance(dict_to_sort, dict):
+        if not sort_order:
             return dict_to_sort
-        sorted_keys = sorted(dict_to_sort or [], key=TPVConfigFormatter.generic_key_sorter(sort_order.keys()))
-        return {key: TPVConfigFormatter.multi_level_dict_sorter(dict_to_sort.get(key),
-                                                                sort_order.get(key, {}) or sort_order.get('*', {}))
-                for key in sorted_keys}
+        if isinstance(dict_to_sort, dict):
+            sorted_keys = sorted(dict_to_sort or [], key=TPVConfigFormatter.generic_key_sorter(sort_order.keys()))
+            return {key: TPVConfigFormatter.multi_level_dict_sorter(dict_to_sort.get(key),
+                                                                    sort_order.get(key, {}) or sort_order.get('*', {}))
+                    for key in sorted_keys}
+        elif isinstance(dict_to_sort, list):
+            sorted_items = sorted(dict_to_sort or [], key=TPVConfigFormatter.generic_key_sorter(sort_order.keys()))
+            return [TPVConfigFormatter.multi_level_dict_sorter(item, sort_order.get('*', []))
+                    for item in sorted_items]
+        else:
+            return dict_to_sort
 
     def format(self):
         default_inherits = self.yaml_dict.get('global', {}).get('default_inherits') or 'default'
-        entity_sort_order = {
-            default_inherits: {},
-            '*': {
-                'gpus': {},
-                'cores': {},
-                'mem': {},
-                'env': {},
-                'params': {},
-                'scheduling': {
-                    'require': {},
-                    'prefer': {},
-                    'accept': {},
-                    'reject': {},
-                },
-                'rules': {}
+
+        basic_entity_sort_order = {
+            'if': {},
+            'context': {},
+            'gpus': {},
+            'cores': {},
+            'mem': {},
+            'env': {},
+            'params': {},
+            'scheduling': {
+                'require': {},
+                'prefer': {},
+                'accept': {},
+                'reject': {},
             }
         }
-        field_sort_order = {
-            'global': {},
-            'tools': entity_sort_order,
-            'users': entity_sort_order,
-            'roles': entity_sort_order,
-            'destinations': entity_sort_order,
+
+        entity_with_rules_sort_order = {
+            default_inherits: {},
+            '*': {
+                **basic_entity_sort_order,
+                'rules': {
+                    '*': basic_entity_sort_order
+                }
+            }
         }
-        return self.multi_level_dict_sorter(self.yaml_dict, field_sort_order)
+
+        global_field_sort_order = {
+            'global': {},
+            'tools': entity_with_rules_sort_order,
+            'roles': entity_with_rules_sort_order,
+            'users': entity_with_rules_sort_order,
+            'destinations': entity_with_rules_sort_order,
+        }
+        return self.multi_level_dict_sorter(self.yaml_dict, global_field_sort_order)
 
     @staticmethod
     def from_url_or_path(url_or_path: str):

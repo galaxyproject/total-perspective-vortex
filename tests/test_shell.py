@@ -78,11 +78,55 @@ class TPVShellTestCase(unittest.TestCase):
         self.assertEqual(list(before_formatting['destinations']).index('base_default'), 2)
         self.assertEqual(list(after_formatting['destinations']).index('base_default'), 0)
 
-        # nested keys should be in expected order
+        # scheduling tags should be in expected order
         self.assertEqual(list(before_formatting['tools']['base_default']['scheduling'].keys()),
                          ["prefer", "accept", "reject", "require"])
         self.assertEqual(list(after_formatting['tools']['base_default']['scheduling'].keys()),
                          ["require", "prefer", "accept", "reject"])
+
+        # context var order should not be changed
+        self.assertEqual(list(before_formatting['tools']['base_default']['context'].keys()),
+                         list(after_formatting['tools']['base_default']['context'].keys()))
+
+        # params order should not be changed
+        self.assertEqual(list(before_formatting['tools']['base_default']['params'].keys()),
+                         list(after_formatting['tools']['base_default']['params'].keys()))
+
+        # env order should not be changed
+        self.assertEqual(list(before_formatting['tools']['base_default']['env'].keys()),
+                         list(after_formatting['tools']['base_default']['env'].keys()))
+
+    def test_format_rules(self):
+        tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/formatter/formatter-basic.yml')
+        with open(tpv_config) as f:
+            before_formatting = yaml.safe_load(f)
+
+        output = self.call_shell_command("tpv", "format", tpv_config)
+        after_formatting = yaml.safe_load(output)
+
+        # rules should be in expected order
+        self.assertEqual(list(before_formatting['tools']['.*hifiasm.*']['rules'][0].keys()),
+                         ['mem', 'if', 'cores', 'context', 'params', 'env', 'scheduling'])
+        self.assertEqual(list(after_formatting['tools']['.*hifiasm.*']['rules'][0].keys()),
+                         ['if', 'context', 'cores', 'mem', 'env', 'params', 'scheduling'])
+
+        # scheduling tags within rules should be in expected order
+        self.assertEqual(list(before_formatting['tools']['.*hifiasm.*']['rules'][0]['scheduling'].keys()),
+                         ['accept', 'prefer', 'reject', 'require'])
+        self.assertEqual(list(after_formatting['tools']['.*hifiasm.*']['rules'][0]['scheduling'].keys()),
+                         ["require", "prefer", "accept", "reject"])
+
+        # context var order should not be changed
+        self.assertEqual(list(before_formatting['tools']['.*hifiasm.*']['rules'][0]['context'].keys()),
+                         list(after_formatting['tools']['.*hifiasm.*']['rules'][0]['context'].keys()))
+
+        # params order should not be changed
+        self.assertEqual(list(before_formatting['tools']['.*hifiasm.*']['rules'][0]['params'].keys()),
+                         list(after_formatting['tools']['.*hifiasm.*']['rules'][0]['params'].keys()))
+
+        # env order should not be changed
+        self.assertEqual(list(before_formatting['tools']['.*hifiasm.*']['rules'][0]['env'].keys()),
+                         list(after_formatting['tools']['.*hifiasm.*']['rules'][0]['env'].keys()))
 
     def test_format_error(self):
         tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/file-does-not-exist.yml')
