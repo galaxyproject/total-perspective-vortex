@@ -85,8 +85,12 @@ class TPVConfigFormatter(object):
             'gpus': {},
             'cores': {},
             'mem': {},
-            'env': {},
-            'params': {},
+            'env': {
+                '*': {}
+            },
+            'params': {
+                '*': {}
+            },
             'scheduling': {
                 'require': {},
                 'prefer': {},

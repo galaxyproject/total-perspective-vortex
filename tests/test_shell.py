@@ -86,15 +86,21 @@ class TPVShellTestCase(unittest.TestCase):
 
         # context var order should not be changed
         self.assertEqual(list(before_formatting['tools']['base_default']['context'].keys()),
+                         ['my_context_var1', 'another_context_var2'])
+        self.assertEqual(list(before_formatting['tools']['base_default']['context'].keys()),
                          list(after_formatting['tools']['base_default']['context'].keys()))
 
-        # params order should not be changed
+        # params should be in alphabetical order
         self.assertEqual(list(before_formatting['tools']['base_default']['params'].keys()),
-                         list(after_formatting['tools']['base_default']['params'].keys()))
+                         ['nativeSpecification', 'anotherParam'])
+        self.assertEqual(list(after_formatting['tools']['base_default']['params'].keys()),
+                         ['anotherParam', 'nativeSpecification'])
 
-        # env order should not be changed
+        # env should be in alphabetical order
         self.assertEqual(list(before_formatting['tools']['base_default']['env'].keys()),
-                         list(after_formatting['tools']['base_default']['env'].keys()))
+                         ['some_env', 'another_env'])
+        self.assertEqual(list(after_formatting['tools']['base_default']['env'].keys()),
+                         ['another_env', 'some_env'])
 
     def test_format_rules(self):
         tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/formatter/formatter-basic.yml')
@@ -118,15 +124,21 @@ class TPVShellTestCase(unittest.TestCase):
 
         # context var order should not be changed
         self.assertEqual(list(before_formatting['tools']['.*hifiasm.*']['rules'][0]['context'].keys()),
+                         ['myvar', 'anothervar'])
+        self.assertEqual(list(before_formatting['tools']['.*hifiasm.*']['rules'][0]['context'].keys()),
                          list(after_formatting['tools']['.*hifiasm.*']['rules'][0]['context'].keys()))
 
         # params order should not be changed
         self.assertEqual(list(before_formatting['tools']['.*hifiasm.*']['rules'][0]['params'].keys()),
-                         list(after_formatting['tools']['.*hifiasm.*']['rules'][0]['params'].keys()))
+                         ['MY_PARAM2', 'MY_PARAM1'])
+        self.assertEqual(list(after_formatting['tools']['.*hifiasm.*']['rules'][0]['params'].keys()),
+                         ['MY_PARAM1', 'MY_PARAM2'])
 
         # env order should not be changed
         self.assertEqual(list(before_formatting['tools']['.*hifiasm.*']['rules'][0]['env'].keys()),
-                         list(after_formatting['tools']['.*hifiasm.*']['rules'][0]['env'].keys()))
+                         ['SOME_ENV2', 'SOME_ENV1'])
+        self.assertEqual(list(after_formatting['tools']['.*hifiasm.*']['rules'][0]['env'].keys()),
+                         ['SOME_ENV1', 'SOME_ENV2'])
 
     def test_format_error(self):
         tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/file-does-not-exist.yml')
