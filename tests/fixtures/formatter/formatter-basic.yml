@@ -78,6 +78,7 @@ tools:
     rules:
       - mem: cores * 4
         if: input_size >= 0.2
+        id: my_rule_2
         cores: 16
         context:
           myvar: "test1"
@@ -95,3 +96,7 @@ tools:
           reject:
             - offline
           require:
+      - mem: cores * 4
+        if: input_size >= 0.8
+        cores: 8
+        id: my_rule_1

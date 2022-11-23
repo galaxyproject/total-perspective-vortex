@@ -110,11 +110,17 @@ class TPVShellTestCase(unittest.TestCase):
         output = self.call_shell_command("tpv", "format", tpv_config)
         after_formatting = yaml.safe_load(output)
 
-        # rules should be in expected order
+        # rules should remain in original order
+        self.assertEqual(before_formatting['tools']['.*hifiasm.*']['rules'][0]['id'], "my_rule_2")
+        self.assertEqual(after_formatting['tools']['.*hifiasm.*']['rules'][0]['id'], "my_rule_2")
+        self.assertEqual(before_formatting['tools']['.*hifiasm.*']['rules'][1]['id'], "my_rule_1")
+        self.assertEqual(after_formatting['tools']['.*hifiasm.*']['rules'][1]['id'], "my_rule_1")
+
+        # rule elements should be in expected order
         self.assertEqual(list(before_formatting['tools']['.*hifiasm.*']['rules'][0].keys()),
-                         ['mem', 'if', 'cores', 'context', 'params', 'env', 'scheduling'])
+                         ['mem', 'if', 'id', 'cores', 'context', 'params', 'env', 'scheduling'])
         self.assertEqual(list(after_formatting['tools']['.*hifiasm.*']['rules'][0].keys()),
-                         ['if', 'context', 'cores', 'mem', 'env', 'params', 'scheduling'])
+                         ['id', 'if', 'context', 'cores', 'mem', 'env', 'params', 'scheduling'])
 
         # scheduling tags within rules should be in expected order
         self.assertEqual(list(before_formatting['tools']['.*hifiasm.*']['rules'][0]['scheduling'].keys()),

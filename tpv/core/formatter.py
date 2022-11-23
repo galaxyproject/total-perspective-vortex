@@ -70,9 +70,8 @@ class TPVConfigFormatter(object):
                                                                     sort_order.get(key, {}) or sort_order.get('*', {}))
                     for key in sorted_keys}
         elif isinstance(dict_to_sort, list):
-            sorted_items = sorted(dict_to_sort or [], key=TPVConfigFormatter.generic_key_sorter(sort_order.keys()))
             return [TPVConfigFormatter.multi_level_dict_sorter(item, sort_order.get('*', []))
-                    for item in sorted_items]
+                    for item in dict_to_sort]
         else:
             return dict_to_sort
 
@@ -80,6 +79,7 @@ class TPVConfigFormatter(object):
         default_inherits = self.yaml_dict.get('global', {}).get('default_inherits') or 'default'
 
         basic_entity_sort_order = {
+            'id': {},
             'if': {},
             'context': {},
             'gpus': {},
