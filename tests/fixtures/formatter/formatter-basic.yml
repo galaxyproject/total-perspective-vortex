@@ -52,6 +52,9 @@ tools:
         - pulsar
   base_default:
     mem: cores * 3 # note, some clusters will tolerate more than this
+    context:
+      my_context_var1: "hello"
+      another_context_var2: "world"
     cores: 1
     scheduling:
       prefer:
@@ -62,7 +65,10 @@ tools:
       require:
     params:
       nativeSpecification: "--nodes=1 --ntasks={cores} --ntasks-per-node={cores} --mem={mem*1024}"
-    env: {}
+      anotherParam: "hello"
+    env:
+      some_env: "1"
+      another_env: "1"
     rules: []
   '.*hifiasm.*':
     cores: 2
@@ -70,5 +76,27 @@ tools:
       prefer:
         - pulsar
     rules:
-      - if: input_size >= 0.2
+      - mem: cores * 4
+        if: input_size >= 0.2
+        id: my_rule_2
         cores: 16
+        context:
+          myvar: "test1"
+          anothervar: "test2"
+        params:
+          MY_PARAM2: "2"
+          MY_PARAM1: "1"
+        env:
+          SOME_ENV2: "2"
+          SOME_ENV1: "1"
+        scheduling:
+          accept:
+            - general
+          prefer:
+          reject:
+            - offline
+          require:
+      - mem: cores * 4
+        if: input_size >= 0.8
+        cores: 8
+        id: my_rule_1
