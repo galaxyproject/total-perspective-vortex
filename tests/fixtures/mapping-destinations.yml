@@ -75,7 +75,7 @@ destinations:
         execute: |
           from tpv.core.entities import TryNextDestinationOrFail
           raise TryNextDestinationOrFail("job size too large for this destination")
-    scheduling:
+    tags:
       prefer:
         - pulsar
   another_k8s_environment:
@@ -93,7 +93,7 @@ destinations:
         execute: |
           from tpv.core.entities import TryNextDestinationOrFail
           raise TryNextDestinationOrFail("job size too large for this destination too")
-    scheduling:
+    tags:
       prefer:
         - pulsar
         - highmem
@@ -106,7 +106,7 @@ destinations:
       SPECIAL_FLAG: "third"
     params:
       memory_requests: "{mem*3}"
-    scheduling:
+    tags:
       require:
         - inherited
   custom_naming:
@@ -118,6 +118,6 @@ destinations:
     params:
       memory_requests: "{mem*3}"
       destination_name_override: 'my-dest-with-{cores}-cores-{mem}-mem'
-    scheduling:
+    tags:
       require:
         - custom

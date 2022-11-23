@@ -50,7 +50,7 @@ class EntityToDestinationMapper(object):
             'entity': entities[0] if entities else entity,
             'self': entity
         })
-        return entity.evaluate_early(context)
+        return entity.evaluate(context)
 
     def evaluate_entities_early(self, entities, context):
         return [self.evaluate_entity_early(entities, entity, context) for entity in entities]
@@ -70,16 +70,20 @@ class EntityToDestinationMapper(object):
     def rank(self, entity, destinations, context):
         return entity.rank_destinations(destinations, context)
 
-    def find_best_matches(self, entity, destinations, context):
-        matches = [dest for dest in destinations.values() if entity.matches(dest, context)]
-        return self.rank(entity, matches, context)
+    def find_destinations_with_matching_tags(self, entity, destinations, context):
+        return [dest for dest in destinations.values() if entity.match_tags(dest, context)]
 
-    def configure_gxy_destination(self, gxy_destination, entity):
-        if entity.env:
-            gxy_destination.env += [dict(name=k, value=v) for (k, v) in entity.env.items()]
-        gxy_destination.params.update(entity.params or {})
-        if entity.resubmit:
-            gxy_destination.resubmit += entity.resubmit.values()
+    def rank_matching_resources(self, evaluated_entities, context):
+        matches = [e for e in evaluated_entities if e.match_resources(context)]
+        return self.rank(matches[0], matches, context)
+
+    def configure_gxy_destination(self, app, d):
+        gxy_destination = app.job_config.get_destination(d.dest_name)
+        if d.env:
+            gxy_destination.env += [dict(name=k, value=v) for (k, v) in d.env.items()]
+        gxy_destination.params.update(d.params or {})
+        if d.resubmit:
+            gxy_destination.resubmit += d.resubmit.values()
         return gxy_destination
 
     def _find_matching_entities(self, tool, user):
@@ -104,7 +108,7 @@ class EntityToDestinationMapper(object):
 
         return entity_list
 
-    def match_combine_evaluate_entities(self, app, tool, user, job):
+    def match_and_combine_entities(self, app, tool, user, job):
         # 1. Find the entities relevant to this job
         entity_list = self._find_matching_entities(tool, user)
 
@@ -119,53 +123,48 @@ class EntityToDestinationMapper(object):
             'mapper': self
         })
 
-        # 3. Evaluate entity properties that must be evaluated early, prior to combining
-        early_evaluated_entities = self.evaluate_entities_early(entity_list, context)
-
-        # 4. Combine entity requirements
-        combined_entity = self.combine_entities(early_evaluated_entities)
+        # 3. Combine entity requirements
+        partially_combined_entity = self.combine_entities(entity_list)
         context.update({
-            'entity': combined_entity,
-            'self': combined_entity
+            'entity': partially_combined_entity,
+            'self': partially_combined_entity
         })
 
-        # 5. Evaluate remaining expressions after combining requirements
-        late_evaluated_entity = combined_entity.evaluate_late(context)
-        context.update({
-            'entity': late_evaluated_entity,
-            'self': late_evaluated_entity
-        })
-
-        return context, late_evaluated_entity
+        return context, partially_combined_entity
 
     def map_to_destination(self, app, tool, user, job):
         # 1. Find, combine and evaluate entities that match this tool and user
-        context, late_evaluated_entity = self.match_combine_evaluate_entities(app, tool, user, job)
+        context, partially_combined_entity = self.match_and_combine_entities(app, tool, user, job)
 
-        # 2. Find best matching destination for the combined entity
-        ranked_dest_entities = self.find_best_matches(late_evaluated_entity, self.destinations, context)
+        # 2. Shortlist destinations with tags that match the combined entity
+        matching_dest_entities = self.find_destinations_with_matching_tags(partially_combined_entity, self.destinations,
+                                                                           context)
 
-        # 3. Return galaxy destination with params added
-        if ranked_dest_entities:
+        # 3. Fully combine entity with matching destinations
+        evaluated_entities = []
+        if matching_dest_entities:
             wait_exception_raised = False
-            for d in ranked_dest_entities:
+            for d in matching_dest_entities:
                 try:  # An exception here signifies that a destination rule did not match
-                    # Evaluate the destinations as regular entities
-                    early_evaluated_destination = self.evaluate_entity_early([late_evaluated_entity, d], d, context)
-                    dest_combined_entity = early_evaluated_destination.combine(late_evaluated_entity)
-                    final_combined_entity = dest_combined_entity.evaluate_late(context)
-                    gxy_destination = app.job_config.get_destination(d.id)
-                    if final_combined_entity.params.get('destination_name_override'):
-                        gxy_destination.id = final_combined_entity.params.get('destination_name_override')
-                    return self.configure_gxy_destination(gxy_destination, final_combined_entity)
+                    fully_combined_entity = d.combine(partially_combined_entity)
+                    evaluated_entity = fully_combined_entity.evaluate(context)
+                    evaluated_entities.append(evaluated_entity)
                 except TryNextDestinationOrFail as ef:
                     log.exception(f"Destination entity: {d} matched but could not fulfill requirements due to: {ef}."
                                   " Trying next candidate...")
                 except TryNextDestinationOrWait:
                     wait_exception_raised = True
+                except Exception:
+                    # Anything else, fail fast
+                    raise
             if wait_exception_raised:
                 raise JobNotReadyException()
 
-        # 8. No matching destinations. Throw an exception
+        if evaluated_entities:
+            ranked = self.rank_matching_resources(evaluated_entities, context)
+            gxy_destination = ranked[0]
+            return self.configure_gxy_destination(app, gxy_destination)
+
+        # No matching destinations. Throw an exception
         from galaxy.jobs.mapper import JobMappingException
-        raise JobMappingException(f"No destinations are available to fulfill request: {late_evaluated_entity.id}")
+        raise JobMappingException(f"No destinations are available to fulfill request: {partially_combined_entity.id}")
