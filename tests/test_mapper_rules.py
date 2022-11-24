@@ -145,7 +145,7 @@ class TestMapperRules(unittest.TestCase):
         tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rule-execute.yml')
         destination = self._map_to_destination(tool, user, datasets, tpv_config_files=[tpv_config])
         self.assertEqual(destination.params['my_brand_new_param'], "hello_world")
-        self.assertEqual(destination.params['native_spec'], '--mem 6 --cores 8')
+        self.assertEqual(destination.params['native_spec'], '--mem 24 --cores 8')
 
     def test_job_args_match_helper(self):
         tool = mock_galaxy.Tool('limbo')

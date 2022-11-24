@@ -331,7 +331,7 @@ class Entity(object):
         new_entity.tags = self.tags.combine(entity.tags)
         return new_entity
 
-    def match_tags(self, destination, context):
+    def matches(self, destination, context):
         """
         The match operation checks whether all of the require tags in an entity are present
         in the destination entity, and none of the reject tags in the first entity are
@@ -342,16 +342,13 @@ class Entity(object):
         :param destination:
         :return:
         """
+        if destination.max_accepted_cores and self.cores and destination.max_accepted_cores < self.cores:
+            return False
+        if destination.max_accepted_mem and self.mem and destination.max_accepted_mem < self.mem:
+            return False
+        if destination.max_accepted_gpus and self.gpus and destination.max_accepted_gpus < self.gpus:
+            return False
         return self.tags.match(destination.dest_tags or {})
-
-    def match_resources(self, context):
-        if self.max_accepted_cores and self.cores and self.max_accepted_cores < self.cores:
-            return False
-        if self.max_accepted_mem and self.mem and self.max_accepted_mem < self.mem:
-            return False
-        if self.max_accepted_gpus and self.gpus and self.max_accepted_gpus < self.gpus:
-            return False
-        return True
 
     def evaluate(self, context):
         """
@@ -422,7 +419,7 @@ class Entity(object):
             return sorted(destinations, key=lambda d: d.score(self), reverse=True)
 
     def score(self, entity):
-        score = self.tags.score(entity.tags)
+        score = self.dest_tags.score(entity.tags)
         log.debug(f"Destination: {entity} scored: {score}")
         return score
 
