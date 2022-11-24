@@ -48,8 +48,8 @@ users:
         - earth
     rules:
       - if: True
-        cores: 6
-        mem: cores * 6
+        max_cores: 6
+        max_mem: cores * 6
       - if: input_size >= 5
         fail: Just because
   improbable@vortex.org:

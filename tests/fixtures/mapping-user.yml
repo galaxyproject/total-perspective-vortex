@@ -22,8 +22,8 @@ tools:
         - pulsar
 users:
   default:
-    cores: 3
-    mem: 4
+    max_cores: 3
+    max_mem: 4
     env: {}
     scheduling:
       require: []
@@ -38,8 +38,8 @@ users:
       require:
         - pulsar
   fairycake@vortex.org:
-    cores: 1
-    mem: 16
+    max_cores: 1
+    max_mem: 16
     env: {}
     scheduling:
       require:

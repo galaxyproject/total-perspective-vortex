@@ -313,8 +313,9 @@ class Entity(object):
         If both entities define cpu, memory and gpu requirements, the lower of those requirements are used.
         This provides a mechanism for limiting the maximum memory used by a particular Group or User.
 
-        The general hierarchy of entities in vortex is User > Role > Tool and therefore, these entity
-        are usually merged as: tool.combine(role).combine(user), to produce a final set of tool requirements.
+        The general hierarchy of entities in vortex is Destination > User > Role > Tool and therefore, these entity
+        are usually merged as: destination.combine(user).combine(role).combine(tool), to produce a final set of tool
+        requirements.
 
         The combined requirements can then be matched against the destination, through the match operation.
 
@@ -358,14 +359,41 @@ class Entity(object):
         """
         new_entity = copy.deepcopy(self)
         context.update(self.context or {})
+        if self.min_gpus:
+            new_entity.min_gpus = self.loader.eval_code_block(self.min_gpus, context)
+            context['min_gpus'] = new_entity.min_gpus
+        if self.min_cores:
+            new_entity.min_cores = self.loader.eval_code_block(self.min_cores, context)
+            context['min_cores'] = new_entity.min_cores
+        if self.min_mem:
+            new_entity.min_mem = self.loader.eval_code_block(self.min_mem, context)
+            context['min_mem'] = new_entity.min_mem
+        if self.max_gpus:
+            new_entity.max_gpus = self.loader.eval_code_block(self.max_gpus, context)
+            context['max_gpus'] = new_entity.max_gpus
+        if self.max_cores:
+            new_entity.max_cores = self.loader.eval_code_block(self.max_cores, context)
+            context['max_cores'] = new_entity.max_cores
+        if self.max_mem:
+            new_entity.max_mem = self.loader.eval_code_block(self.max_mem, context)
+            context['max_mem'] = new_entity.max_mem
         if self.gpus:
             new_entity.gpus = self.loader.eval_code_block(self.gpus, context)
+            # clamp gpus
+            new_entity.gpus = max(new_entity.min_gpus or 0, new_entity.gpus or 0)
+            new_entity.gpus = min(new_entity.max_gpus, new_entity.gpus) if new_entity.max_gpus else new_entity.gpus
             context['gpus'] = new_entity.gpus
         if self.cores:
             new_entity.cores = self.loader.eval_code_block(self.cores, context)
+            # clamp cores
+            new_entity.cores = max(new_entity.min_cores or 0, new_entity.cores or 0)
+            new_entity.cores = min(new_entity.max_cores, new_entity.cores) if new_entity.max_cores else new_entity.cores
             context['cores'] = new_entity.cores
         if self.mem:
             new_entity.mem = self.loader.eval_code_block(self.mem, context)
+            # clamp mem
+            new_entity.mem = max(new_entity.min_mem or 0, new_entity.mem or 0)
+            new_entity.mem = min(new_entity.max_mem, new_entity.mem or 0) if new_entity.max_mem else new_entity.mem
             context['mem'] = new_entity.mem
         if self.env:
             new_entity.env = self.evaluate_complex_property(self.env, context)
@@ -376,6 +404,7 @@ class Entity(object):
         if self.resubmit:
             new_entity.resubmit = self.evaluate_complex_property(self.resubmit, context)
             context['resubmit'] = new_entity.resubmit
+
         return new_entity
 
     def rank_destinations(self, destinations, context):
@@ -545,6 +574,19 @@ class Destination(EntityWithRules):
                f", dest_name={self.dest_name}, max_accepted_cores={self.max_accepted_cores}, "\
                f"max_accepted_mem={self.max_accepted_mem}, max_accepted_gpus={self.max_accepted_gpus}, "\
                f"dest_tags={self.dest_tags if self.dest_tags else ''} "
+
+    def evaluate(self, context):
+        new_entity = super(Destination, self).evaluate(context)
+        if self.max_accepted_gpus:
+            new_entity.max_accepted_gpus = self.loader.eval_code_block(self.max_accepted_gpus, context)
+            context['max_accepted_gpus'] = new_entity.max_accepted_gpus
+        if self.max_accepted_cores:
+            new_entity.max_accepted_cores = self.loader.eval_code_block(self.max_accepted_cores, context)
+            context['max_accepted_cores'] = new_entity.max_accepted_cores
+        if self.max_accepted_mem:
+            new_entity.max_accepted_mem = self.loader.eval_code_block(self.max_accepted_mem, context)
+            context['max_accepted_mem'] = new_entity.max_accepted_mem
+        return new_entity
 
 
 class Rule(Entity):

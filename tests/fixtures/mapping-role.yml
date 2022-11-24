@@ -23,8 +23,8 @@ tools:
         - pulsar
 users:
   default:
-    cores: 3
-    mem: 8
+    max_cores: 3
+    max_mem: 8
     env: {}
     scheduling:
       require: []
@@ -57,8 +57,8 @@ users:
 
 roles:
   default:
-    cores: 8
-    mem: 8
+    max_cores: 8
+    max_mem: 8
     env: []
     scheduling:
       require:
