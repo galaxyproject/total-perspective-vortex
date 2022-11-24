@@ -146,7 +146,7 @@ class EntityToDestinationMapper(object):
             wait_exception_raised = False
             for d in matching_dest_entities:
                 try:  # An exception here signifies that a destination rule did not match
-                    fully_combined_entity = d.combine(partially_combined_entity)
+                    fully_combined_entity = partially_combined_entity.combine(d)
                     evaluated_entity = fully_combined_entity.evaluate(context)
                     evaluated_entities.append(evaluated_entity)
                 except TryNextDestinationOrFail as ef:

@@ -271,7 +271,11 @@ class Entity(object):
                f"rank={self.rank[:10] if self.rank else ''}, inherits={self.inherits}, context={self.context}"
 
     def override(self, entity):
-        new_entity = copy.copy(entity)
+        if issubclass(type(entity), type(self)):
+            # Use the broader class as a base when copying. Useful in particular for Rules
+            new_entity = copy.copy(self)
+        else:
+            new_entity = copy.copy(entity)
         new_entity.id = self.id or entity.id
         new_entity.cores = self.cores or entity.cores
         new_entity.mem = self.mem or entity.mem
@@ -483,6 +487,9 @@ class EntityWithRules(Entity):
         for rule in self.rules.values():
             if rule.is_matching(context):
                 rule = rule.evaluate(context)
+                context.update({
+                    'entity': rule
+                })
                 new_entity = rule.inherit(new_entity)
                 new_entity.gpus = rule.gpus or self.gpus
                 new_entity.cores = rule.cores or self.cores
@@ -574,6 +581,17 @@ class Destination(EntityWithRules):
                f", dest_name={self.dest_name}, max_accepted_cores={self.max_accepted_cores}, "\
                f"max_accepted_mem={self.max_accepted_mem}, max_accepted_gpus={self.max_accepted_gpus}, "\
                f"dest_tags={self.dest_tags if self.dest_tags else ''} "
+
+    def override(self, entity):
+        new_entity = super().override(entity)
+        new_entity.dest_name = self.dest_name if self.dest_name is not None else getattr(entity, 'dest_name', None)
+        new_entity.max_accepted_cores = (self.max_accepted_cores if self.max_accepted_cores is not None
+                                         else getattr(entity, 'max_accepted_cores', None))
+        new_entity.max_accepted_mem = (self.max_accepted_mem if self.max_accepted_mem is not None
+                                       else getattr(entity, 'max_accepted_mem', None))
+        new_entity.max_accepted_gpus = (self.max_accepted_gpus if self.max_accepted_gpus is not None
+                                        else getattr(entity, 'max_accepted_gpus', None))
+        return new_entity
 
     def evaluate(self, context):
         new_entity = super(Destination, self).evaluate(context)
