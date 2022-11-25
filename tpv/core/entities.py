@@ -326,9 +326,9 @@ class Entity(object):
         :param entity:
         :return:
         """
-        new_entity = entity.override(self)
+        new_entity = self.override(entity)
         new_entity.id = f"{type(self).__name__}: {self.id}, {type(entity).__name__}: {entity.id}"
-        new_entity.tags = self.tags.combine(entity.tags)
+        new_entity.tags = entity.tags.combine(self.tags)
         return new_entity
 
     def matches(self, destination, context):

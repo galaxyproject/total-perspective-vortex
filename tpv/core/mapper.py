@@ -63,7 +63,7 @@ class EntityToDestinationMapper(object):
 
     def combine_entities(self, entities):
         if entities:
-            return functools.reduce(lambda a, b: a.combine(b), entities)
+            return functools.reduce(lambda a, b: b.combine(a), entities)
         else:
             return None
 
@@ -151,7 +151,7 @@ class EntityToDestinationMapper(object):
             wait_exception_raised = False
             for d in ranked_dest_entities:
                 try:  # An exception here signifies that a destination rule did not match
-                    dest_combined_entity = evaluated_entity.combine(d)
+                    dest_combined_entity = d.combine(evaluated_entity)
                     evaluated_destination = dest_combined_entity.evaluate(context)
                     gxy_destination = app.job_config.get_destination(d.id)
                     if evaluated_destination.params.get('destination_name_override'):
