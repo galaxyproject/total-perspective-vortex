@@ -70,6 +70,7 @@ class TestMapperDestinations(unittest.TestCase):
         self.assertEqual(destination.id, "inherited_k8s_environment")
         self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_JOB_SLOTS'], ['2'])
         self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_ENTITY_PRIORITY'], ['4'])
+        self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_ENTITY_GPUS'], ['0'])
         self.assertEqual([env['value'] for env in destination.env if env['name'] == 'SPECIAL_FLAG'], ['third'])
         self.assertEqual([env['value'] for env in destination.env if env['name'] == 'DOCKER_ENABLED'], [])
         self.assertEqual(destination.params['memory_requests'], '18')

@@ -5,11 +5,13 @@ tools:
   default:
     cores: 2
     mem: cores * 3
+    gpus: 0
     params:
       nativeSpec: '--cores {cores} --mem {mem}'
     env:
       TEST_JOB_SLOTS: "{cores}"
       TEST_ENTITY_PRIORITY: "{cores}"
+      TEST_ENTITY_GPUS: "{gpus}"
     scheduling:
       require: []
       prefer:

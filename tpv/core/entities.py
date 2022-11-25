@@ -277,15 +277,15 @@ class Entity(object):
         else:
             new_entity = copy.copy(entity)
         new_entity.id = self.id or entity.id
-        new_entity.cores = self.cores or entity.cores
-        new_entity.mem = self.mem or entity.mem
-        new_entity.gpus = self.gpus or entity.gpus
-        new_entity.min_cores = self.min_cores or entity.min_cores
-        new_entity.min_mem = self.min_mem or entity.min_mem
-        new_entity.min_gpus = self.min_gpus or entity.min_gpus
-        new_entity.max_cores = self.max_cores or entity.max_cores
-        new_entity.max_mem = self.max_mem or entity.max_mem
-        new_entity.max_gpus = self.max_gpus or entity.max_gpus
+        new_entity.cores = self.cores if self.cores is not None else entity.cores
+        new_entity.mem = self.mem if self.mem is not None else entity.mem
+        new_entity.gpus = self.gpus if self.gpus is not None else entity.gpus
+        new_entity.min_cores = self.min_cores if self.min_cores is not None else entity.min_cores
+        new_entity.min_mem = self.min_mem if self.min_mem is not None else entity.min_mem
+        new_entity.min_gpus = self.min_gpus if self.min_gpus is not None else entity.min_gpus
+        new_entity.max_cores = self.max_cores if self.max_cores is not None else entity.max_cores
+        new_entity.max_mem = self.max_mem if self.max_mem is not None else entity.max_mem
+        new_entity.max_gpus = self.max_gpus if self.max_gpus is not None else entity.max_gpus
         new_entity.env = copy.copy(entity.env) or {}
         new_entity.env.update(self.env or {})
         new_entity.params = copy.copy(entity.params) or {}
@@ -360,37 +360,37 @@ class Entity(object):
         """
         new_entity = copy.deepcopy(self)
         context.update(self.context or {})
-        if self.min_gpus:
+        if self.min_gpus is not None:
             new_entity.min_gpus = self.loader.eval_code_block(self.min_gpus, context)
             context['min_gpus'] = new_entity.min_gpus
-        if self.min_cores:
+        if self.min_cores is not None:
             new_entity.min_cores = self.loader.eval_code_block(self.min_cores, context)
             context['min_cores'] = new_entity.min_cores
-        if self.min_mem:
+        if self.min_mem is not None:
             new_entity.min_mem = self.loader.eval_code_block(self.min_mem, context)
             context['min_mem'] = new_entity.min_mem
-        if self.max_gpus:
+        if self.max_gpus is not None:
             new_entity.max_gpus = self.loader.eval_code_block(self.max_gpus, context)
             context['max_gpus'] = new_entity.max_gpus
-        if self.max_cores:
+        if self.max_cores is not None:
             new_entity.max_cores = self.loader.eval_code_block(self.max_cores, context)
             context['max_cores'] = new_entity.max_cores
-        if self.max_mem:
+        if self.max_mem is not None:
             new_entity.max_mem = self.loader.eval_code_block(self.max_mem, context)
             context['max_mem'] = new_entity.max_mem
-        if self.gpus:
+        if self.gpus is not None:
             new_entity.gpus = self.loader.eval_code_block(self.gpus, context)
             # clamp gpus
             new_entity.gpus = max(new_entity.min_gpus or 0, new_entity.gpus or 0)
             new_entity.gpus = min(new_entity.max_gpus, new_entity.gpus) if new_entity.max_gpus else new_entity.gpus
             context['gpus'] = new_entity.gpus
-        if self.cores:
+        if self.cores is not None:
             new_entity.cores = self.loader.eval_code_block(self.cores, context)
             # clamp cores
             new_entity.cores = max(new_entity.min_cores or 0, new_entity.cores or 0)
             new_entity.cores = min(new_entity.max_cores, new_entity.cores) if new_entity.max_cores else new_entity.cores
             context['cores'] = new_entity.cores
-        if self.mem:
+        if self.mem is not None:
             new_entity.mem = self.loader.eval_code_block(self.mem, context)
             # clamp mem
             new_entity.mem = max(new_entity.min_mem or 0, new_entity.mem or 0)
