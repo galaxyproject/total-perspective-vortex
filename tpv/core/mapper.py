@@ -133,6 +133,10 @@ class EntityToDestinationMapper(object):
             'self': evaluated_entity
         })
 
+        # Remove the rules as they've already been evaluated, and should not be re-evaluated when combining
+        # with destinations
+        evaluated_entity.rules = {}
+
         return context, evaluated_entity
 
     def map_to_destination(self, app, tool, user, job):
