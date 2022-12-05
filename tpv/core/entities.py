@@ -172,6 +172,8 @@ class TagSetManager(object):
 
 class Entity(object):
 
+    merge_order = 0
+
     def __init__(self, loader, id=None, cores=None, mem=None, gpus=None, min_cores=None, min_mem=None, min_gpus=None,
                  max_cores=None, max_mem=None, max_gpus=None, env=None, params=None, resubmit=None, tags=None,
                  rank=None, inherits=None, context=None):
@@ -271,7 +273,7 @@ class Entity(object):
                f"rank={self.rank[:10] if self.rank else ''}, inherits={self.inherits}, context={self.context}"
 
     def override(self, entity):
-        if issubclass(type(entity), type(self)):
+        if entity.merge_order <= self.merge_order:
             # Use the broader class as a base when copying. Useful in particular for Rules
             new_entity = copy.copy(self)
         else:
@@ -330,25 +332,6 @@ class Entity(object):
         new_entity.id = f"{type(self).__name__}: {self.id}, {type(entity).__name__}: {entity.id}"
         new_entity.tags = entity.tags.combine(self.tags)
         return new_entity
-
-    def matches(self, destination, context):
-        """
-        The match operation checks whether all of the require tags in an entity are present
-        in the destination entity, and none of the reject tags in the first entity are
-        present in the second entity.
-
-        This is used to check compatibility of a final set of combined tool requirements with its destination.
-
-        :param destination:
-        :return:
-        """
-        if destination.max_accepted_cores and self.cores and destination.max_accepted_cores < self.cores:
-            return False
-        if destination.max_accepted_mem and self.mem and destination.max_accepted_mem < self.mem:
-            return False
-        if destination.max_accepted_gpus and self.gpus and destination.max_accepted_gpus < self.gpus:
-            return False
-        return self.tags.match(destination.dest_tags or {})
 
     def evaluate(self, context):
         """
@@ -418,13 +401,10 @@ class Entity(object):
             log.debug(f"Ranking destinations: {destinations} for entity: {self} using default ranker")
             return sorted(destinations, key=lambda d: d.score(self), reverse=True)
 
-    def score(self, entity):
-        score = self.dest_tags.score(entity.tags)
-        log.debug(f"Destination: {entity} scored: {score}")
-        return score
-
 
 class EntityWithRules(Entity):
+
+    merge_order = 1
 
     def __init__(self, loader, id=None, cores=None, mem=None, gpus=None, min_cores=None, min_mem=None, min_gpus=None,
                  max_cores=None, max_mem=None, max_gpus=None, env=None,
@@ -500,16 +480,7 @@ class EntityWithRules(Entity):
 
 class Tool(EntityWithRules):
 
-    def __init__(self, loader, id=None, cores=None, mem=None, gpus=None, min_cores=None, min_mem=None, min_gpus=None,
-                 max_cores=None, max_mem=None, max_gpus=None, env=None, params=None, resubmit=None, tags=None,
-                 rank=None, inherits=None, context=None, rules=None):
-        super().__init__(loader, id=id, cores=cores, mem=mem, gpus=gpus, min_cores=min_cores, min_mem=min_mem,
-                         min_gpus=min_gpus, max_cores=max_cores, max_mem=max_mem, max_gpus=max_gpus, env=env,
-                         params=params, resubmit=resubmit, tags=tags, rank=rank, inherits=inherits, context=context,
-                         rules=rules)
-
-
-class User(EntityWithRules):
+    merge_order = 2
 
     def __init__(self, loader, id=None, cores=None, mem=None, gpus=None, min_cores=None, min_mem=None, min_gpus=None,
                  max_cores=None, max_mem=None, max_gpus=None, env=None, params=None, resubmit=None, tags=None,
@@ -522,6 +493,21 @@ class User(EntityWithRules):
 
 class Role(EntityWithRules):
 
+    merge_order = 3
+
+    def __init__(self, loader, id=None, cores=None, mem=None, gpus=None, min_cores=None, min_mem=None, min_gpus=None,
+                 max_cores=None, max_mem=None, max_gpus=None, env=None, params=None, resubmit=None, tags=None,
+                 rank=None, inherits=None, context=None, rules=None):
+        super().__init__(loader, id=id, cores=cores, mem=mem, gpus=gpus, min_cores=min_cores, min_mem=min_mem,
+                         min_gpus=min_gpus, max_cores=max_cores, max_mem=max_mem, max_gpus=max_gpus, env=env,
+                         params=params, resubmit=resubmit, tags=tags, rank=rank, inherits=inherits, context=context,
+                         rules=rules)
+
+
+class User(EntityWithRules):
+
+    merge_order = 4
+
     def __init__(self, loader, id=None, cores=None, mem=None, gpus=None, min_cores=None, min_mem=None, min_gpus=None,
                  max_cores=None, max_mem=None, max_gpus=None, env=None, params=None, resubmit=None, tags=None,
                  rank=None, inherits=None, context=None, rules=None):
@@ -532,6 +518,8 @@ class Role(EntityWithRules):
 
 
 class Destination(EntityWithRules):
+
+    merge_order = 5
 
     def __init__(self, loader, id=None, dest_name=None, cores=None, mem=None, gpus=None, min_cores=None, min_mem=None,
                  min_gpus=None, max_cores=None, max_mem=None, max_gpus=None, max_accepted_cores=None,
@@ -574,10 +562,9 @@ class Destination(EntityWithRules):
         )
 
     def __repr__(self):
-        return super().__repr__() +\
-               f", dest_name={self.dest_name}, max_accepted_cores={self.max_accepted_cores}, "\
+        return f"dest_name={self.dest_name}, max_accepted_cores={self.max_accepted_cores}, "\
                f"max_accepted_mem={self.max_accepted_mem}, max_accepted_gpus={self.max_accepted_gpus}, "\
-               f"dest_tags={self.dest_tags if self.dest_tags else ''} "
+               f"dest_tags={self.dest_tags if self.dest_tags else ''}, " + super().__repr__()
 
     def override(self, entity):
         new_entity = super().override(entity)
@@ -603,10 +590,47 @@ class Destination(EntityWithRules):
             context['max_accepted_mem'] = new_entity.max_accepted_mem
         return new_entity
 
+    def inherit(self, entity):
+        new_entity = super().inherit(entity)
+        if entity:
+            new_entity.dest_tags = self.dest_tags.inherit(entity.dest_tags)
+        return new_entity
+
+    def matches(self, entity, context):
+        """
+        The match operation checks whether all of the require tags in an entity are present
+        in the destination entity, and none of the reject tags in the first entity are
+        present in the second entity.
+
+        This is used to check compatibility of a final set of combined tool requirements with its destination.
+
+        :param destination:
+        :return:
+        """
+        if self.max_accepted_cores and entity.cores and self.max_accepted_cores < entity.cores:
+            return False
+        if self.max_accepted_mem and entity.mem and self.max_accepted_mem < entity.mem:
+            return False
+        if self.max_accepted_gpus and entity.gpus and self.max_accepted_gpus < entity.gpus:
+            return False
+        return entity.tags.match(self.dest_tags or {})
+
+    def score(self, entity):
+        """
+        Rank this destination against an entity based on how well the tags match
+
+        :param entity:
+        :return:
+        """
+        score = self.dest_tags.score(entity.tags)
+        log.debug(f"Destination: {entity} scored: {score}")
+        return score
+
 
 class Rule(Entity):
 
     rule_counter = 0
+    merge_order = 0
 
     def __init__(self, loader, id=None, cores=None, mem=None, gpus=None, min_cores=None, min_mem=None, min_gpus=None,
                  max_cores=None, max_mem=None, max_gpus=None, env=None, params=None, resubmit=None,
@@ -662,8 +686,8 @@ class Rule(Entity):
 
     def __repr__(self):
         return super().__repr__() + f", if={self.match[:10] if self.match else ''}, " \
-                                    f"execute={self.execute[:10] if self.execute else ''}, " \
-                                    f"fail={self.fail[:10] if self.fail else ''}"
+               f"execute={self.execute[:10] if self.execute else ''}, " \
+               f"fail={self.fail[:10] if self.fail else ''}"
 
     def is_matching(self, context):
         if self.loader.eval_code_block(self.match, context):

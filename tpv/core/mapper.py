@@ -44,17 +44,6 @@ class EntityToDestinationMapper(object):
         matches = self._find_entities_matching_id(entity_list, entity_name)
         return self.inherit_entities(matches)
 
-    def evaluate_entity_early(self, entities, entity, context):
-        context.update({
-            'entities': entities,
-            'entity': entities[0] if entities else entity,
-            'self': entity
-        })
-        return entity.evaluate(context)
-
-    def evaluate_entities_early(self, entities, context):
-        return [self.evaluate_entity_early(entities, entity, context) for entity in entities]
-
     def inherit_entities(self, entities):
         if entities:
             return functools.reduce(lambda a, b: b.inherit(a), entities)
@@ -71,7 +60,7 @@ class EntityToDestinationMapper(object):
         return entity.rank_destinations(destinations, context)
 
     def find_matching_destinations(self, entity, destinations, context):
-        matches = [dest for dest in destinations.values() if entity.matches(dest, context)]
+        matches = [dest for dest in destinations.values() if dest.matches(entity, context)]
         return self.rank(entity, matches, context)
 
     def configure_gxy_destination(self, gxy_destination, entity):

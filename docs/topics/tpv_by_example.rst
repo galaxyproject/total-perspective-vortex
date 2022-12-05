@@ -313,7 +313,7 @@ python code.
            data = response.json()
            cpu_by_destination = {s['tags']['host']:s['values'][0][1] for s in data.get('results')[0].get('series', [])}
            # sort by destination preference, and then by cpu usage
-           candidate_destinations.sort(key=lambda d: (-1 * d.score(entity), cpu_by_destination.get(d.id)))
+           candidate_destinations.sort(key=lambda d: (-1 * d.score(entity), cpu_by_destination.get(d.dest_name)))
            final_destinations = candidate_destinations
          except Exception:
            log.exception("An error occurred while querying influxdb. Using a weighted random candidate destination")

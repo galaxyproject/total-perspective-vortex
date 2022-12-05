@@ -42,3 +42,13 @@ tools:
         scheduling:
           require:
             - highmem
+
+destinations:
+  another_k8s_environment:
+    max_accepted_cores: 16
+    max_accepted_mem: 64
+    max_accepted_gpus: 2
+    tags:
+      prefer:
+        - pulsar
+        - highmem
