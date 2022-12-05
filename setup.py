@@ -22,19 +22,9 @@ REQS_FULL = [
     "ruamel.yaml"
 ]
 
-REQS_TEST = ([
-    'pytest',
-    'galaxy-app',
-    'responses',
-    'tox>=2.9.1',
-    'coverage>=4.4.1',
-    'flake8>=3.4.1',
-    'flake8-import-order>=0.13'] + REQS_FULL
-)
-
 REQS_CLI = (['galaxy-app'] + REQS_FULL)
 
-REQS_TEST =   ([
+REQS_TEST = ([
     'pytest',
     'responses',
     'tox>=2.9.1',
