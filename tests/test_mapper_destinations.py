@@ -1,7 +1,7 @@
 import os
 import unittest
 from tpv.rules import gateway
-from . import mock_galaxy
+from tpv.core.test import mock_galaxy
 from galaxy.jobs.mapper import JobMappingException
 
 
@@ -9,7 +9,7 @@ class TestMapperDestinations(unittest.TestCase):
 
     @staticmethod
     def _map_to_destination(tool, user, datasets, tpv_config_paths):
-        galaxy_app = mock_galaxy.App()
+        galaxy_app = mock_galaxy.App(job_conf=os.path.join(os.path.dirname(__file__), 'fixtures/job_conf.yml'))
         job = mock_galaxy.Job()
         for d in datasets:
             job.add_input_dataset(d)

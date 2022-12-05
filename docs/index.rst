@@ -1,8 +1,6 @@
 .. image:: images/tpv-logo-wide.png
 
-.. centered::
-
-   **Dynamic rules for routing Galaxy entities to destinations**
+.. centered:: Dynamic rules for routing Galaxy entities to destinations
 
 TotalPerspectiveVortex (TPV) provides an installable set of dynamic rules for the
 `Galaxy application`_ that can route entities (Tools, Users, Roles) to appropriate
@@ -34,11 +32,21 @@ based on local resource availability.
 Getting Started
 ---------------
 
-1. `pip install total-perspective-vortex` into Galaxy's python virtual environment
+1. ``pip install total-perspective-vortex`` into Galaxy's python virtual environment
 2. Configure Galaxy to use TPV's dynamic destination rule
 3. Create the TPV job mapping yaml file, indicating job routing preferences
 4. Submit jobs as usual
 
+Standalone Installation
+-----------------------
+
+If you wish to install TPV outside of Galaxy's virtualenv (e.g. to use the ``tpv lint`` command locally or in a CI/CD
+pipeline), use the ``[cli]`` pip requirement specifier to make sure the necessary Galaxy dependency packages are also
+installed. **This should not be used in the Galaxy virtualenv**:
+
+.. code-block:: console
+
+   $ pip install 'total-perspective-vortex[cli]'
 
 .. toctree::
    :maxdepth: 2

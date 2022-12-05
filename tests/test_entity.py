@@ -1,7 +1,7 @@
 import os
 import unittest
 from tpv.rules import gateway
-from . import mock_galaxy
+from tpv.core.test import mock_galaxy
 
 
 class TestEntity(unittest.TestCase):
@@ -14,7 +14,7 @@ class TestEntity(unittest.TestCase):
 
     # issue: https://github.com/galaxyproject/total-perspective-vortex/issues/53
     def test_all_entities_refer_to_same_loader(self):
-        app = mock_galaxy.App()
+        app = mock_galaxy.App(job_conf=os.path.join(os.path.dirname(__file__), 'fixtures/job_conf.yml'))
         job = mock_galaxy.Job()
 
         tool = mock_galaxy.Tool('bwa')

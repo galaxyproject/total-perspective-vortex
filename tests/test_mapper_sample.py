@@ -1,14 +1,14 @@
 import os
 import unittest
 from tpv.rules import gateway
-from . import mock_galaxy
+from tpv.core.test import mock_galaxy
 
 
 class TestMapperSample(unittest.TestCase):
 
     @staticmethod
     def _map_to_destination(tool):
-        galaxy_app = mock_galaxy.App()
+        galaxy_app = mock_galaxy.App(job_conf=os.path.join(os.path.dirname(__file__), 'fixtures/job_conf.yml'))
         job = mock_galaxy.Job()
         user = mock_galaxy.User('gargravarr', 'fairycake@vortex.org')
         tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-sample.yml')

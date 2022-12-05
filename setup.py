@@ -22,16 +22,16 @@ REQS_FULL = [
     "ruamel.yaml"
 ]
 
+REQS_CLI = (['galaxy-app'] + REQS_FULL)
+
 REQS_TEST = ([
     'pytest',
-    'galaxy-app',
     'responses',
     'tox>=2.9.1',
     'coverage>=4.4.1',
     'flake8>=3.4.1',
-    'flake8-import-order>=0.13'] + REQS_FULL
+    'flake8-import-order>=0.13'] + REQS_CLI
 )
-
 REQS_DEV = (['sphinx', 'sphinx_rtd_theme'] + REQS_TEST)
 
 setuptools.setup(
@@ -48,7 +48,8 @@ setuptools.setup(
     install_requires=REQS_FULL,
     extras_require={
         'dev': REQS_DEV,
-        'test': REQS_TEST
+        'test': REQS_TEST,
+        'cli': REQS_CLI,
     },
     entry_points={
         'console_scripts': [

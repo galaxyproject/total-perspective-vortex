@@ -6,6 +6,8 @@ from ruamel.yaml import YAML, RoundTripRepresenter
 
 from .formatter import TPVConfigFormatter
 from .loader import TPVConfigLoader
+from .test import mock_galaxy
+from ..rules import gateway
 
 log = logging.getLogger(__name__)
 
@@ -48,6 +50,36 @@ def tpv_format_config_file(args):
         return 1
 
 
+def tpv_dry_run_config_files(args):
+    if args.user is not None:
+        if '@' in args.user:
+            username, email = args.user.split('@', 1)
+        else:
+            username, email = (args.user, 'example.org')
+        user = mock_galaxy.User(username, email)
+    else:
+        user = None
+    if args.tool:
+        tool = mock_galaxy.Tool(args.tool)
+    else:
+        tool = None
+    galaxy_app = mock_galaxy.App(job_conf=args.job_conf, create_model=True)
+    if args.config:
+        tpv_config_files = args.config
+    else:
+        tpv_config_files = galaxy_app.job_config.get_destination('tpv_dispatcher').params['tpv_config_files']
+    job = mock_galaxy.Job()
+    if args.input_size:
+        dataset = mock_galaxy.DatasetAssociation(
+            "test",
+            mock_galaxy.Dataset("test.txt", file_size=args.input_size*1024**3))
+        job.add_input_dataset(dataset)
+    gateway.ACTIVE_DESTINATION_MAPPER = None
+    destination = gateway.map_tool_to_destination(galaxy_app, job, tool, user, tpv_config_files=tpv_config_files)
+    yaml = YAML(typ='unsafe', pure=True)
+    yaml.dump(destination, sys.stdout)
+
+
 def create_parser():
     parser = argparse.ArgumentParser()
     parser.set_defaults(func=lambda args: parser.print_help())
@@ -76,6 +108,30 @@ def create_parser():
         'config', type=str,
         help="Path to the TPV config file to format. Can be a local path or http url.")
     format_parser.set_defaults(func=tpv_format_config_file)
+
+    dry_run_parser = subparsers.add_parser(
+        'dry-run',
+        help="Perform a dry run test of a TPV configuration.",
+        description="")
+    dry_run_parser.add_argument(
+        '--job-conf', type=str,
+        required=True,
+        help="Galaxy job configuration file")
+    dry_run_parser.add_argument(
+        '--input-size', type=int,
+        help="Input dataest size (in GB)")
+    dry_run_parser.add_argument(
+        '--tool', type=str,
+        default='_default_',
+        help="Test mapping for Galaxy tool with given ID")
+    dry_run_parser.add_argument(
+        '--user', type=str,
+        help="Test mapping for Galaxy user with username or email")
+    dry_run_parser.add_argument(
+        'config',
+        nargs='*',
+        help="TPV configuration files, overrides tpv_config_files in Galaxy job configuration if provided")
+    dry_run_parser.set_defaults(func=tpv_dry_run_config_files)
 
     return parser
 
