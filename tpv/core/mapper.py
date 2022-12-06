@@ -151,9 +151,6 @@ class EntityToDestinationMapper(object):
                                   " Trying next candidate...")
                 except TryNextDestinationOrWait:
                     wait_exception_raised = True
-                except Exception:
-                    # Anything else, fail fast
-                    raise
             if wait_exception_raised:
                 raise JobNotReadyException()
 
