@@ -47,14 +47,14 @@ destinations:
   slurm:
     max_accepted_cores: 4
     max_accepted_mem: 15.5
-    tags:
+    scheduling:
       accept:
         - pulsar
         - general
   pulsar_destination:
     max_accepted_cores: 4
     max_accepted_mem: 7.77
-    tags:
+    scheduling:
       accept:
         - general
       require:
@@ -62,7 +62,7 @@ destinations:
   pulsar-nci-test:
     max_accepted_cores: 32
     max_accepted_mem: 96.38
-    tags:
+    scheduling:
       accept:
         - general
       require:

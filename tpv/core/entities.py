@@ -555,7 +555,7 @@ class Destination(EntityWithRules):
             env=entity_dict.get('env'),
             params=entity_dict.get('params'),
             resubmit=entity_dict.get('resubmit'),
-            dest_tags=entity_dict.get('tags'),
+            dest_tags=entity_dict.get('scheduling'),
             inherits=entity_dict.get('inherits'),
             context=entity_dict.get('context'),
             rules=entity_dict.get('rules')

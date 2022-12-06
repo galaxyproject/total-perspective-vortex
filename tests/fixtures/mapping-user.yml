@@ -82,14 +82,14 @@ destinations:
   local:
     max_accepted_cores: 4
     max_accepted_mem: 16
-    tags:
+    scheduling:
       prefer:
         - general
   k8s_environment:
     max_accepted_cores: 16
     max_accepted_mem: 64
     max_accepted_gpus: 2
-    tags:
+    scheduling:
       prefer:
         - pulsar
   special_resource_environment:
@@ -98,6 +98,6 @@ destinations:
     max_accepted_gpus: 20
     params:
       native_spec: "--mem {mem} --cores {cores} --gpus {gpus}"
-    tags:
+    scheduling:
       prefer:
         - special_resources

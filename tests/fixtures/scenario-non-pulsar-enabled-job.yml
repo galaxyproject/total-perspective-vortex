@@ -51,7 +51,7 @@ destinations:
   general_pulsar_1:
     max_accepted_cores: 8
     max_accepted_mem: 32
-    tags:
+    scheduling:
       accept:
         - general
       require:
@@ -59,7 +59,7 @@ destinations:
   general_pulsar_2:
     max_accepted_cores: 32
     max_accepted_mem: 128
-    tags:
+    scheduling:
       accept:
         - general
       require:
@@ -67,7 +67,7 @@ destinations:
   highmem_pulsar_1:
     max_accepted_cores: 128
     max_accepted_mem: 4096
-    tags:
+    scheduling:
       prefer:
         - highmem
       require:
@@ -75,7 +75,7 @@ destinations:
   highmem_pulsar_2:
     max_accepted_cores: 128
     max_accepted_mem: 4096
-    tags:
+    scheduling:
       prefer:
         - highmem
       require:
@@ -83,13 +83,13 @@ destinations:
   training_slurm:
     max_accepted_cores: 16
     max_accepted_mem: 64
-    tags:
+    scheduling:
       require:
         - training
   training_pulsar:
     max_accepted_cores: 8
     max_accepted_mem: 32
-    tags:
+    scheduling:
       require:
         - training
         - pulsar

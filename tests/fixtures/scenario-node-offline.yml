@@ -18,7 +18,7 @@ destinations:
   local:
     max_accepted_cores: 4
     max_accepted_mem: 16
-    tags:
+    scheduling:
       prefer:
         - general
   k8s_environment:
