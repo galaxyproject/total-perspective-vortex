@@ -75,15 +75,6 @@ class TestMapperUser(unittest.TestCase):
         # should use the lower of the two core and mem values for this user
         self.assertEqual(destination.params['native_spec'], '--mem 8 --cores 1')
 
-    def test_map_user_entity_usage_scenario_2(self):
-        tool = mock_galaxy.Tool('bwa')
-        user = mock_galaxy.User('ford', 'fairycake@vortex.org')
-
-        destination = self._map_to_destination(tool, user)
-        self.assertEqual(destination.id, "k8s_environment")
-        # should use the lower of the two core and mem values for this user
-        self.assertEqual(destination.params['native_spec'], '--mem 8 --cores 1')
-
     def test_tool_below_min_resources_for_user(self):
         tool = mock_galaxy.Tool('tool_below_min_resources')
         user = mock_galaxy.User('prefect', 'prefect@vortex.org')

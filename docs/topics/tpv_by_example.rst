@@ -18,13 +18,13 @@ The simplest possible example of a useful TPV config might look like the followi
 
     destinations:
      slurm:
-       cores: 16
-       mem: 64
-       gpus: 2
+       max_accepted_cores: 16
+       max_accepted_mem: 64
+       max_accepted_gpus: 2
      general_pulsar_1:
-       cores: 8
-       mem: 32
-       gpus: 1
+       max_accepted_cores: 8
+       max_accepted_mem: 32
+       max_accepted_gpus: 1
 
 
 Here, we define one tool and its resource requirements, the destinations available, and the total resources available
@@ -134,17 +134,17 @@ preferred destinations, or to explicitly control which users can execute which t
 
     destinations:
      slurm:
-       cores: 16
-       mem: 64
-       gpus: 2
+       max_accepted_cores: 16
+       max_accepted_mem: 64
+       max_accepted_gpus: 2
        scheduling:
           prefer:
             - general
 
      general_pulsar_1:
-       cores: 8
-       mem: 32
-       gpus: 1
+       max_accepted_cores: 8
+       max_accepted_mem: 32
+       max_accepted_gpus: 1
        scheduling:
           prefer:
             - highmem
@@ -204,19 +204,19 @@ Rules provide a means by which to conditionally change entity requirements.
           - if: input_size >= 20
             fail: Input size: {input_size} is too large shouldn't run
 
-The if clause can contain arbitrary python code, including multi-line python code. The only requirement is that the
+The ``if`` clause can contain arbitrary python code, including multi-line python code. The only requirement is that the
 last statement in the code block must evaluate to a boolean value. In this example, the `input_size` variable is an
 automatically available contextual variable which is computed by totalling the sizes of all inputs to the job.
-Additional available variables include app, job, tool, and user.
+Additional available variables include `app`, `job`, `tool`, and `user`.
 
 If the rule matches, the properties of the rule override the properties of the tool. For example, if the input_size
-is 15, the bwa tool will require both pulsar and highmem tags.
+is 15, the bwa tool will require both `pulsar` and `highmem` tags.
 
 Rules can be overridden by giving them an id. For example, the default for all tools is to reject input sizes < 5
 by using the `my_overridable_rule` rule. We override that for the bwa tool by specifically referring to the inherited
 rule by id. If no id is specified, an id is auto-generated and no longer overridable.
 
-Note the use of the {input_size} variable in the fail message. The general rule is that all non-string expressions
+Note the use of the `{input_size}` variable in the fail message. The general rule is that all non-string expressions
 are evaluated as python code blocks, while string variables are evaluated as python f-strings.
 
 The execute block can be used to create arbitrary side-effects if a rule matches. The return value of an execute
@@ -435,3 +435,62 @@ This is done by setting the SCALING_FACTOR param, which is a custom parameter wh
 that we increase on each resubmission. Since each resubmission's destination is TPV, the param is re-evaluated on each
 resubmission, and scaled accordingly. The memory is allocated based on the scaling factor, which therefore, also
 scales accordingly.
+
+Using the shared database
+--------------------------
+A shared database of resource requirements and rules are maintained in:
+
+https://github.com/galaxyproject/tpv-shared-database/
+
+This shared database relieves you of the burden of figuring out what resources are typically required by tools,
+with recommended settings based on those used in the usegalaxy.* federation. You can override these settings
+based on local resource availability. The shared database can be integrated through your local job_conf.yml
+as follows:
+
+.. code-block:: yaml
+   :linenos:
+   :emphasize-lines: 7-9,14-19
+
+    tpv_dispatcher:
+     runner: dynamic
+     type: python
+     function: map_tool_to_destination
+     rules_module: tpv.rules
+     tpv_config_files:
+       - https://raw.githubusercontent.com/galaxyproject/tpv-shared-database/main/tools.yml
+       - config/my_local_overrides.yml  # optional
+
+
+Clamping resources
+------------------
+Entities can define, `min_{cores|gpus|mem}` and `max_{cores|gpu|mem}` as a means of clamping the maximum resources
+that will be allocated to a tool, even if it requests a higher amount. For example, if a tool requests 16 cores,
+but a user is defined with `max_cores: 4`, then the tool's resource requirement would be clamped down to that maximum
+amount. This can be useful for allocating lower resources to training users for example, who only use toy datasets
+that do not require the full core allocation. Conversely, some users can be allocated more resources by using
+`min_cores`.
+
+In addition, clamping resources can also be useful when using the TPV shared database. For example, the `canu` tool
+has a 96GB recommended memory requirement, which your local cluster may not have. However, you may still want to allow
+the tool to run, albeit with lower resources. You can of course, locally override the `canu` tool and allocated less
+resources, but this can be tedious to do for a large number of tools. All you may really want, is to restrict all
+tools to use the maximum your cluster can support. You can achieve that effect as follows:
+
+.. code-block:: yaml
+   :linenos:
+   :emphasize-lines: 7-9,14-19
+
+    destinations:
+     slurm:
+       max_accepted_cores: 32
+       max_accepted_mem: 196
+       max_accepted_gpus: 2
+       max_cores: 16
+       max_mem: 64
+       max_gpus: 1
+
+
+In the example above, we mark the slurm destination as accepting jobs up to 196GB in size, and therefore, the
+`canu` tool, which required 96GB, would successfully schedule there. However, we forcibly clamp the job's max_mem
+to 64GB, which is the actual memory your cluster can support. In this way, all tools in the shared
+database can still run, provided they do not exceed the specified `max_accepted` values.
