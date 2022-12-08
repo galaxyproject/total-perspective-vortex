@@ -18,10 +18,12 @@ The simplest possible example of a useful TPV config might look like the followi
 
     destinations:
      slurm:
+       runner: slurm
        max_accepted_cores: 16
        max_accepted_mem: 64
        max_accepted_gpus: 2
      general_pulsar_1:
+       runner: pulsar_1
        max_accepted_cores: 8
        max_accepted_mem: 32
        max_accepted_gpus: 1
@@ -32,6 +34,7 @@ at each destination (optional). The tools are matched by tool id, and can be a r
 resource requirements can also be computed as python expressions. If resource requirements are defined at the
 destination, TPV will check whether the job will fit. For example, hisat2 will not schedule on `general_pulsar_1`
 as it has insufficient cores. If resource requirements are omitted in the tool or destination, it is considered a match.
+Note that TPV only considers destinations defined in its own config file, and ignore destinations in job_conf.yml.
 
 Default inheritance
 -------------------
@@ -134,6 +137,7 @@ preferred destinations, or to explicitly control which users can execute which t
 
     destinations:
      slurm:
+       runner: slurm
        max_accepted_cores: 16
        max_accepted_mem: 64
        max_accepted_gpus: 2
@@ -142,6 +146,7 @@ preferred destinations, or to explicitly control which users can execute which t
             - general
 
      general_pulsar_1:
+       runner: pulsar_1
        max_accepted_cores: 8
        max_accepted_mem: 32
        max_accepted_gpus: 1
@@ -482,6 +487,7 @@ tools to use the maximum your cluster can support. You can achieve that effect a
 
     destinations:
      slurm:
+       runner: slurm
        max_accepted_cores: 32
        max_accepted_mem: 196
        max_accepted_gpus: 2
@@ -494,3 +500,17 @@ In the example above, we mark the slurm destination as accepting jobs up to 196G
 `canu` tool, which required 96GB, would successfully schedule there. However, we forcibly clamp the job's max_mem
 to 64GB, which is the actual memory your cluster can support. In this way, all tools in the shared
 database can still run, provided they do not exceed the specified `max_accepted` values.
+
+Providing a parameterized, custom name to a destination
+-------------------------------------------------------
+If you need to provide a parameterized name for a destination, you can do so by using the `destination_name_override`
+property.
+
+.. code-block:: yaml
+   :linenos:
+   :emphasize-lines: 7-9,14-19
+
+    destinations:
+     slurm:
+       runner: slurm
+       destination_name_override: "my-dest-with-{cores}-cores-{mem}-mem"

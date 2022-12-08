@@ -55,9 +55,11 @@ tools:
 
 destinations:
   slurm:
+    runner: slurm
     max_accepted_cores: 16
     max_accepted_mem: 64
   general_pulsar_1:
+    runner: general_pulsar_1
     max_accepted_cores: 8
     max_accepted_mem: 32
     scheduling:
@@ -67,6 +69,7 @@ destinations:
         - pulsar
         - offline
   general_pulsar_2:
+    runner: general_pulsar_2
     max_accepted_cores: 32
     max_accepted_mem: 128
     scheduling:
@@ -75,6 +78,7 @@ destinations:
       require:
         - pulsar
   highmem_pulsar_1:
+    runner: highmem_pulsar_1
     max_accepted_cores: 128
     max_accepted_mem: 4096
     scheduling:
@@ -83,6 +87,7 @@ destinations:
       require:
         - pulsar
   highmem_pulsar_2:
+    runner: highmem_pulsar_2
     max_accepted_cores: 128
     max_accepted_mem: 4096
     scheduling:
@@ -91,12 +96,14 @@ destinations:
       require:
         - pulsar
   training_slurm:
+    runner: training_slurm
     max_accepted_cores: 16
     max_accepted_mem: 64
     scheduling:
       require:
         - training
   training_pulsar:
+    runner: training_pulsar
     max_accepted_cores: 8
     max_accepted_mem: 32
     scheduling:

@@ -5,6 +5,7 @@ import re
 from .entities import Tool, TryNextDestinationOrFail, TryNextDestinationOrWait
 from .loader import TPVConfigLoader
 
+from galaxy.jobs import JobDestination
 from galaxy.jobs.mapper import JobNotReadyException
 
 log = logging.getLogger(__name__)
@@ -63,13 +64,14 @@ class EntityToDestinationMapper(object):
         matches = [dest for dest in destinations.values() if dest.matches(entity, context)]
         return self.rank(entity, matches, context)
 
-    def configure_gxy_destination(self, gxy_destination, entity):
-        if entity.env:
-            gxy_destination.env += [dict(name=k, value=v) for (k, v) in entity.env.items()]
-        gxy_destination.params.update(entity.params or {})
-        if entity.resubmit:
-            gxy_destination.resubmit += entity.resubmit.values()
-        return gxy_destination
+    def to_galaxy_destination(self, destination):
+        return JobDestination(
+            id=destination.dest_name,
+            runner=destination.runner,
+            params=destination.params,
+            env=[dict(name=k, value=v) for (k, v) in destination.env.items()],
+            resubmit=list(destination.resubmit.values()),
+        )
 
     def _find_matching_entities(self, tool, user):
         tool_entity = self.inherit_matching_entities("tools", tool.id)
@@ -147,11 +149,8 @@ class EntityToDestinationMapper(object):
                 try:  # An exception here signifies that a destination rule did not match
                     dest_combined_entity = d.combine(evaluated_entity)
                     evaluated_destination = dest_combined_entity.evaluate(context)
-                    gxy_destination = app.job_config.get_destination(d.id)
-                    if evaluated_destination.params.get('destination_name_override'):
-                        gxy_destination.id = evaluated_destination.params.get('destination_name_override')
                     # 5. Return the top-ranked destination that evaluates successfully
-                    return self.configure_gxy_destination(gxy_destination, evaluated_destination)
+                    return self.to_galaxy_destination(evaluated_destination)
                 except TryNextDestinationOrFail as ef:
                     log.exception(f"Destination entity: {d} matched but could not fulfill requirements due to: {ef}."
                                   " Trying next candidate...")

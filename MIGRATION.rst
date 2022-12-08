@@ -2,7 +2,7 @@ Migrating from v1.x to v2.x
 ---------------------------
 
 TPV v2.0.0 introduces a number of changes to improve simplicity by disambiguating overloaded terms and reducing code
-complexity. (xref: https://github.com/galaxyproject/total-perspective-vortex/pull/58). This has resulted in two
+complexity. (xref: https://github.com/galaxyproject/total-perspective-vortex/pull/58). This has resulted in three
 breaking changes.
 
 1. cores, mem and gpus on destinations have been renamed to max_accepted_cores, max_accepted_mem and max_accepted_gpus.
@@ -16,3 +16,7 @@ breaking changes.
    No matter how many cores a tool requests, they will be clamped between these specified min and max values.
    Therefore, in TPV 2.x, cores defined on users or roles will need to be renamed to max_cores to preserve earlier
    semantics.
+
+3. The `destination_name_override` property is no longer an extra param on the destination. It is instead,
+   a top-level property of a destination. The `destination_name_override` can be used to dynamically generate
+   a custom name for the destination.

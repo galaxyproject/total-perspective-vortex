@@ -47,6 +47,7 @@ tools:
 
 destinations:
   local:
+    runner: local
     max_accepted_cores: 4
     max_accepted_mem: 16
     scheduling:
@@ -63,6 +64,7 @@ destinations:
           from tpv.core.entities import TryNextDestinationOrWait
           raise TryNextDestinationOrWait("Cannot run this job here at this time, may be available later, try elsewhere")
   k8s_environment:
+    runner: k8s
     max_accepted_cores: 16
     max_accepted_mem: 64
     max_accepted_gpus: 2
@@ -81,6 +83,7 @@ destinations:
       prefer:
         - pulsar
   another_k8s_environment:
+    runner: k8s
     max_accepted_cores: 16
     max_accepted_mem: 64
     max_accepted_gpus: 2
@@ -112,6 +115,8 @@ destinations:
       require:
         - inherited
   custom_naming:
+    runner: k8s
+    destination_name_override: 'my-dest-with-{cores}-cores-{mem}-mem'
     max_accepted_cores: 16
     max_accepted_mem: 64
     max_accepted_gpus: 2
@@ -119,7 +124,6 @@ destinations:
       SPECIAL_FLAG: "third"
     params:
       memory_requests: "{mem*3}"
-      destination_name_override: 'my-dest-with-{cores}-cores-{mem}-mem'
     scheduling:
       require:
         - custom

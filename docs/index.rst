@@ -11,7 +11,7 @@ with custom Python logic.
 
 How it works
 ------------
-TPV provides a dynamic rule that can be plugged into Galaxy via ``job_conf.xml``.
+TPV provides a dynamic rule that can be plugged into Galaxy via ``job_conf.yml``.
 The dynamic rule will also have an associated configuration file, that maps entities
 (tools, users, roles) to specific destination through a flexible tagging system.
 Destinations can have arbitrary tags defined, and each entity can express a preference

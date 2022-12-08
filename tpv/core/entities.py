@@ -521,25 +521,27 @@ class Destination(EntityWithRules):
 
     merge_order = 5
 
-    def __init__(self, loader, id=None, dest_name=None, cores=None, mem=None, gpus=None, min_cores=None, min_mem=None,
-                 min_gpus=None, max_cores=None, max_mem=None, max_gpus=None, max_accepted_cores=None,
+    def __init__(self, loader, id=None, runner=None, dest_name=None, cores=None, mem=None, gpus=None, min_cores=None,
+                 min_mem=None, min_gpus=None, max_cores=None, max_mem=None, max_gpus=None, max_accepted_cores=None,
                  max_accepted_mem=None, max_accepted_gpus=None, env=None, params=None, resubmit=None, dest_tags=None,
                  inherits=None, context=None, rules=None):
-        super().__init__(loader, id=id, cores=cores, mem=mem, gpus=gpus, min_cores=min_cores, min_mem=min_mem,
-                         min_gpus=min_gpus, max_cores=max_cores, max_mem=max_mem, max_gpus=max_gpus, env=env,
-                         params=params, resubmit=resubmit, tags=None, inherits=inherits, context=context, rules=rules)
+        self.runner = runner
         self.dest_name = dest_name or id
         self.max_accepted_cores = max_accepted_cores
         self.max_accepted_mem = max_accepted_mem
         self.max_accepted_gpus = max_accepted_gpus
         self.dest_tags = TagSetManager.from_dict(dest_tags or {})
+        super().__init__(loader, id=id, cores=cores, mem=mem, gpus=gpus, min_cores=min_cores, min_mem=min_mem,
+                         min_gpus=min_gpus, max_cores=max_cores, max_mem=max_mem, max_gpus=max_gpus, env=env,
+                         params=params, resubmit=resubmit, tags=None, inherits=inherits, context=context, rules=rules)
 
     @staticmethod
     def from_dict(loader, entity_dict):
         return Destination(
             loader=loader,
             id=entity_dict.get('id'),
-            dest_name=entity_dict.get('dest_name'),
+            runner=entity_dict.get('runner'),
+            dest_name=entity_dict.get('destination_name_override'),
             cores=entity_dict.get('cores'),
             mem=entity_dict.get('mem'),
             gpus=entity_dict.get('gpus'),
@@ -562,12 +564,13 @@ class Destination(EntityWithRules):
         )
 
     def __repr__(self):
-        return f"dest_name={self.dest_name}, max_accepted_cores={self.max_accepted_cores}, "\
+        return f"runner={self.runner}, dest_name={self.dest_name}, max_accepted_cores={self.max_accepted_cores}, "\
                f"max_accepted_mem={self.max_accepted_mem}, max_accepted_gpus={self.max_accepted_gpus}, "\
                f"dest_tags={self.dest_tags if self.dest_tags else ''}, " + super().__repr__()
 
     def override(self, entity):
         new_entity = super().override(entity)
+        new_entity.runner = self.runner if self.runner is not None else getattr(entity, 'runner', None)
         new_entity.dest_name = self.dest_name if self.dest_name is not None else getattr(entity, 'dest_name', None)
         new_entity.max_accepted_cores = (self.max_accepted_cores if self.max_accepted_cores is not None
                                          else getattr(entity, 'max_accepted_cores', None))
@@ -577,17 +580,21 @@ class Destination(EntityWithRules):
                                         else getattr(entity, 'max_accepted_gpus', None))
         return new_entity
 
+    def validate(self):
+        """
+        Validates each code block and makes sure the code can be compiled.
+        This process also results in the compiled code being cached by the loader,
+        so that future evaluations are faster.
+        """
+        super().validate()
+        if self.dest_name:
+            self.loader.compile_code_block(self.dest_name, as_f_string=True)
+
     def evaluate(self, context):
         new_entity = super(Destination, self).evaluate(context)
-        if self.max_accepted_gpus:
-            new_entity.max_accepted_gpus = self.loader.eval_code_block(self.max_accepted_gpus, context)
-            context['max_accepted_gpus'] = new_entity.max_accepted_gpus
-        if self.max_accepted_cores:
-            new_entity.max_accepted_cores = self.loader.eval_code_block(self.max_accepted_cores, context)
-            context['max_accepted_cores'] = new_entity.max_accepted_cores
-        if self.max_accepted_mem:
-            new_entity.max_accepted_mem = self.loader.eval_code_block(self.max_accepted_mem, context)
-            context['max_accepted_mem'] = new_entity.max_accepted_mem
+        if self.dest_name is not None:
+            new_entity.dest_name = self.loader.eval_code_block(self.dest_name, context, as_f_string=True)
+            context['dest_name'] = new_entity.dest_name
         return new_entity
 
     def inherit(self, entity):
