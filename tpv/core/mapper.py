@@ -34,7 +34,10 @@ class EntityToDestinationMapper(object):
         for key in entity_list.keys():
             if self.lookup_tool_regex(key).match(entity_name):
                 match = entity_list[key]
-                if not match.abstract:
+                if match.abstract:
+                    from galaxy.jobs.mapper import JobMappingException
+                    raise JobMappingException(f"This entity is abstract and cannot be mapped : {match}")
+                else:
                     matches.append(match)
         if not matches and self.default_inherits:
             default_match = entity_list.get(self.default_inherits)

@@ -3,6 +3,7 @@ global:
 
 tools:
   default:
+    abstract: true
     cores: 2
     mem: 8
     env: {}
@@ -14,6 +15,11 @@ tools:
       reject:
         - pulsar
     rules: []
+  my_abstract_tool:
+    inherits: default
+    abstract: true
+  my_concrete_tool:
+    inherits: default
   bwa:
     scheduling:
       require:

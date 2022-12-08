@@ -45,3 +45,13 @@ class TestMapperBasic(unittest.TestCase):
         tool = mock_galaxy.Tool('regex_t_test')
         destination = self._map_to_destination(tool)
         self.assertEqual(destination.id, "local")
+
+    def test_map_abstract_tool_should_fail(self):
+        tool = mock_galaxy.Tool('my_abstract_tool')
+        with self.assertRaisesRegex(JobMappingException, "This entity is abstract and cannot be mapped"):
+            self._map_to_destination(tool)
+
+    def test_map_concrete_descendant_should_succeed(self):
+        tool = mock_galaxy.Tool('my_concrete_tool')
+        destination = self._map_to_destination(tool)
+        self.assertEqual(destination.id, "local")
