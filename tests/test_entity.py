@@ -28,8 +28,12 @@ class TestEntity(unittest.TestCase):
         # get the original loader
         original_loader = gateway.ACTIVE_DESTINATION_MAPPER.loader
 
+        context = {
+            'app': app,
+            'job': job
+        }
         # make sure we are still referring to the same loader after evaluation
-        _, evaluated_entity = gateway.ACTIVE_DESTINATION_MAPPER.match_combine_evaluate_entities(app, tool, user, job)
+        evaluated_entity = gateway.ACTIVE_DESTINATION_MAPPER.match_combine_evaluate_entities(context, tool, user)
         assert evaluated_entity.loader == original_loader
         for rule in evaluated_entity.rules:
             assert rule.loader == original_loader

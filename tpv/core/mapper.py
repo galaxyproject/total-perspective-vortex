@@ -59,7 +59,7 @@ class EntityToDestinationMapper(object):
     def rank(self, entity, destinations, context):
         return entity.rank_destinations(destinations, context)
 
-    def find_matching_destinations(self, entity, destinations, context):
+    def match_and_rank_destinations(self, entity, destinations, context):
         matches = [dest for dest in destinations.values() if dest.matches(entity, context)]
         return self.rank(entity, matches, context)
 
@@ -93,30 +93,18 @@ class EntityToDestinationMapper(object):
 
         return entity_list
 
-    def match_combine_evaluate_entities(self, app, tool, user, job, resource_params):
+    def match_combine_evaluate_entities(self, context, tool, user):
         # 1. Find the entities relevant to this job
         entity_list = self._find_matching_entities(tool, user)
 
-        # 2. Create evaluation context - these are the common variables available within any code block
-        context = {}
-        context.update(self.global_context or {})
-        context.update({
-            'app': app,
-            'tool': tool,
-            'user': user,
-            'job': job,
-            'resource_params': resource_params,
-            'mapper': self
-        })
-
-        # 3. Combine entity requirements
+        # 2. Combine entity requirements
         combined_entity = self.combine_entities(entity_list)
         context.update({
             'entity': combined_entity,
             'self': combined_entity
         })
 
-        # 4. Evaluate expressions
+        # 3. Evaluate expressions
         evaluated_entity = combined_entity.evaluate(context)
         context.update({
             'entity': evaluated_entity,
@@ -127,16 +115,32 @@ class EntityToDestinationMapper(object):
         # with destinations
         evaluated_entity.rules = {}
 
-        return context, evaluated_entity
+        return evaluated_entity
 
-    def map_to_destination(self, app, tool, user, job, resource_params):
-        # 1. Find, combine and evaluate entities that match this tool and user
-        context, evaluated_entity = self.match_combine_evaluate_entities(app, tool, user, job, resource_params)
+    def map_to_destination(self, app, tool, user, job, job_wrapper=None, resource_params=None,
+                           workflow_invocation_uuid=None):
 
-        # 2. Shortlist destinations with tags that match the combined entity
-        ranked_dest_entities = self.find_matching_destinations(evaluated_entity, self.destinations, context)
+        # 1. Create evaluation context - these are the common variables available within any code block
+        context = {}
+        context.update(self.global_context or {})
+        context.update({
+            'app': app,
+            'tool': tool,
+            'user': user,
+            'job': job,
+            'job_wrapper': job_wrapper,
+            'resource_params': resource_params,
+            'workflow_invocation_uuid': workflow_invocation_uuid,
+            'mapper': self
+        })
 
-        # 3. Fully combine entity with matching destinations
+        # 2. Find, combine and evaluate entities that match this tool and user
+        evaluated_entity = self.match_combine_evaluate_entities(context, tool, user)
+
+        # 3. Match and rank destinations that best match the combined entity
+        ranked_dest_entities = self.match_and_rank_destinations(evaluated_entity, self.destinations, context)
+
+        # 4. Fully combine entity with matching destinations
         if ranked_dest_entities:
             wait_exception_raised = False
             for d in ranked_dest_entities:
@@ -146,6 +150,7 @@ class EntityToDestinationMapper(object):
                     gxy_destination = app.job_config.get_destination(d.id)
                     if evaluated_destination.params.get('destination_name_override'):
                         gxy_destination.id = evaluated_destination.params.get('destination_name_override')
+                    # 5. Return the top-ranked destination that evaluates successfully
                     return self.configure_gxy_destination(gxy_destination, evaluated_destination)
                 except TryNextDestinationOrFail as ef:
                     log.exception(f"Destination entity: {d} matched but could not fulfill requirements due to: {ef}."
