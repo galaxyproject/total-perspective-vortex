@@ -65,7 +65,7 @@ class TPVShellTestCase(unittest.TestCase):
 
     def test_lint_no_runner_defined(self):
         tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/linter/linter-no-runner-defined.yml')
-        output = self.call_shell_command("tpv", "-vvvv", "lint", tpv_config)
+        output = self.call_shell_command("tpv", "-vv", "lint", tpv_config)
         self.assertTrue(
             "lint failed" in output,
             f"Expected lint to fail but output was: {output}")
@@ -79,6 +79,18 @@ class TPVShellTestCase(unittest.TestCase):
         self.assertTrue(
             "Destination 'k8s_environment'" not in output,
             f"Did not expect 'k8s_environment' to be reported as it defines the runner param but output was: {output}")
+
+    def test_warn_if_default_inherits_not_marked_abstract(self):
+        tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/linter/linter-default-inherits-marked-abstract.yml')
+        output = self.call_shell_command("tpv", "-vvvv", "lint", tpv_config)
+        self.assertTrue(
+            "WARNING" in output and "The tool named: default is marked globally as" in output,
+            f"Expected a warning when the default abstract class for a tool is not marked abstract but output "
+            f"was: {output}")
+        self.assertTrue(
+            "WARNING" in output and "The destination named: default is marked globally as" in output,
+            f"Expected a warning when the default abstract class for a tool is not marked abstract but output "
+            f"was: {output}")
 
     def test_format_basic(self):
         tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/formatter/formatter-basic.yml')
