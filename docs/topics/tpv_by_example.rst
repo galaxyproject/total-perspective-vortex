@@ -501,14 +501,14 @@ In the example above, we mark the slurm destination as accepting jobs up to 196G
 to 64GB, which is the actual memory your cluster can support. In this way, all tools in the shared
 database can still run, provided they do not exceed the specified `max_accepted` values.
 
-Providing a parameterized, custom name to a destination
--------------------------------------------------------
+Giving a parameterized, custom name to a destination
+----------------------------------------------------
 If you need to provide a parameterized name for a destination, you can do so by using the `destination_name_override`
 property.
 
 .. code-block:: yaml
    :linenos:
-   :emphasize-lines: 7-9,14-19
+   :emphasize-lines: 4
 
     destinations:
      slurm:

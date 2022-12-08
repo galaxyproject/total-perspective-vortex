@@ -5,7 +5,8 @@ import sys
 from ruamel.yaml import YAML, RoundTripRepresenter
 
 from .formatter import TPVConfigFormatter
-from .loader import TPVConfigLoader
+from .linter import TPVConfigLinter
+from .linter import TPVLintError
 from .test import mock_galaxy
 from ..rules import gateway
 
@@ -26,10 +27,11 @@ def repr_none(dumper: RoundTripRepresenter, data):
 
 def tpv_lint_config_file(args):
     try:
-        TPVConfigLoader.from_url_or_path(args.config)
+        tpv_linter = TPVConfigLinter.from_url_or_path(args.config)
+        tpv_linter.lint()
         log.info("lint successful.")
         return 0
-    except Exception:
+    except TPVLintError:
         log.info("lint failed.")
         return 1
 
