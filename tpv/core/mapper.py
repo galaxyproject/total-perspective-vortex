@@ -33,7 +33,9 @@ class EntityToDestinationMapper(object):
         matches = []
         for key in entity_list.keys():
             if self.lookup_tool_regex(key).match(entity_name):
-                matches.append(entity_list[key])
+                match = entity_list[key]
+                if not match.abstract:
+                    matches.append(match)
         if not matches and self.default_inherits:
             default_match = entity_list.get(self.default_inherits)
             if default_match:

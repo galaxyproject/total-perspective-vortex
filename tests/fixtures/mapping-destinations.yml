@@ -48,6 +48,15 @@ tools:
     scheduling:
       require:
         - dest_with_handler_tags
+  tool_matching_abstract_dest:
+    scheduling:
+      require:
+        - something_abstract
+  tool_matching_abstract_inherited_dest:
+    scheduling:
+      require:
+        - something_abstract
+        - also_concrete
 
 destinations:
   local:
@@ -141,3 +150,15 @@ destinations:
     scheduling:
       require:
         - dest_with_handler_tags
+  an_abstract_destination:
+    runner: k8s
+    abstract: true
+    scheduling:
+      require:
+        - something_abstract
+  my_concrete_destination:
+    runner: k8s
+    inherits: an_abstract_destination
+    scheduling:
+      require:
+        - also_concrete

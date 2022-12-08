@@ -109,3 +109,25 @@ class TestMapperDestinations(unittest.TestCase):
         destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
         self.assertEqual(destination.id, "destination_with_handler_tags")
         self.assertEqual(destination.tags, ["registered_user_concurrent_jobs_20"])
+
+    def test_abstract_destinations_are_not_schedulable(self):
+        tool = mock_galaxy.Tool('tool_matching_abstract_dest')
+        user = mock_galaxy.User('ford', 'prefect@vortex.org')
+
+        config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-destinations.yml')
+
+        # an intermediate file size should compute correct values
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=12*1024**3))]
+        with self.assertRaises(JobMappingException):
+            self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
+
+    def test_concrete_destinations_are_schedulable(self):
+        tool = mock_galaxy.Tool('tool_matching_abstract_inherited_dest')
+        user = mock_galaxy.User('ford', 'prefect@vortex.org')
+
+        config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-destinations.yml')
+
+        # an intermediate file size should compute correct values
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=12 * 1024 ** 3))]
+        destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
+        self.assertEqual(destination.id, "my_concrete_destination")
