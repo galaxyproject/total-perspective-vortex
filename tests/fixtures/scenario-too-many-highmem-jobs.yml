@@ -29,7 +29,7 @@ tools:
         data = response.json()
         cpu_by_destination = {s['tags']['host']:s['values'][0][1] for s in data.get('results')[0].get('series', [])}
         # sort by destination preference, and then by cpu usage
-        candidate_destinations.sort(key=lambda d: (-1 * d.score(entity), cpu_by_destination.get(d.id)))
+        candidate_destinations.sort(key=lambda d: (-1 * d.score(entity), cpu_by_destination.get(d.dest_name)))
         final_destinations = candidate_destinations
       except Exception:
         log.exception("An error occurred while querying influxdb. Using a weighted random candidate destination")
@@ -62,8 +62,8 @@ users:
           if entity.tags.filter(tag_value='highmem'):
             rule_helper = RuleHelper(app)
             # Find all destinations that support highmem
-            destinations = [d.id for d in mapper.destinations.values()
-                            if any(d.tags.filter(tag_value='highmem',
+            destinations = [d.dest_name for d in mapper.destinations.values()
+                            if any(d.dest_tags.filter(tag_value='highmem',
                                    tag_type=[TagType.REQUIRE, TagType.PREFER, TagType.ACCEPT]))]
             count = rule_helper.job_count(for_user_email=user.email, for_destinations=destinations)
             if count > 4:
@@ -77,49 +77,49 @@ users:
 
 destinations:
   slurm:
-    cores: 16
-    mem: 64
+    max_accepted_cores: 16
+    max_accepted_mem: 64
   general_pulsar_1:
-    cores: 8
-    mem: 32
+    max_accepted_cores: 8
+    max_accepted_mem: 32
     scheduling:
       accept:
         - general
       require:
         - pulsar
   general_pulsar_2:
-    cores: 32
-    mem: 128
+    max_accepted_cores: 32
+    max_accepted_mem: 128
     scheduling:
       accept:
         - general
       require:
         - pulsar
   highmem_pulsar_1:
-    cores: 128
-    mem: 4096
+    max_accepted_cores: 128
+    max_accepted_mem: 4096
     scheduling:
       prefer:
         - highmem
       require:
         - pulsar
   highmem_pulsar_2:
-    cores: 128
-    mem: 4096
+    max_accepted_cores: 128
+    max_accepted_mem: 4096
     scheduling:
       prefer:
         - highmem
       require:
         - pulsar
   training_slurm:
-    cores: 16
-    mem: 64
+    max_accepted_cores: 16
+    max_accepted_mem: 64
     scheduling:
       require:
         - training
   training_pulsar:
-    cores: 8
-    mem: 32
+    max_accepted_cores: 8
+    max_accepted_mem: 32
     scheduling:
       require:
         - training

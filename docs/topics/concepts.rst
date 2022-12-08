@@ -10,11 +10,11 @@ Conceptually, TPV consists of the following types of objects.
 1. Entities - An entity is anything that will be considered for scheduling
 by TPV. Entities include Tools, Users, Groups, Rules and Destinations.
 All entities have some common properties (id, cores, mem, env, params,
-scheduling tags).
+and tags).
 
 2. Scheduling Tags - Entities can have scheduling tags defined on them that determine which
 entities match up, and which destination they can schedule on. Tags fall into one of four categories,
-(required, preferred, accepted, rejected), ranging from indicating a requirement for a particular entity,
+(required, preferred, accepted, rejected), ranging from indicating a requirement for a particular destination,
 to indicating complete aversion.
 
 3. Loader - The loader is responsible for loading entity definitions from a config file.
@@ -36,11 +36,11 @@ When a mapper routes jobs to a destination, it does so by applying 5 basic opera
 ----------
 The inherit operation enables an entity to inherit the properties of another entity of the same
 type, and to override any required properties. While a Tool can inherit another tool, which can in-turn inherit
-yet another tool, it cannot inherit a User, as it's a different entity type. It is also possibly to globally define
-a `default_inherits` field, which is the entity that all entity name that all entities will inherit from should they
+yet another tool, it cannot inherit a User, as it is a different entity type. It is also possibly to globally define
+a `default_inherits` field, which is the entity that all entities will inherit from should they
 not have an `inherits` tag explicitly defined. Inheritance is generally processed at load time by the `Loader`,
-so that there's no cost at runtime. However, the `Mapper` will process default inheritance, should the user, role
-or tool that is being dispatched does not have an entry in the entities list.
+so that there is no cost at runtime. However, the `Mapper` will process default inheritance, should the user, role
+or tool that is being dispatched not have an entry in the entities list.
 
 When inheriting scheduling tags, if the same tag is defined by both the parent and the child, only the child's
 tag will take effect. For example, if a parent defines `high-mem` as a required tag, but a child defines `high-mem`
@@ -50,12 +50,12 @@ as a preferred tag, then the tag will be treated as a preferred tag.
 2. Combine
 ----------
 The combine operation matches up the current user, role and tool entities, and creates a combined
-entity that shares all their respective preferences. The combine operation follows specific rules:
-
-Combining gpus, cores and mem
-In this case, the lower of the two values are used. For example, if a user entity specific 8 cores, and a tool
-requires 2 cores, then the lower value of 2 is used. An example of how this property can be used is to restrict
-training users from running jobs with lower memory than the defaults when running assembly jobs.
+entity that shares all their respective preferences. If the same property is defined on both entities, the entity
+with the higher merge priority will override the other. The priority order is fixed in the following way:
+Destination > User > Role > Tool.
+For example, if a tool specifies `cores`, and a user also specifies `cores`, the user's `cores` value will take
+precedence. Properties defined on destinations have the highest priority of all.
+The combine operation follows the following additional rules:
 
 Combining tags
 ^^^^^^^^^^^^^^
@@ -64,7 +64,7 @@ requirement for tag `high-mem`, the combined entity would share both preferences
 roles or users to specific destinations for example.
 
 However, if the tags are mutually exclusive, then an IncompatibleTagsException is raised. For example, if a role
-expressed a preference for training, but the tool rejected tag `training`, then the job can no longer be scheduled.
+expresses a preference for training, but the tool rejects tag `training`, then the job can no longer be scheduled.
 If the tags are compatible, then the tag with the stronger claim takes effect. For example, if a tool requires
 'high-mem` and a user prefers `high-mem`, then the combined entity will require `high-mem`. An example of using
 this property would be to restrict the availability of dangerous tools only to trusted users.
@@ -72,22 +72,22 @@ this property would be to restrict the availability of dangerous tools only to t
 Combining envs and params
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 In this case, these requirements are simply merged, with duplicate envs and params merged in the following order:
-User > Role > Tool.
+Destination > User > Role > Tool.
 
 3. Evaluate
 -----------
-This operation evaluates any python expressions in the TPV config. It is divided into two steps, evaluate_early()
-and evaluate_late(). The former runs before the combine step and evaluates expressions for cores, mem and gpus.
-This ensures that at the time of combining entities, these values are concrete and can be compared. After the combine()
-step, the evaluate_late() function evaluates all remaining variables, ensuring that they have the latest possible
-values after combining requirements.
+This operation evaluates any python expressions in the combined entity. At this point, rules are also evaluated.
+After evaluation, expressions such as cores, mem, max_cores, min_gpus etc., will all have concrete values. During
+evaluation, the cores, mem and gpu values are clamped between min_cores, min_mem, min_gpus and max_cores, max_mem,
+max_gpus. Afterwards, these values can be compared with a destination's values, as described in the `match` step next.
 
 4. Match
 --------
 The match operation is used to find matching destinations for the combined, evaluated entity. This step ensures
-that the destination has sufficient gpus, cores and mem to satisfy the entity's request, assuming these are defined.
-If these are not defined, a match is assumed. In addition, all destinations that do not have tags required by the
-entity are rejected, and all destinations that have tags rejected by the entity are also rejected. Preference and
+that the destination has sufficient gpus, cores and mem to satisfy the entity's request. The maximum size of a job that
+a destination can accept can be defined using the `max_accepted_cores`, `max_accepted_mem` and `max_accepted_gpus`
+fields. If these are not defined, a match is assumed. In addition, all destinations that do not have tags required by
+the entity are rejected, and all destinations that have tags rejected by the entity are also rejected. Preference and
 acceptance is not considered at this stage, simply compatibility with available destinations based on the tag
 compatibility table documented later.
 
@@ -107,19 +107,19 @@ When a typical job is dispatched, TPV follows the process below.
 .. image:: ../images/job-dispatch-process.svg
 
 
-1. lookup - Looks up Tool, User and Role entity definitions that match the job
-2. evaluate_early() - Evaluates gpu, cores, and mem expressions
-3. combine() - Combines entity requirements to create a merged entity. Uses lower of gpu, cores and mem requirements
-4. evaluate_late() - Evaluates remaining expressions as late as possible
-5. match() - Matches the combined entity requirements with a suitable destination
-6. rank() - The matching destinations are ranked
-7. choose - The ranked destinations are evaluated, with the first non-failing match chosen (no rule failures)
+1. lookup - Looks up Tool, User and Role entity definitions that match the job.
+3. combine() - Combines entity requirements to create a merged entity.
+3. evaluate() - Evaluates expressions in combined entity.
+4. match() - Matches the combined entity requirements with a suitable destination.
+5. rank() - Rank the matching destinations using a pluggable rank function.
+6. choose - The entity is combined with the best matching destination and any expressions on the destination are
+   evaluated, with the first non-failing match chosen (no rule failures)
 
 
 Expressions
 ===========
 
-Most TPV properties can be expressed as python expressions. The rule of thumb is that all string expressions
+Most TPV properties can be expressed as Python expressions. The rule of thumb is that all string expressions
 are evaluated as python f-strings, and all integers or boolean expressions are evaluated as python code blocks.
 For example, cpu, cores and mem are evaluated as python code blocks, as they evaluate to integer/float values.
 However, env and params are evaluated as f-strings, as they result in string values. This is to improve the readability
@@ -168,13 +168,23 @@ refer to evaluated env expressions.
 *rank functions* - these can refer to all prior expressions, and are additional passed in a `candidate_destinations`
 array, which is a list of matching TPV destinations.
 
+Properties that do not support expressions
+------------------------------------------
+
+Some properties do not support expressions. These are primarily:
+a. max_accepted_cores, max_accepted_mem and max_accepted_gpus, which can only be defined on destinations. This is
+   because when a combined entity is matched with a destination, concrete values are required.
+b. tags defined on entities
 
 Scheduling
 ==========
 
 TPV offers several mechanisms for controlling scheduling, all of which are optional.
 In its simplest form, no scheduling constraints would be defined at all, in which case
-the entity would schedule on the first available entity. Admins can use additional
+the entity would schedule on the first available destination. Admins can use tags to exert additional control
+over which destinations jobs can schedule. Tags fall into one of four categories,
+(required, preferred, accepted, rejected), ranging from indicating a requirement for a particular entity,
+to indicating complete aversion.
 
 +-----------+--------------------------------------------------------------------------------------------------------+
 | Tag Type  | Description                                                                                            |

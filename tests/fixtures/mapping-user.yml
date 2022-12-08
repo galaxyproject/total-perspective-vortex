@@ -5,6 +5,7 @@ tools:
   default:
     cores: 2
     mem: 8
+    gpus: 1
     env: {}
     scheduling:
       require: []
@@ -20,10 +21,19 @@ tools:
     scheduling:
       require:
         - pulsar
+  tool_below_min_resources:
+    cores: 1
+    mem: 1
+    gpus: 1
+  tool_above_max_resources:
+    cores: 20
+    mem: 64
+    gpus: 10
+
 users:
   default:
-    cores: 3
-    mem: 4
+    max_cores: 3
+    max_mem: 4
     env: {}
     scheduling:
       require: []
@@ -38,8 +48,8 @@ users:
       require:
         - pulsar
   fairycake@vortex.org:
-    cores: 1
-    mem: 16
+    max_cores: 1
+    max_mem: 16
     env: {}
     scheduling:
       require:
@@ -56,18 +66,38 @@ users:
         - pulsar
       reject:
         - pulsar
+  prefect@vortex.org:
+    max_cores: 4
+    max_mem: 32
+    max_gpus: 3
+    min_cores: 2
+    min_mem: 16
+    min_gpus: 2
+    env: {}
+    scheduling:
+      require:
+        - special_resources
 
 destinations:
   local:
-    cores: 4
-    mem: 16
+    max_accepted_cores: 4
+    max_accepted_mem: 16
     scheduling:
       prefer:
         - general
   k8s_environment:
-    cores: 16
-    mem: 64
-    gpus: 2
+    max_accepted_cores: 16
+    max_accepted_mem: 64
+    max_accepted_gpus: 2
     scheduling:
       prefer:
         - pulsar
+  special_resource_environment:
+    max_accepted_cores: 16
+    max_accepted_mem: 64
+    max_accepted_gpus: 20
+    params:
+      native_spec: "--mem {mem} --cores {cores} --gpus {gpus}"
+    scheduling:
+      prefer:
+        - special_resources

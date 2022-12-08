@@ -1,6 +1,8 @@
 import os
 import unittest
 from tpv.rules import gateway
+from tpv.core.entities import Tag
+from tpv.core.entities import TagType
 from tpv.core.test import mock_galaxy
 
 
@@ -31,3 +33,17 @@ class TestEntity(unittest.TestCase):
         assert evaluated_entity.loader == original_loader
         for rule in evaluated_entity.rules:
             assert rule.loader == original_loader
+
+    def test_tag_equivalence(self):
+        tag1 = Tag("tag_name", "tag_value", TagType.REQUIRE)
+        tag2 = Tag("tag_name2", "tag_value", TagType.REQUIRE)
+        tag3 = Tag("tag_name", "tag_value1", TagType.REQUIRE)
+        tag4 = Tag("tag_name", "tag_value1", TagType.PREFER)
+        same_as_tag1 = Tag("tag_name", "tag_value", TagType.REQUIRE)
+
+        self.assertEqual(tag1, tag1)
+        self.assertEqual(tag1, same_as_tag1)
+        self.assertNotEqual(tag1, tag2)
+        self.assertNotEqual(tag1, tag3)
+        self.assertNotEqual(tag1, tag4)
+        self.assertNotEqual(tag1, "hello")

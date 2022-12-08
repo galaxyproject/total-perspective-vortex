@@ -17,7 +17,7 @@ class TestMapperUser(unittest.TestCase):
 
     def test_map_default_user(self):
         tool = mock_galaxy.Tool('bwa')
-        user = mock_galaxy.User('ford', 'prefect@vortex.org')
+        user = mock_galaxy.User('ford', 'ford@vortex.org')
 
         destination = self._map_to_destination(tool, user)
         self.assertEqual(destination.id, "k8s_environment")
@@ -59,7 +59,7 @@ class TestMapperUser(unittest.TestCase):
 
     def test_map_user_entity_usage_scenario_1(self):
         tool = mock_galaxy.Tool('bwa')
-        user = mock_galaxy.User('ford', 'prefect@vortex.org')
+        user = mock_galaxy.User('ford', 'ford@vortex.org')
 
         destination = self._map_to_destination(tool, user)
         self.assertEqual(destination.id, "k8s_environment")
@@ -74,3 +74,21 @@ class TestMapperUser(unittest.TestCase):
         self.assertEqual(destination.id, "k8s_environment")
         # should use the lower of the two core and mem values for this user
         self.assertEqual(destination.params['native_spec'], '--mem 8 --cores 1')
+
+    def test_tool_below_min_resources_for_user(self):
+        tool = mock_galaxy.Tool('tool_below_min_resources')
+        user = mock_galaxy.User('prefect', 'prefect@vortex.org')
+
+        destination = self._map_to_destination(tool, user)
+        self.assertEqual(destination.id, "special_resource_environment")
+        # should use the lower of the two core and special_resource_environment values for this user
+        self.assertEqual(destination.params['native_spec'], '--mem 16 --cores 2 --gpus 2')
+
+    def test_tool_above_max_resources_for_user(self):
+        tool = mock_galaxy.Tool('tool_above_max_resources')
+        user = mock_galaxy.User('prefect', 'prefect@vortex.org')
+
+        destination = self._map_to_destination(tool, user)
+        self.assertEqual(destination.id, "special_resource_environment")
+        # should use the lower of the two core and mem values for this user
+        self.assertEqual(destination.params['native_spec'], '--mem 32 --cores 4 --gpus 3')

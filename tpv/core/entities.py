@@ -172,13 +172,22 @@ class TagSetManager(object):
 
 class Entity(object):
 
-    def __init__(self, loader, id=None, cores=None, mem=None, gpus=None, env=None, params=None, resubmit=None,
-                 tags=None, rank=None, inherits=None, context=None):
+    merge_order = 0
+
+    def __init__(self, loader, id=None, cores=None, mem=None, gpus=None, min_cores=None, min_mem=None, min_gpus=None,
+                 max_cores=None, max_mem=None, max_gpus=None, env=None, params=None, resubmit=None, tags=None,
+                 rank=None, inherits=None, context=None):
         self.loader = loader
         self.id = id
         self.cores = cores
         self.mem = mem
         self.gpus = gpus
+        self.min_cores = min_cores
+        self.min_mem = min_mem
+        self.min_gpus = min_gpus
+        self.max_cores = max_cores
+        self.max_mem = max_mem
+        self.max_gpus = max_gpus
         self.env = env
         self.params = params
         self.resubmit = resubmit
@@ -235,6 +244,18 @@ class Entity(object):
             self.loader.compile_code_block(self.mem)
         if self.gpus:
             self.loader.compile_code_block(self.gpus)
+        if self.min_cores:
+            self.loader.compile_code_block(self.min_cores)
+        if self.min_mem:
+            self.loader.compile_code_block(self.min_mem)
+        if self.min_gpus:
+            self.loader.compile_code_block(self.min_gpus)
+        if self.max_cores:
+            self.loader.compile_code_block(self.max_cores)
+        if self.max_mem:
+            self.loader.compile_code_block(self.max_mem)
+        if self.max_gpus:
+            self.loader.compile_code_block(self.max_gpus)
         if self.env:
             self.compile_complex_property(self.env)
         if self.params:
@@ -246,15 +267,27 @@ class Entity(object):
 
     def __repr__(self):
         return f"{self.__class__} id={self.id}, cores={self.cores}, mem={self.mem}, gpus={self.gpus}, " \
+               f"min_cores = {self.min_cores}, min_mem = {self.min_mem}, min_gpus = {self.min_gpus}, " \
+               f"max_cores = {self.max_cores}, max_mem = {self.max_mem}, max_gpus = {self.max_gpus}, " \
                f"env={self.env}, params={self.params}, resubmit={self.resubmit}, tags={self.tags}, " \
                f"rank={self.rank[:10] if self.rank else ''}, inherits={self.inherits}, context={self.context}"
 
     def override(self, entity):
-        new_entity = copy.copy(entity)
+        if entity.merge_order <= self.merge_order:
+            # Use the broader class as a base when copying. Useful in particular for Rules
+            new_entity = copy.copy(self)
+        else:
+            new_entity = copy.copy(entity)
         new_entity.id = self.id or entity.id
-        new_entity.cores = self.cores or entity.cores
-        new_entity.mem = self.mem or entity.mem
-        new_entity.gpus = self.gpus or entity.gpus
+        new_entity.cores = self.cores if self.cores is not None else entity.cores
+        new_entity.mem = self.mem if self.mem is not None else entity.mem
+        new_entity.gpus = self.gpus if self.gpus is not None else entity.gpus
+        new_entity.min_cores = self.min_cores if self.min_cores is not None else entity.min_cores
+        new_entity.min_mem = self.min_mem if self.min_mem is not None else entity.min_mem
+        new_entity.min_gpus = self.min_gpus if self.min_gpus is not None else entity.min_gpus
+        new_entity.max_cores = self.max_cores if self.max_cores is not None else entity.max_cores
+        new_entity.max_mem = self.max_mem if self.max_mem is not None else entity.max_mem
+        new_entity.max_gpus = self.max_gpus if self.max_gpus is not None else entity.max_gpus
         new_entity.env = copy.copy(entity.env) or {}
         new_entity.env.update(self.env or {})
         new_entity.params = copy.copy(entity.params) or {}
@@ -286,66 +319,21 @@ class Entity(object):
         If both entities define cpu, memory and gpu requirements, the lower of those requirements are used.
         This provides a mechanism for limiting the maximum memory used by a particular Group or User.
 
-        The general hierarchy of entities in vortex is User > Role > Tool and therefore, these entity
-        are usually merged as: tool.combine(role).combine(user), to produce a final set of tool requirements.
+        The general hierarchy of entities in vortex is Destination > User > Role > Tool and therefore, these entity
+        are usually merged as: destination.combine(user).combine(role).combine(tool), to produce a final set of tool
+        requirements.
 
         The combined requirements can then be matched against the destination, through the match operation.
 
         :param entity:
         :return:
         """
-        new_entity = entity.override(self)
-        if self.cores and entity.cores:
-            new_entity.cores = min(self.cores, entity.cores)
-        if self.mem and entity.mem:
-            new_entity.mem = min(self.mem, entity.mem)
-        if self.gpus and entity.gpus:
-            new_entity.gpus = min(self.gpus, entity.gpus)
+        new_entity = self.override(entity)
         new_entity.id = f"{type(self).__name__}: {self.id}, {type(entity).__name__}: {entity.id}"
-        new_entity.tags = self.tags.combine(entity.tags)
+        new_entity.tags = entity.tags.combine(self.tags)
         return new_entity
 
-    def matches(self, destination, context):
-        """
-        The match operation checks whether all of the require tags in an entity are present
-        in the destination entity, and none of the reject tags in the first entity are
-        present in the second entity.
-
-        This is used to check compatibility of a final set of combined tool requirements with its destination.
-
-        :param destination:
-        :return:
-        """
-        if destination.cores and self.cores and destination.cores < self.cores:
-            return False
-        if destination.mem and self.mem and destination.mem < self.mem:
-            return False
-        if destination.gpus and self.gpus and destination.gpus < self.gpus:
-            return False
-        return self.tags.match(destination.tags or {})
-
-    def evaluate_early(self, context):
-        """
-        Evaluate expressions in entity properties that must be evaluated early, which
-        is to say, evaluated prior to combining entity requirements. These properties
-        are namely, cores, mem and gpus, since at the time of combining entity requirements,
-        the properties must be compared.
-        :param context:
-        :return:
-        """
-        new_entity = copy.deepcopy(self)
-        context.update(self.context or {})
-        if self.gpus:
-            new_entity.gpus = self.loader.eval_code_block(self.gpus, context)
-            context['gpus'] = new_entity.gpus
-        if self.cores:
-            new_entity.cores = self.loader.eval_code_block(self.cores, context)
-            context['cores'] = new_entity.cores
-        if self.mem:
-            new_entity.mem = self.loader.eval_code_block(self.mem, context)
-        return new_entity
-
-    def evaluate_late(self, context):
+    def evaluate(self, context):
         """
         Evaluate expressions in entity properties that must be evaluated as late as possible, which is
         to say, after combining entity requirements. This includes env, params and resubmit, that rely on
@@ -355,9 +343,42 @@ class Entity(object):
         """
         new_entity = copy.deepcopy(self)
         context.update(self.context or {})
-        context['gpus'] = new_entity.gpus
-        context['cores'] = new_entity.cores
-        context['mem'] = new_entity.mem
+        if self.min_gpus is not None:
+            new_entity.min_gpus = self.loader.eval_code_block(self.min_gpus, context)
+            context['min_gpus'] = new_entity.min_gpus
+        if self.min_cores is not None:
+            new_entity.min_cores = self.loader.eval_code_block(self.min_cores, context)
+            context['min_cores'] = new_entity.min_cores
+        if self.min_mem is not None:
+            new_entity.min_mem = self.loader.eval_code_block(self.min_mem, context)
+            context['min_mem'] = new_entity.min_mem
+        if self.max_gpus is not None:
+            new_entity.max_gpus = self.loader.eval_code_block(self.max_gpus, context)
+            context['max_gpus'] = new_entity.max_gpus
+        if self.max_cores is not None:
+            new_entity.max_cores = self.loader.eval_code_block(self.max_cores, context)
+            context['max_cores'] = new_entity.max_cores
+        if self.max_mem is not None:
+            new_entity.max_mem = self.loader.eval_code_block(self.max_mem, context)
+            context['max_mem'] = new_entity.max_mem
+        if self.gpus is not None:
+            new_entity.gpus = self.loader.eval_code_block(self.gpus, context)
+            # clamp gpus
+            new_entity.gpus = max(new_entity.min_gpus or 0, new_entity.gpus or 0)
+            new_entity.gpus = min(new_entity.max_gpus, new_entity.gpus) if new_entity.max_gpus else new_entity.gpus
+            context['gpus'] = new_entity.gpus
+        if self.cores is not None:
+            new_entity.cores = self.loader.eval_code_block(self.cores, context)
+            # clamp cores
+            new_entity.cores = max(new_entity.min_cores or 0, new_entity.cores or 0)
+            new_entity.cores = min(new_entity.max_cores, new_entity.cores) if new_entity.max_cores else new_entity.cores
+            context['cores'] = new_entity.cores
+        if self.mem is not None:
+            new_entity.mem = self.loader.eval_code_block(self.mem, context)
+            # clamp mem
+            new_entity.mem = max(new_entity.min_mem or 0, new_entity.mem or 0)
+            new_entity.mem = min(new_entity.max_mem, new_entity.mem or 0) if new_entity.max_mem else new_entity.mem
+            context['mem'] = new_entity.mem
         if self.env:
             new_entity.env = self.evaluate_complex_property(self.env, context)
             context['env'] = new_entity.env
@@ -367,6 +388,7 @@ class Entity(object):
         if self.resubmit:
             new_entity.resubmit = self.evaluate_complex_property(self.resubmit, context)
             context['resubmit'] = new_entity.resubmit
+
         return new_entity
 
     def rank_destinations(self, destinations, context):
@@ -379,18 +401,17 @@ class Entity(object):
             log.debug(f"Ranking destinations: {destinations} for entity: {self} using default ranker")
             return sorted(destinations, key=lambda d: d.score(self), reverse=True)
 
-    def score(self, entity):
-        score = self.tags.score(entity.tags)
-        log.debug(f"Destination: {entity} scored: {score}")
-        return score
-
 
 class EntityWithRules(Entity):
 
-    def __init__(self, loader, id=None, cores=None, mem=None, gpus=None, env=None,
+    merge_order = 1
+
+    def __init__(self, loader, id=None, cores=None, mem=None, gpus=None, min_cores=None, min_mem=None, min_gpus=None,
+                 max_cores=None, max_mem=None, max_gpus=None, env=None,
                  params=None, resubmit=None, tags=None, rank=None, inherits=None, context=None, rules=None):
-        super().__init__(loader, id=id, cores=cores, mem=mem, gpus=gpus, env=env, params=params, resubmit=resubmit,
-                         tags=tags, rank=rank, inherits=inherits, context=context)
+        super().__init__(loader, id=id, cores=cores, mem=mem, gpus=gpus, min_cores=min_cores, min_mem=min_mem,
+                         min_gpus=min_gpus, max_cores=max_cores, max_mem=max_mem, max_gpus=max_gpus, env=env,
+                         params=params, resubmit=resubmit, tags=tags, rank=rank, inherits=inherits, context=context)
         self.rules = self.validate_rules(rules)
 
     def validate_rules(self, rules: list) -> list:
@@ -412,6 +433,12 @@ class EntityWithRules(Entity):
             cores=entity_dict.get('cores'),
             mem=entity_dict.get('mem'),
             gpus=entity_dict.get('gpus'),
+            min_cores=entity_dict.get('min_cores'),
+            min_mem=entity_dict.get('min_mem'),
+            min_gpus=entity_dict.get('min_gpus'),
+            max_cores=entity_dict.get('max_cores'),
+            max_mem=entity_dict.get('max_mem'),
+            max_gpus=entity_dict.get('max_gpus'),
             env=entity_dict.get('env'),
             params=entity_dict.get('params'),
             resubmit=entity_dict.get('resubmit'),
@@ -431,30 +458,21 @@ class EntityWithRules(Entity):
                 new_entity.rules[rule.id] = rule.inherit(entity.rules[rule.id])
         return new_entity
 
-    def evaluate_early(self, context):
+    def evaluate(self, context):
         new_entity = copy.deepcopy(self)
         context.update(new_entity.context or {})
         for rule in self.rules.values():
             if rule.is_matching(context):
-                rule = rule.evaluate_early(context)
-                entity_id = new_entity.id
+                rule = rule.evaluate(context)
+                context.update({
+                    'entity': rule
+                })
+                new_entity = rule.inherit(new_entity)
                 new_entity.gpus = rule.gpus or self.gpus
                 new_entity.cores = rule.cores or self.cores
                 new_entity.mem = rule.mem or self.mem
-                new_entity.id = f"{entity_id}, Rule: {rule.id}"
-        return super(EntityWithRules, new_entity).evaluate_early(context)
-
-    def evaluate_late(self, context):
-        new_entity = copy.deepcopy(self)
-        for rule in self.rules.values():
-            if rule.is_matching(context):
-                rule = rule.evaluate_late(context)
-                new_entity = rule.inherit(new_entity)
-                # restore already evaluated entity requirements
-                new_entity.cores = self.cores
-                new_entity.mem = self.mem
-                new_entity.gpus = self.gpus
-        return super(EntityWithRules, new_entity).evaluate_late(context)
+                new_entity.id = f"{new_entity.id}, Rule: {rule.id}"
+        return super(EntityWithRules, new_entity).evaluate(context)
 
     def __repr__(self):
         return super().__repr__() + f", rules={self.rules}"
@@ -462,64 +480,167 @@ class EntityWithRules(Entity):
 
 class Tool(EntityWithRules):
 
-    def __init__(self, loader, id=None, cores=None, mem=None, gpus=None,
-                 env=None, params=None, resubmit=None, tags=None, rank=None, inherits=None, context=None, rules=None):
-        super().__init__(loader, id=id, cores=cores, mem=mem, gpus=gpus, env=env, params=params, resubmit=resubmit,
-                         tags=tags, rank=rank, inherits=inherits, context=context, rules=rules)
+    merge_order = 2
 
-
-class User(EntityWithRules):
-
-    def __init__(self, loader, id=None, cores=None, mem=None, gpus=None,
-                 env=None, params=None, resubmit=None, tags=None, rank=None, inherits=None, context=None, rules=None):
-        super().__init__(loader, id=id, cores=cores, mem=mem, gpus=gpus, env=env, params=params, resubmit=resubmit,
-                         tags=tags, rank=rank, inherits=inherits, context=context, rules=rules)
+    def __init__(self, loader, id=None, cores=None, mem=None, gpus=None, min_cores=None, min_mem=None, min_gpus=None,
+                 max_cores=None, max_mem=None, max_gpus=None, env=None, params=None, resubmit=None, tags=None,
+                 rank=None, inherits=None, context=None, rules=None):
+        super().__init__(loader, id=id, cores=cores, mem=mem, gpus=gpus, min_cores=min_cores, min_mem=min_mem,
+                         min_gpus=min_gpus, max_cores=max_cores, max_mem=max_mem, max_gpus=max_gpus, env=env,
+                         params=params, resubmit=resubmit, tags=tags, rank=rank, inherits=inherits, context=context,
+                         rules=rules)
 
 
 class Role(EntityWithRules):
 
-    def __init__(self, loader, id=None, cores=None, mem=None, gpus=None,
-                 env=None, params=None, resubmit=None, tags=None, rank=None, inherits=None, context=None, rules=None):
-        super().__init__(loader, id=id, cores=cores, mem=mem, gpus=gpus, env=env, params=params, resubmit=resubmit,
-                         tags=tags, rank=rank, inherits=inherits, context=context, rules=rules)
+    merge_order = 3
+
+    def __init__(self, loader, id=None, cores=None, mem=None, gpus=None, min_cores=None, min_mem=None, min_gpus=None,
+                 max_cores=None, max_mem=None, max_gpus=None, env=None, params=None, resubmit=None, tags=None,
+                 rank=None, inherits=None, context=None, rules=None):
+        super().__init__(loader, id=id, cores=cores, mem=mem, gpus=gpus, min_cores=min_cores, min_mem=min_mem,
+                         min_gpus=min_gpus, max_cores=max_cores, max_mem=max_mem, max_gpus=max_gpus, env=env,
+                         params=params, resubmit=resubmit, tags=tags, rank=rank, inherits=inherits, context=context,
+                         rules=rules)
+
+
+class User(EntityWithRules):
+
+    merge_order = 4
+
+    def __init__(self, loader, id=None, cores=None, mem=None, gpus=None, min_cores=None, min_mem=None, min_gpus=None,
+                 max_cores=None, max_mem=None, max_gpus=None, env=None, params=None, resubmit=None, tags=None,
+                 rank=None, inherits=None, context=None, rules=None):
+        super().__init__(loader, id=id, cores=cores, mem=mem, gpus=gpus, min_cores=min_cores, min_mem=min_mem,
+                         min_gpus=min_gpus, max_cores=max_cores, max_mem=max_mem, max_gpus=max_gpus, env=env,
+                         params=params, resubmit=resubmit, tags=tags, rank=rank, inherits=inherits, context=context,
+                         rules=rules)
 
 
 class Destination(EntityWithRules):
 
-    def __init__(self, loader, id=None, cores=None, mem=None, gpus=None,
-                 env=None, params=None, resubmit=None, tags=None, inherits=None, context=None, rules=None):
-        super().__init__(loader, id=id, cores=cores, mem=mem, gpus=gpus, env=env, params=params, resubmit=resubmit,
-                         tags=tags, inherits=inherits, context=context, rules=rules)
+    merge_order = 5
+
+    def __init__(self, loader, id=None, dest_name=None, cores=None, mem=None, gpus=None, min_cores=None, min_mem=None,
+                 min_gpus=None, max_cores=None, max_mem=None, max_gpus=None, max_accepted_cores=None,
+                 max_accepted_mem=None, max_accepted_gpus=None, env=None, params=None, resubmit=None, dest_tags=None,
+                 inherits=None, context=None, rules=None):
+        super().__init__(loader, id=id, cores=cores, mem=mem, gpus=gpus, min_cores=min_cores, min_mem=min_mem,
+                         min_gpus=min_gpus, max_cores=max_cores, max_mem=max_mem, max_gpus=max_gpus, env=env,
+                         params=params, resubmit=resubmit, tags=None, inherits=inherits, context=context, rules=rules)
+        self.dest_name = dest_name or id
+        self.max_accepted_cores = max_accepted_cores
+        self.max_accepted_mem = max_accepted_mem
+        self.max_accepted_gpus = max_accepted_gpus
+        self.dest_tags = TagSetManager.from_dict(dest_tags or {})
 
     @staticmethod
     def from_dict(loader, entity_dict):
         return Destination(
             loader=loader,
             id=entity_dict.get('id'),
+            dest_name=entity_dict.get('dest_name'),
             cores=entity_dict.get('cores'),
             mem=entity_dict.get('mem'),
             gpus=entity_dict.get('gpus'),
+            min_cores=entity_dict.get('min_cores'),
+            min_mem=entity_dict.get('min_mem'),
+            min_gpus=entity_dict.get('min_gpus'),
+            max_cores=entity_dict.get('max_cores'),
+            max_mem=entity_dict.get('max_mem'),
+            max_gpus=entity_dict.get('max_gpus'),
+            max_accepted_cores=entity_dict.get('max_accepted_cores'),
+            max_accepted_mem=entity_dict.get('max_accepted_mem'),
+            max_accepted_gpus=entity_dict.get('max_accepted_gpus'),
             env=entity_dict.get('env'),
             params=entity_dict.get('params'),
             resubmit=entity_dict.get('resubmit'),
-            tags=entity_dict.get('scheduling'),
+            dest_tags=entity_dict.get('scheduling'),
             inherits=entity_dict.get('inherits'),
             context=entity_dict.get('context'),
             rules=entity_dict.get('rules')
         )
 
+    def __repr__(self):
+        return f"dest_name={self.dest_name}, max_accepted_cores={self.max_accepted_cores}, "\
+               f"max_accepted_mem={self.max_accepted_mem}, max_accepted_gpus={self.max_accepted_gpus}, "\
+               f"dest_tags={self.dest_tags if self.dest_tags else ''}, " + super().__repr__()
+
+    def override(self, entity):
+        new_entity = super().override(entity)
+        new_entity.dest_name = self.dest_name if self.dest_name is not None else getattr(entity, 'dest_name', None)
+        new_entity.max_accepted_cores = (self.max_accepted_cores if self.max_accepted_cores is not None
+                                         else getattr(entity, 'max_accepted_cores', None))
+        new_entity.max_accepted_mem = (self.max_accepted_mem if self.max_accepted_mem is not None
+                                       else getattr(entity, 'max_accepted_mem', None))
+        new_entity.max_accepted_gpus = (self.max_accepted_gpus if self.max_accepted_gpus is not None
+                                        else getattr(entity, 'max_accepted_gpus', None))
+        return new_entity
+
+    def evaluate(self, context):
+        new_entity = super(Destination, self).evaluate(context)
+        if self.max_accepted_gpus:
+            new_entity.max_accepted_gpus = self.loader.eval_code_block(self.max_accepted_gpus, context)
+            context['max_accepted_gpus'] = new_entity.max_accepted_gpus
+        if self.max_accepted_cores:
+            new_entity.max_accepted_cores = self.loader.eval_code_block(self.max_accepted_cores, context)
+            context['max_accepted_cores'] = new_entity.max_accepted_cores
+        if self.max_accepted_mem:
+            new_entity.max_accepted_mem = self.loader.eval_code_block(self.max_accepted_mem, context)
+            context['max_accepted_mem'] = new_entity.max_accepted_mem
+        return new_entity
+
+    def inherit(self, entity):
+        new_entity = super().inherit(entity)
+        if entity:
+            new_entity.dest_tags = self.dest_tags.inherit(entity.dest_tags)
+        return new_entity
+
+    def matches(self, entity, context):
+        """
+        The match operation checks whether all of the require tags in an entity are present
+        in the destination entity, and none of the reject tags in the first entity are
+        present in the second entity.
+
+        This is used to check compatibility of a final set of combined tool requirements with its destination.
+
+        :param destination:
+        :return:
+        """
+        if self.max_accepted_cores and entity.cores and self.max_accepted_cores < entity.cores:
+            return False
+        if self.max_accepted_mem and entity.mem and self.max_accepted_mem < entity.mem:
+            return False
+        if self.max_accepted_gpus and entity.gpus and self.max_accepted_gpus < entity.gpus:
+            return False
+        return entity.tags.match(self.dest_tags or {})
+
+    def score(self, entity):
+        """
+        Rank this destination against an entity based on how well the tags match
+
+        :param entity:
+        :return:
+        """
+        score = self.dest_tags.score(entity.tags)
+        log.debug(f"Destination: {entity} scored: {score}")
+        return score
+
 
 class Rule(Entity):
 
     rule_counter = 0
+    merge_order = 0
 
-    def __init__(self, loader, id=None, cores=None, mem=None, gpus=None, env=None, params=None, resubmit=None,
+    def __init__(self, loader, id=None, cores=None, mem=None, gpus=None, min_cores=None, min_mem=None, min_gpus=None,
+                 max_cores=None, max_mem=None, max_gpus=None, env=None, params=None, resubmit=None,
                  tags=None, inherits=None, context=None, match=None, execute=None, fail=None):
         if not id:
             Rule.rule_counter += 1
             id = f"tpv_rule_{Rule.rule_counter}"
-        super().__init__(loader, id=id, cores=cores, mem=mem, gpus=gpus, env=env, params=params, resubmit=resubmit,
-                         tags=tags, context=context, inherits=inherits)
+        super().__init__(loader, id=id, cores=cores, mem=mem, gpus=gpus, min_cores=min_cores, min_mem=min_mem,
+                         min_gpus=min_gpus, max_cores=max_cores, max_mem=max_mem, max_gpus=max_gpus, env=env,
+                         params=params, resubmit=resubmit, tags=tags, context=context, inherits=inherits)
         self.match = match
         self.execute = execute
         self.fail = fail
@@ -538,6 +659,12 @@ class Rule(Entity):
             cores=entity_dict.get('cores'),
             mem=entity_dict.get('mem'),
             gpus=entity_dict.get('gpus'),
+            min_cores=entity_dict.get('min_cores'),
+            min_mem=entity_dict.get('min_mem'),
+            min_gpus=entity_dict.get('min_gpus'),
+            max_cores=entity_dict.get('max_cores'),
+            max_mem=entity_dict.get('max_mem'),
+            max_gpus=entity_dict.get('max_gpus'),
             env=entity_dict.get('env'),
             params=entity_dict.get('params'),
             resubmit=entity_dict.get('resubmit'),
@@ -559,8 +686,8 @@ class Rule(Entity):
 
     def __repr__(self):
         return super().__repr__() + f", if={self.match[:10] if self.match else ''}, " \
-                                    f"execute={self.execute[:10] if self.execute else ''}, " \
-                                    f"fail={self.fail[:10] if self.fail else ''}"
+               f"execute={self.execute[:10] if self.execute else ''}, " \
+               f"fail={self.fail[:10] if self.fail else ''}"
 
     def is_matching(self, context):
         if self.loader.eval_code_block(self.match, context):
@@ -568,14 +695,11 @@ class Rule(Entity):
         else:
             return False
 
-    def evaluate_early(self, context):
+    def evaluate(self, context):
         if self.fail:
             from galaxy.jobs.mapper import JobMappingException
             raise JobMappingException(
                 self.loader.eval_code_block(self.fail, context, as_f_string=True))
-        return self
-
-    def evaluate_late(self, context):
         if self.execute:
             self.loader.eval_code_block(self.execute, context, exec_only=True)
             # return any changes made to the entity

@@ -5,11 +5,13 @@ tools:
   default:
     cores: 2
     mem: cores * 3
+    gpus: 0
     params:
       nativeSpec: '--cores {cores} --mem {mem}'
     env:
       TEST_JOB_SLOTS: "{cores}"
       TEST_ENTITY_PRIORITY: "{cores}"
+      TEST_ENTITY_GPUS: "{gpus}"
     scheduling:
       require: []
       prefer:
@@ -45,8 +47,8 @@ tools:
 
 destinations:
   local:
-    cores: 4
-    mem: 16
+    max_accepted_cores: 4
+    max_accepted_mem: 16
     scheduling:
       accept:
         - local
@@ -61,9 +63,9 @@ destinations:
           from tpv.core.entities import TryNextDestinationOrWait
           raise TryNextDestinationOrWait("Cannot run this job here at this time, may be available later, try elsewhere")
   k8s_environment:
-    cores: 16
-    mem: 64
-    gpus: 2
+    max_accepted_cores: 16
+    max_accepted_mem: 64
+    max_accepted_gpus: 2
     env:
       DOCKER_ENABLED: "true"
       SPECIAL_FLAG: "first"
@@ -79,9 +81,9 @@ destinations:
       prefer:
         - pulsar
   another_k8s_environment:
-    cores: 16
-    mem: 64
-    gpus: 2
+    max_accepted_cores: 16
+    max_accepted_mem: 64
+    max_accepted_gpus: 2
     env:
       SPECIAL_FLAG: "second"
       TEST_ENTITY_PRIORITY: "{cores*2}"
@@ -99,9 +101,9 @@ destinations:
         - highmem
   inherited_k8s_environment:
     inherits: another_k8s_environment
-    cores: 16
-    mem: 64
-    gpus: 2
+    max_accepted_cores: 16
+    max_accepted_mem: 64
+    max_accepted_gpus: 2
     env:
       SPECIAL_FLAG: "third"
     params:
@@ -110,9 +112,9 @@ destinations:
       require:
         - inherited
   custom_naming:
-    cores: 16
-    mem: 64
-    gpus: 2
+    max_accepted_cores: 16
+    max_accepted_mem: 64
+    max_accepted_gpus: 2
     env:
       SPECIAL_FLAG: "third"
     params:
