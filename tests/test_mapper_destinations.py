@@ -97,3 +97,15 @@ class TestMapperDestinations(unittest.TestCase):
         datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=12*1024**3))]
         destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
         self.assertEqual(destination.id, "my-dest-with-2-cores-6-mem")
+
+    def test_destination_with_handler_tags(self):
+        tool = mock_galaxy.Tool('tool_with_handler_tags')
+        user = mock_galaxy.User('ford', 'prefect@vortex.org')
+
+        config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-destinations.yml')
+
+        # an intermediate file size should compute correct values
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=12*1024**3))]
+        destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
+        self.assertEqual(destination.id, "destination_with_handler_tags")
+        self.assertEqual(destination.tags, ["registered_user_concurrent_jobs_20"])

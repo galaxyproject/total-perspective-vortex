@@ -67,6 +67,7 @@ class EntityToDestinationMapper(object):
     def to_galaxy_destination(self, destination):
         return JobDestination(
             id=destination.dest_name,
+            tags=destination.handler_tags,
             runner=destination.runner,
             params=destination.params,
             env=[dict(name=k, value=v) for (k, v) in destination.env.items()],

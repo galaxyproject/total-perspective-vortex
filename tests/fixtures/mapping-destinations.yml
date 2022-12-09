@@ -44,6 +44,10 @@ tools:
     scheduling:
       require:
         - custom
+  tool_with_handler_tags:
+    scheduling:
+      require:
+        - dest_with_handler_tags
 
 destinations:
   local:
@@ -127,3 +131,13 @@ destinations:
     scheduling:
       require:
         - custom
+  destination_with_handler_tags:
+    runner: k8s
+    tags:
+      - registered_user_concurrent_jobs_20
+    max_accepted_cores: 16
+    max_accepted_mem: 64
+    max_accepted_gpus: 2
+    scheduling:
+      require:
+        - dest_with_handler_tags

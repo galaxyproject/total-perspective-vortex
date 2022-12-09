@@ -525,13 +525,14 @@ class Destination(EntityWithRules):
     def __init__(self, loader, id=None, runner=None, dest_name=None, cores=None, mem=None, gpus=None, min_cores=None,
                  min_mem=None, min_gpus=None, max_cores=None, max_mem=None, max_gpus=None, max_accepted_cores=None,
                  max_accepted_mem=None, max_accepted_gpus=None, env=None, params=None, resubmit=None,
-                 tpv_dest_tags=None, inherits=None, context=None, rules=None):
+                 tpv_dest_tags=None, inherits=None, context=None, rules=None, handler_tags=None):
         self.runner = runner
         self.dest_name = dest_name or id
         self.max_accepted_cores = max_accepted_cores
         self.max_accepted_mem = max_accepted_mem
         self.max_accepted_gpus = max_accepted_gpus
         self.tpv_dest_tags = TagSetManager.from_dict(tpv_dest_tags or {})
+        self.handler_tags = handler_tags
         super().__init__(loader, id=id, cores=cores, mem=mem, gpus=gpus, min_cores=min_cores, min_mem=min_mem,
                          min_gpus=min_gpus, max_cores=max_cores, max_mem=max_mem, max_gpus=max_gpus, env=env,
                          params=params, resubmit=resubmit, tpv_tags=None, inherits=inherits, context=context,
@@ -562,13 +563,14 @@ class Destination(EntityWithRules):
             tpv_dest_tags=entity_dict.get('scheduling'),
             inherits=entity_dict.get('inherits'),
             context=entity_dict.get('context'),
-            rules=entity_dict.get('rules')
+            rules=entity_dict.get('rules'),
+            handler_tags=entity_dict.get('tags')
         )
 
     def __repr__(self):
         return f"runner={self.runner}, dest_name={self.dest_name}, max_accepted_cores={self.max_accepted_cores}, "\
                f"max_accepted_mem={self.max_accepted_mem}, max_accepted_gpus={self.max_accepted_gpus}, "\
-               f"tpv_dest_tags={self.tpv_dest_tags if self.tpv_dest_tags else ''}, " + super().__repr__()
+               f"tpv_dest_tags={self.tpv_dest_tags}, handler_tags={self.handler_tags}" + super().__repr__()
 
     def override(self, entity):
         new_entity = super().override(entity)
@@ -580,6 +582,7 @@ class Destination(EntityWithRules):
                                        else getattr(entity, 'max_accepted_mem', None))
         new_entity.max_accepted_gpus = (self.max_accepted_gpus if self.max_accepted_gpus is not None
                                         else getattr(entity, 'max_accepted_gpus', None))
+        new_entity.handler_tags = self.handler_tags or getattr(entity, 'handler_tags', None)
         return new_entity
 
     def validate(self):
@@ -591,12 +594,17 @@ class Destination(EntityWithRules):
         super().validate()
         if self.dest_name:
             self.loader.compile_code_block(self.dest_name, as_f_string=True)
+        if self.handler_tags:
+            self.compile_complex_property(self.handler_tags)
 
     def evaluate(self, context):
         new_entity = super(Destination, self).evaluate(context)
         if self.dest_name is not None:
             new_entity.dest_name = self.loader.eval_code_block(self.dest_name, context, as_f_string=True)
             context['dest_name'] = new_entity.dest_name
+        if self.handler_tags is not None:
+            new_entity.handler_tags = self.evaluate_complex_property(self.handler_tags, context)
+            context['handler_tags'] = new_entity.handler_tags
         return new_entity
 
     def inherit(self, entity):
