@@ -24,3 +24,6 @@ following breaking changes.
 4. The `destination_name_override` property is no longer an extra param on the destination. It is instead,
    a top-level property of a destination. The `destination_name_override` can be used to dynamically generate
    a custom name for the destination.
+
+5. Any custom Python code that refers to scheduling tags through `entity.tags` should now use `entity.tpv_tags` on
+   Tool, User, and Role entities. Destination entities now have the property `entity.tpv_dest_tags`.

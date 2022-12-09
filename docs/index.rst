@@ -14,8 +14,8 @@ How it works
 TPV provides a dynamic rule that can be plugged into Galaxy via ``job_conf.yml``.
 The dynamic rule will also have an associated configuration file, that maps entities
 (tools, users, roles) to specific destination through a flexible tagging system.
-Destinations can have arbitrary tags defined, and each entity can express a preference
-or aversion to specific tags. Based on this tagging, jobs are routed to the most appropriate
+Destinations can have arbitrary scheduling tags defined, and each entity can express a preference
+or aversion to specific scheduling tags. Based on this tagging, jobs are routed to the most appropriate
 destination. In addition, admins can also plugin arbitrary python based rules for making
 more complex decisions, as well as custom ranking functions for choosing between matching
 destinations. For example, a ranking function could query influx metrics to determine

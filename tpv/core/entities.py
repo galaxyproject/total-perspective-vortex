@@ -175,7 +175,7 @@ class Entity(object):
     merge_order = 0
 
     def __init__(self, loader, id=None, cores=None, mem=None, gpus=None, min_cores=None, min_mem=None, min_gpus=None,
-                 max_cores=None, max_mem=None, max_gpus=None, env=None, params=None, resubmit=None, tags=None,
+                 max_cores=None, max_mem=None, max_gpus=None, env=None, params=None, resubmit=None, tpv_tags=None,
                  rank=None, inherits=None, context=None):
         self.loader = loader
         self.id = id
@@ -191,7 +191,7 @@ class Entity(object):
         self.env = env
         self.params = params
         self.resubmit = resubmit
-        self.tags = TagSetManager.from_dict(tags or {})
+        self.tpv_tags = TagSetManager.from_dict(tpv_tags or {})
         self.rank = rank
         self.inherits = inherits
         self.context = context
@@ -269,7 +269,7 @@ class Entity(object):
         return f"{self.__class__} id={self.id}, cores={self.cores}, mem={self.mem}, gpus={self.gpus}, " \
                f"min_cores = {self.min_cores}, min_mem = {self.min_mem}, min_gpus = {self.min_gpus}, " \
                f"max_cores = {self.max_cores}, max_mem = {self.max_mem}, max_gpus = {self.max_gpus}, " \
-               f"env={self.env}, params={self.params}, resubmit={self.resubmit}, tags={self.tags}, " \
+               f"env={self.env}, params={self.params}, resubmit={self.resubmit}, tpv_tags={self.tpv_tags}, " \
                f"rank={self.rank[:10] if self.rank else ''}, inherits={self.inherits}, context={self.context}"
 
     def override(self, entity):
@@ -303,7 +303,7 @@ class Entity(object):
     def inherit(self, entity):
         if entity:
             new_entity = self.override(entity)
-            new_entity.tags = self.tags.inherit(entity.tags)
+            new_entity.tpv_tags = self.tpv_tags.inherit(entity.tpv_tags)
             return new_entity
         else:
             return copy.deepcopy(self)
@@ -330,7 +330,7 @@ class Entity(object):
         """
         new_entity = self.override(entity)
         new_entity.id = f"{type(self).__name__}: {self.id}, {type(entity).__name__}: {entity.id}"
-        new_entity.tags = entity.tags.combine(self.tags)
+        new_entity.tpv_tags = entity.tpv_tags.combine(self.tpv_tags)
         return new_entity
 
     def evaluate(self, context):
@@ -408,10 +408,11 @@ class EntityWithRules(Entity):
 
     def __init__(self, loader, id=None, cores=None, mem=None, gpus=None, min_cores=None, min_mem=None, min_gpus=None,
                  max_cores=None, max_mem=None, max_gpus=None, env=None,
-                 params=None, resubmit=None, tags=None, rank=None, inherits=None, context=None, rules=None):
+                 params=None, resubmit=None, tpv_tags=None, rank=None, inherits=None, context=None, rules=None):
         super().__init__(loader, id=id, cores=cores, mem=mem, gpus=gpus, min_cores=min_cores, min_mem=min_mem,
                          min_gpus=min_gpus, max_cores=max_cores, max_mem=max_mem, max_gpus=max_gpus, env=env,
-                         params=params, resubmit=resubmit, tags=tags, rank=rank, inherits=inherits, context=context)
+                         params=params, resubmit=resubmit, tpv_tags=tpv_tags, rank=rank, inherits=inherits,
+                         context=context)
         self.rules = self.validate_rules(rules)
 
     def validate_rules(self, rules: list) -> list:
@@ -442,7 +443,7 @@ class EntityWithRules(Entity):
             env=entity_dict.get('env'),
             params=entity_dict.get('params'),
             resubmit=entity_dict.get('resubmit'),
-            tags=entity_dict.get('scheduling'),
+            tpv_tags=entity_dict.get('scheduling'),
             rank=entity_dict.get('rank'),
             inherits=entity_dict.get('inherits'),
             context=entity_dict.get('context'),
@@ -483,12 +484,12 @@ class Tool(EntityWithRules):
     merge_order = 2
 
     def __init__(self, loader, id=None, cores=None, mem=None, gpus=None, min_cores=None, min_mem=None, min_gpus=None,
-                 max_cores=None, max_mem=None, max_gpus=None, env=None, params=None, resubmit=None, tags=None,
+                 max_cores=None, max_mem=None, max_gpus=None, env=None, params=None, resubmit=None, tpv_tags=None,
                  rank=None, inherits=None, context=None, rules=None):
         super().__init__(loader, id=id, cores=cores, mem=mem, gpus=gpus, min_cores=min_cores, min_mem=min_mem,
                          min_gpus=min_gpus, max_cores=max_cores, max_mem=max_mem, max_gpus=max_gpus, env=env,
-                         params=params, resubmit=resubmit, tags=tags, rank=rank, inherits=inherits, context=context,
-                         rules=rules)
+                         params=params, resubmit=resubmit, tpv_tags=tpv_tags, rank=rank, inherits=inherits,
+                         context=context, rules=rules)
 
 
 class Role(EntityWithRules):
@@ -496,12 +497,12 @@ class Role(EntityWithRules):
     merge_order = 3
 
     def __init__(self, loader, id=None, cores=None, mem=None, gpus=None, min_cores=None, min_mem=None, min_gpus=None,
-                 max_cores=None, max_mem=None, max_gpus=None, env=None, params=None, resubmit=None, tags=None,
+                 max_cores=None, max_mem=None, max_gpus=None, env=None, params=None, resubmit=None, tpv_tags=None,
                  rank=None, inherits=None, context=None, rules=None):
         super().__init__(loader, id=id, cores=cores, mem=mem, gpus=gpus, min_cores=min_cores, min_mem=min_mem,
                          min_gpus=min_gpus, max_cores=max_cores, max_mem=max_mem, max_gpus=max_gpus, env=env,
-                         params=params, resubmit=resubmit, tags=tags, rank=rank, inherits=inherits, context=context,
-                         rules=rules)
+                         params=params, resubmit=resubmit, tpv_tags=tpv_tags, rank=rank, inherits=inherits,
+                         context=context, rules=rules)
 
 
 class User(EntityWithRules):
@@ -509,12 +510,12 @@ class User(EntityWithRules):
     merge_order = 4
 
     def __init__(self, loader, id=None, cores=None, mem=None, gpus=None, min_cores=None, min_mem=None, min_gpus=None,
-                 max_cores=None, max_mem=None, max_gpus=None, env=None, params=None, resubmit=None, tags=None,
+                 max_cores=None, max_mem=None, max_gpus=None, env=None, params=None, resubmit=None, tpv_tags=None,
                  rank=None, inherits=None, context=None, rules=None):
         super().__init__(loader, id=id, cores=cores, mem=mem, gpus=gpus, min_cores=min_cores, min_mem=min_mem,
                          min_gpus=min_gpus, max_cores=max_cores, max_mem=max_mem, max_gpus=max_gpus, env=env,
-                         params=params, resubmit=resubmit, tags=tags, rank=rank, inherits=inherits, context=context,
-                         rules=rules)
+                         params=params, resubmit=resubmit, tpv_tags=tpv_tags, rank=rank, inherits=inherits,
+                         context=context, rules=rules)
 
 
 class Destination(EntityWithRules):
@@ -523,17 +524,18 @@ class Destination(EntityWithRules):
 
     def __init__(self, loader, id=None, runner=None, dest_name=None, cores=None, mem=None, gpus=None, min_cores=None,
                  min_mem=None, min_gpus=None, max_cores=None, max_mem=None, max_gpus=None, max_accepted_cores=None,
-                 max_accepted_mem=None, max_accepted_gpus=None, env=None, params=None, resubmit=None, dest_tags=None,
-                 inherits=None, context=None, rules=None):
+                 max_accepted_mem=None, max_accepted_gpus=None, env=None, params=None, resubmit=None,
+                 tpv_dest_tags=None, inherits=None, context=None, rules=None):
         self.runner = runner
         self.dest_name = dest_name or id
         self.max_accepted_cores = max_accepted_cores
         self.max_accepted_mem = max_accepted_mem
         self.max_accepted_gpus = max_accepted_gpus
-        self.dest_tags = TagSetManager.from_dict(dest_tags or {})
+        self.tpv_dest_tags = TagSetManager.from_dict(tpv_dest_tags or {})
         super().__init__(loader, id=id, cores=cores, mem=mem, gpus=gpus, min_cores=min_cores, min_mem=min_mem,
                          min_gpus=min_gpus, max_cores=max_cores, max_mem=max_mem, max_gpus=max_gpus, env=env,
-                         params=params, resubmit=resubmit, tags=None, inherits=inherits, context=context, rules=rules)
+                         params=params, resubmit=resubmit, tpv_tags=None, inherits=inherits, context=context,
+                         rules=rules)
 
     @staticmethod
     def from_dict(loader, entity_dict):
@@ -557,7 +559,7 @@ class Destination(EntityWithRules):
             env=entity_dict.get('env'),
             params=entity_dict.get('params'),
             resubmit=entity_dict.get('resubmit'),
-            dest_tags=entity_dict.get('scheduling'),
+            tpv_dest_tags=entity_dict.get('scheduling'),
             inherits=entity_dict.get('inherits'),
             context=entity_dict.get('context'),
             rules=entity_dict.get('rules')
@@ -566,7 +568,7 @@ class Destination(EntityWithRules):
     def __repr__(self):
         return f"runner={self.runner}, dest_name={self.dest_name}, max_accepted_cores={self.max_accepted_cores}, "\
                f"max_accepted_mem={self.max_accepted_mem}, max_accepted_gpus={self.max_accepted_gpus}, "\
-               f"dest_tags={self.dest_tags if self.dest_tags else ''}, " + super().__repr__()
+               f"tpv_dest_tags={self.tpv_dest_tags if self.tpv_dest_tags else ''}, " + super().__repr__()
 
     def override(self, entity):
         new_entity = super().override(entity)
@@ -600,7 +602,7 @@ class Destination(EntityWithRules):
     def inherit(self, entity):
         new_entity = super().inherit(entity)
         if entity:
-            new_entity.dest_tags = self.dest_tags.inherit(entity.dest_tags)
+            new_entity.tpv_dest_tags = self.tpv_dest_tags.inherit(entity.tpv_dest_tags)
         return new_entity
 
     def matches(self, entity, context):
@@ -620,7 +622,7 @@ class Destination(EntityWithRules):
             return False
         if self.max_accepted_gpus and entity.gpus and self.max_accepted_gpus < entity.gpus:
             return False
-        return entity.tags.match(self.dest_tags or {})
+        return entity.tpv_tags.match(self.tpv_dest_tags or {})
 
     def score(self, entity):
         """
@@ -629,7 +631,7 @@ class Destination(EntityWithRules):
         :param entity:
         :return:
         """
-        score = self.dest_tags.score(entity.tags)
+        score = self.tpv_dest_tags.score(entity.tpv_tags)
         log.debug(f"Destination: {entity} scored: {score}")
         return score
 
@@ -641,13 +643,13 @@ class Rule(Entity):
 
     def __init__(self, loader, id=None, cores=None, mem=None, gpus=None, min_cores=None, min_mem=None, min_gpus=None,
                  max_cores=None, max_mem=None, max_gpus=None, env=None, params=None, resubmit=None,
-                 tags=None, inherits=None, context=None, match=None, execute=None, fail=None):
+                 tpv_tags=None, inherits=None, context=None, match=None, execute=None, fail=None):
         if not id:
             Rule.rule_counter += 1
             id = f"tpv_rule_{Rule.rule_counter}"
         super().__init__(loader, id=id, cores=cores, mem=mem, gpus=gpus, min_cores=min_cores, min_mem=min_mem,
                          min_gpus=min_gpus, max_cores=max_cores, max_mem=max_mem, max_gpus=max_gpus, env=env,
-                         params=params, resubmit=resubmit, tags=tags, context=context, inherits=inherits)
+                         params=params, resubmit=resubmit, tpv_tags=tpv_tags, context=context, inherits=inherits)
         self.match = match
         self.execute = execute
         self.fail = fail
@@ -675,7 +677,7 @@ class Rule(Entity):
             env=entity_dict.get('env'),
             params=entity_dict.get('params'),
             resubmit=entity_dict.get('resubmit'),
-            tags=entity_dict.get('scheduling'),
+            tpv_tags=entity_dict.get('scheduling'),
             inherits=entity_dict.get('inherits'),
             context=entity_dict.get('context'),
             # TODO: Remove deprecated match clause in future

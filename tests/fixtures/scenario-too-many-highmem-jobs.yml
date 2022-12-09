@@ -59,11 +59,11 @@ users:
           from galaxy.jobs.rule_helper import RuleHelper
           from tpv.core.entities import TagType
 
-          if entity.tags.filter(tag_value='highmem'):
+          if entity.tpv_tags.filter(tag_value='highmem'):
             rule_helper = RuleHelper(app)
             # Find all destinations that support highmem
             destinations = [d.dest_name for d in mapper.destinations.values()
-                            if any(d.dest_tags.filter(tag_value='highmem',
+                            if any(d.tpv_dest_tags.filter(tag_value='highmem',
                                    tag_type=[TagType.REQUIRE, TagType.PREFER, TagType.ACCEPT]))]
             count = rule_helper.job_count(for_user_email=user.email, for_destinations=destinations)
             if count > 4:
