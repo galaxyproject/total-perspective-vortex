@@ -170,6 +170,9 @@ This results in a JobMappingException being thrown.
 
 A full table of how scheduling tags match up can be found in the _`Scheduling` section.
 
+These TPV defined scheduling tags should be contrasted with Galaxy's destination level handler tags:
+https://github.com/galaxyproject/galaxy/blob/0a0d68b7feed5e303ed762f6586ea9757219c6f7/lib/galaxy/config/sample/job_conf.sample.yml#L1037
+Galaxy handler tags can be defined as simply `tags` at the destination.
 
 Rules
 -----

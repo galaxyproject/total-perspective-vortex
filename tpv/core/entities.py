@@ -532,6 +532,7 @@ class Destination(EntityWithRules):
         self.max_accepted_mem = max_accepted_mem
         self.max_accepted_gpus = max_accepted_gpus
         self.tpv_dest_tags = TagSetManager.from_dict(tpv_dest_tags or {})
+        # Handler tags refer to Galaxy's job handler level tags
         self.handler_tags = handler_tags
         super().__init__(loader, id=id, cores=cores, mem=mem, gpus=gpus, min_cores=min_cores, min_mem=min_mem,
                          min_gpus=min_gpus, max_cores=max_cores, max_mem=max_mem, max_gpus=max_gpus, env=env,
