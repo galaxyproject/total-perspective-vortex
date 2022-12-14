@@ -32,8 +32,8 @@ class TestMapperResubmission(IntegrationTestCase):
         assert exception_thrown
 
     # FIXME: Temporarily disable tests till https://github.com/galaxyproject/galaxy/issues/14021 is resolved.
-    # def test_mapping_with_resubmission(self):
-    #     self._assert_job_passes(tool_id="exit_code_oom_with_resubmit")
-    #
-    # def test_mapping_without_resubmission(self):
-    #     self._assert_job_fails(tool_id="exit_code_oom_no_resubmit")
+    def test_mapping_with_resubmission(self):
+        self._assert_job_passes(tool_id="exit_code_oom_with_resubmit")
+
+    def test_mapping_without_resubmission(self):
+        self._assert_job_fails(tool_id="exit_code_oom_no_resubmit")
