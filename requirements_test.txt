@@ -12,7 +12,7 @@ galaxy-tool-util
 galaxy-web-stack
 galaxy-config
 galaxy-web-framework
-celery[pytest] # required for the resubmission tests
+pytest-celery # required for the resubmission tests
 -e ".[test]"
 # The following packages are needed for resubmit integration testing (except galaxy-app)
 galaxy-job-execution
