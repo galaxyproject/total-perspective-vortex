@@ -80,8 +80,28 @@ class TPVShellTestCase(unittest.TestCase):
             "Destination 'k8s_environment'" not in output,
             f"Did not expect 'k8s_environment' to be reported as it defines the runner param but output was: {output}")
 
+    def test_lint_destination_defines_cores_instead_of_accepted_cores(self):
+        tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/linter/linter-legacy-destinations.yml')
+        output = self.call_shell_command("tpv", "-vv", "lint", tpv_config)
+        self.assertTrue(
+            "lint failed" in output,
+            f"Expected lint to fail but output was: {output}")
+        self.assertTrue(
+            "The destination named: local_with_mem" in output,
+            f"Expected an errors when cores, mem or gpu are defined on a destination but output was: {output}")
+        self.assertTrue(
+            "The destination named: k8s_environment_with_cores" in output,
+            f"Expected an errors when cores, mem or gpu are defined on a destination but output was: {output}")
+        self.assertTrue(
+            "The destination named: another_env_with_gpus" in output,
+            f"Expected an errors when cores, mem or gpu are defined on a destination but output was: {output}")
+        self.assertTrue(
+            "working_dest" not in output,
+            f"Did not expect destination: `working_dest` to be in the output, but found: {output}")
+
     def test_warn_if_default_inherits_not_marked_abstract(self):
-        tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/linter/linter-default-inherits-marked-abstract.yml')
+        tpv_config = os.path.join(os.path.dirname(__file__),
+                                  'fixtures/linter/linter-default-inherits-marked-abstract.yml')
         output = self.call_shell_command("tpv", "-vvvv", "lint", tpv_config)
         self.assertTrue(
             "WARNING" in output and "The tool named: default is marked globally as" in output,
@@ -193,7 +213,8 @@ class TPVShellTestCase(unittest.TestCase):
     def test_format_string_block_handling(self):
         tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/formatter/formatter-string-types-input.yml')
         output = self.call_shell_command("tpv", "format", tpv_config)
-        with open(os.path.join(os.path.dirname(__file__), 'fixtures/formatter/formatter-string-types-formatted.yml')) as f:
+        with open(os.path.join(os.path.dirname(__file__),
+                               'fixtures/formatter/formatter-string-types-formatted.yml')) as f:
             expected_output = f.read()
         self.assertEqual(output, expected_output)
 
@@ -207,7 +228,8 @@ class TPVShellTestCase(unittest.TestCase):
     def test_format_tool_sort_order(self):
         tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/formatter/formatter-tool-sort-order-input.yml')
         output = self.call_shell_command("tpv", "format", tpv_config)
-        with open(os.path.join(os.path.dirname(__file__), 'fixtures/formatter/formatter-tool-sort-order-formatted.yml')) as f:
+        with open(os.path.join(os.path.dirname(__file__),
+                               'fixtures/formatter/formatter-tool-sort-order-formatted.yml')) as f:
             expected_output = f.read()
         self.assertEqual(output, expected_output)
 
@@ -263,6 +285,7 @@ class TPVShellTestCase(unittest.TestCase):
         job_config = os.path.join(os.path.dirname(__file__), 'fixtures/job_conf_dry_run.yml')
         tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rules.yml')
         output = self.call_shell_command(
-            "tpv", "dry-run", "--job-conf", job_config, "--input-size", "6", "--user", "fairycake@vortex.org", tpv_config)
+            "tpv", "dry-run", "--job-conf", job_config, "--input-size", "6", "--user", "fairycake@vortex.org",
+            tpv_config)
         self.assertTrue("name: TEST_JOB_SLOTS" in output,
                         f"Expected 'name: TEST_JOB_SLOTS' in destination\n{output}")

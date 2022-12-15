@@ -1,0 +1,28 @@
+global:
+  default_inherits: default
+
+destinations:
+  local_with_mem:
+    mem: 16
+    runner: local
+    scheduling:
+      prefer:
+        - general
+  k8s_environment_with_cores:
+    runner: k8s
+    cores: 16
+    scheduling:
+      prefer:
+        - pulsar
+  another_env_with_gpus:
+    runner: k8s
+    gpus: 2
+    scheduling:
+      prefer:
+        - pulsar
+  working_dest:
+    runner: k8s
+    max_accepted_gpus: 2
+    scheduling:
+      prefer:
+        - pulsar
