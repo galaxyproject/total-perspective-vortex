@@ -529,10 +529,14 @@ class Destination(EntityWithRules):
 
     def __init__(self, loader, id=None, abstract=False, runner=None, dest_name=None, cores=None, mem=None, gpus=None,
                  min_cores=None, min_mem=None, min_gpus=None, max_cores=None, max_mem=None, max_gpus=None,
+                 min_accepted_cores=None, min_accepted_mem=None, min_accepted_gpus=None,
                  max_accepted_cores=None, max_accepted_mem=None, max_accepted_gpus=None, env=None, params=None,
                  resubmit=None, tpv_dest_tags=None, inherits=None, context=None, rules=None, handler_tags=None):
         self.runner = runner
         self.dest_name = dest_name or id
+        self.min_accepted_cores = min_accepted_cores
+        self.min_accepted_mem = min_accepted_mem
+        self.min_accepted_gpus = min_accepted_gpus
         self.max_accepted_cores = max_accepted_cores
         self.max_accepted_mem = max_accepted_mem
         self.max_accepted_gpus = max_accepted_gpus
@@ -561,6 +565,9 @@ class Destination(EntityWithRules):
             max_cores=entity_dict.get('max_cores'),
             max_mem=entity_dict.get('max_mem'),
             max_gpus=entity_dict.get('max_gpus'),
+            min_accepted_cores=entity_dict.get('min_accepted_cores'),
+            min_accepted_mem=entity_dict.get('min_accepted_mem'),
+            min_accepted_gpus=entity_dict.get('min_accepted_gpus'),
             max_accepted_cores=entity_dict.get('max_accepted_cores'),
             max_accepted_mem=entity_dict.get('max_accepted_mem'),
             max_accepted_gpus=entity_dict.get('max_accepted_gpus'),
@@ -575,14 +582,22 @@ class Destination(EntityWithRules):
         )
 
     def __repr__(self):
-        return f"runner={self.runner}, dest_name={self.dest_name}, max_accepted_cores={self.max_accepted_cores}, "\
-               f"max_accepted_mem={self.max_accepted_mem}, max_accepted_gpus={self.max_accepted_gpus}, "\
-               f"tpv_dest_tags={self.tpv_dest_tags}, handler_tags={self.handler_tags}" + super().__repr__()
+        return f"runner={self.runner}, dest_name={self.dest_name}, min_accepted_cores={self.min_accepted_cores}, "\
+               f"min_accepted_mem={self.min_accepted_mem}, min_accepted_gpus={self.min_accepted_gpus}, "\
+               f"max_accepted_cores={self.max_accepted_cores}, max_accepted_mem={self.max_accepted_mem}, "\
+               f"max_accepted_gpus={self.max_accepted_gpus}, tpv_dest_tags={self.tpv_dest_tags}, "\
+               f"handler_tags={self.handler_tags}" + super().__repr__()
 
     def override(self, entity):
         new_entity = super().override(entity)
         new_entity.runner = self.runner if self.runner is not None else getattr(entity, 'runner', None)
         new_entity.dest_name = self.dest_name if self.dest_name is not None else getattr(entity, 'dest_name', None)
+        new_entity.min_accepted_cores = (self.min_accepted_cores if self.min_accepted_cores is not None
+                                         else getattr(entity, 'min_accepted_cores', None))
+        new_entity.min_accepted_mem = (self.min_accepted_mem if self.min_accepted_mem is not None
+                                       else getattr(entity, 'min_accepted_mem', None))
+        new_entity.min_accepted_gpus = (self.min_accepted_gpus if self.min_accepted_gpus is not None
+                                        else getattr(entity, 'min_accepted_gpus', None))
         new_entity.max_accepted_cores = (self.max_accepted_cores if self.max_accepted_cores is not None
                                          else getattr(entity, 'max_accepted_cores', None))
         new_entity.max_accepted_mem = (self.max_accepted_mem if self.max_accepted_mem is not None
@@ -642,6 +657,12 @@ class Destination(EntityWithRules):
         if self.max_accepted_mem and entity.mem and self.max_accepted_mem < entity.mem:
             return False
         if self.max_accepted_gpus and entity.gpus and self.max_accepted_gpus < entity.gpus:
+            return False
+        if self.min_accepted_cores and entity.cores and self.min_accepted_cores > entity.cores:
+            return False
+        if self.min_accepted_mem and entity.mem and self.min_accepted_mem > entity.mem:
+            return False
+        if self.min_accepted_gpus and entity.gpus and self.min_accepted_gpus > entity.gpus:
             return False
         return entity.tpv_tags.match(self.tpv_dest_tags or {})
 

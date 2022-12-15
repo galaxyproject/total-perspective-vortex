@@ -57,6 +57,20 @@ tools:
       require:
         - something_abstract
         - also_concrete
+  tool_for_testing_min_acceptance_non_match:
+    cores: 15
+    mem: 53
+    gpus: 2
+    scheduling:
+      require:
+        - test_of_min_accepted
+  tool_for_testing_min_acceptance_match:
+    cores: 17
+    mem: 68
+    gpus: 2
+    scheduling:
+      require:
+        - test_of_min_accepted
 
 destinations:
   local:
@@ -162,3 +176,16 @@ destinations:
     scheduling:
       require:
         - also_concrete
+  destination_with_min_accepted:
+    runner: k8s
+    min_accepted_cores: 16
+    min_accepted_mem: 64
+    min_accepted_gpus: 2
+    scheduling:
+      require:
+        - test_of_min_accepted
+  destination_without_min_accepted:
+    runner: k8s
+    scheduling:
+      require:
+        - test_of_min_accepted
