@@ -1,5 +1,5 @@
 destinations:
-  pulsar-nci-test:
+  k8s_environment:
     scheduling:
       accept:
         - docker
