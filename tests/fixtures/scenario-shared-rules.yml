@@ -1,0 +1,23 @@
+tools:
+  default:
+    cores: 1
+    mem: cores * 3.8
+    env: {}
+    params: {}
+    scheduling:
+      reject:
+      - offline
+    rules: []
+    rank: |
+      helpers.weighted_random_sampling(candidate_destinations)
+  toolshed.g2.bx.psu.edu/repos/bgruening/alevin/alevin/.*:
+    cores: 8
+    mem: 92
+  toolshed.g2.bx.psu.edu/repos/bgruening/bigwig_to_bedgraph/bigwig_to_bedgraph/.*:
+    mem: 12
+  toolshed.g2.bx.psu.edu/repos/bgruening/bionano_scaffold/bionano_scaffold/.*:
+    cores: 24
+    mem: 250
+    scheduling:
+      require:
+      - docker

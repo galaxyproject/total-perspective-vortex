@@ -1,0 +1,11 @@
+destinations:
+  pulsar-nci-test:
+    scheduling:
+      accept:
+        - docker
+      require:
+        - pulsar
+    params:
+      submit_native_specification: "--cores={cores} --mem={mem}"
+    max_accepted_cores: 16
+    max_accepted_mem: 45

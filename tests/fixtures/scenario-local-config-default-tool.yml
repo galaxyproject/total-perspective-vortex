@@ -1,0 +1,16 @@
+global:
+  default_inherits: default
+
+tools:  # test template variable for galaxy_root here {{ galaxy_root }}
+  default:
+    cores: 1
+    mem: cores * 3
+    env: {}
+    context:
+      partition: main
+    scheduling:
+      reject:
+        - offline
+    rank: |
+      final_destinations = helpers.weighted_random_sampling(candidate_destinations)
+      final_destinations

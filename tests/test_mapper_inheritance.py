@@ -8,15 +8,17 @@ from tpv.core.loader import InvalidParentException
 class TestMapperInheritance(unittest.TestCase):
 
     @staticmethod
-    def _map_to_destination(tool, user, datasets, tpv_config_path=None):
+    def _map_to_destination(tool, user, datasets, tpv_config_path=None, tpv_config_files = []):
         galaxy_app = mock_galaxy.App(job_conf=os.path.join(os.path.dirname(__file__), 'fixtures/job_conf.yml'))
         job = mock_galaxy.Job()
         for d in datasets:
             job.add_input_dataset(d)
         tpv_config = tpv_config_path or os.path.join(os.path.dirname(__file__),
                                                      'fixtures/mapping-inheritance.yml')
+        if not tpv_config_files:
+            tpv_config_file = [tpv_config]
         gateway.ACTIVE_DESTINATION_MAPPER = None
-        return gateway.map_tool_to_destination(galaxy_app, job, tool, user, tpv_config_files=[tpv_config])
+        return gateway.map_tool_to_destination(galaxy_app, job, tool, user, tpv_config_files=tpv_config_files)
 
     def test_map_inherit_twice(self):
         tool = mock_galaxy.Tool('trinity')
@@ -65,3 +67,17 @@ class TestMapperInheritance(unittest.TestCase):
 
         destination = self._map_to_destination(tool, user, datasets=[], tpv_config_path=tpv_config_path)
         self.assertEqual(destination.id, "local")
+
+    def test_map_with_shared_rules(self):
+        tool_id = 'toolshed.g2.bx.psu.edu/repos/bgruening/bionano_scaffold/bionano_scaffold/1.23a'
+        user = mock_galaxy.User('majikthise', 'majikthise@vortex.org')
+        tool = mock_galaxy.Tool(tool_id)
+        tpv_config_files = [
+            os.path.join(os.path.dirname(__file__), 'fixtures/scenario-shared-rules.yml'),
+            os.path.join(os.path.dirname(__file__), 'fixtures/scenario-local-config-default-tool.yml'),
+            os.path.join(os.path.dirname(__file__), 'fixtures/scenario-local-config-tools.yml'),
+            os.path.join(os.path.dirname(__file__), 'fixtures/scenario-local-config-destinations.yml'),
+        ]
+        destination = self._map_to_destination(tool, user, datasets=[], tpv_config_files=tpv_config_files)
+        self.assertEqual('--cores=8 --mem=24', destination.params.get('submit_native_specification'))
+        
