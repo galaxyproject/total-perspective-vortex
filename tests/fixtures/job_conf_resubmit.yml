@@ -13,5 +13,3 @@ execution:
       rules_module: tpv.rules
       tpv_config_files:
         - tests/fixtures/mapping-resubmit.yml
-    local:
-      runner: local

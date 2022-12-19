@@ -45,6 +45,7 @@ tools:
 
 destinations:
   another_k8s_environment:
+    runner: k8s
     max_accepted_cores: 16
     max_accepted_mem: 64
     max_accepted_gpus: 2

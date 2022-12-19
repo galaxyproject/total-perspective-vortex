@@ -14,20 +14,6 @@ handling:
 execution:
   default: tpv_dispatcher
   environments:
-    local:
-      runner: local
-    k8s_environment:
-      runner: k8s
-      docker_enabled: true
-    another_k8s_environment:
-      runner: k8s
-      docker_enabled: true
-    inherited_k8s_environment:
-      runner: k8s
-      docker_enabled: true
-    custom_naming:
-      runner: k8s
-      docker_enabled: true
     tpv_dispatcher:
       runner: dynamic
       type: python

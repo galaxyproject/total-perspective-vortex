@@ -63,6 +63,23 @@ class TPVShellTestCase(unittest.TestCase):
             "oops syntax!" in output,
             f"Expected lint to fail but output was: {output}")
 
+    def test_lint_no_runner_defined(self):
+        tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/linter/linter-no-runner-defined.yml')
+        output = self.call_shell_command("tpv", "-vvvv", "lint", tpv_config)
+        self.assertTrue(
+            "lint failed" in output,
+            f"Expected lint to fail but output was: {output}")
+        self.assertTrue(
+            "Destination 'local'" in output,
+            f"Expected absence of runner param to be reported for destination local but output was: {output}")
+        self.assertTrue(
+            "Destination 'another_env_without_runner'" in output,
+            "Expected absence of runner param to be reported for destination another_env_without_runner "
+            f"but output was: {output}")
+        self.assertTrue(
+            "Destination 'k8s_environment'" not in output,
+            f"Did not expect 'k8s_environment' to be reported as it defines the runner param but output was: {output}")
+
     def test_format_basic(self):
         tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/formatter/formatter-basic.yml')
         with open(tpv_config) as f:

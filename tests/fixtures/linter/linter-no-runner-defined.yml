@@ -1,28 +1,11 @@
 global:
   default_inherits: default
 
-tools:
-  default:
-    cores: 2
-    mem: 8
-    env: {}
-    scheduling:
-      require: []
-      prefer:
-        - general
-      accept:
-      reject:
-        - offline
-    rules: []
-
 destinations:
   local:
-    runner: local
     max_accepted_cores: 4
     max_accepted_mem: 16
     scheduling:
-      reject:
-        - offline
       prefer:
         - general
   k8s_environment:
@@ -30,3 +13,13 @@ destinations:
     max_accepted_cores: 16
     max_accepted_mem: 64
     max_accepted_gpus: 2
+    scheduling:
+      prefer:
+        - pulsar
+  another_env_without_runner:
+    max_accepted_cores: 16
+    max_accepted_mem: 64
+    max_accepted_gpus: 2
+    scheduling:
+      prefer:
+        - pulsar

@@ -45,6 +45,7 @@ users:
         fail: "You cannot have more than 4 high-mem jobs running concurrently"
 destinations:
   slurm:
+    runner: slurm
     max_accepted_cores: 4
     max_accepted_mem: 15.5
     scheduling:
@@ -52,6 +53,7 @@ destinations:
         - pulsar
         - general
   pulsar_destination:
+    runner: pulsar
     max_accepted_cores: 4
     max_accepted_mem: 7.77
     scheduling:
@@ -60,6 +62,7 @@ destinations:
       require:
         - pulsar
   pulsar-nci-test:
+    runner: pulsar
     max_accepted_cores: 32
     max_accepted_mem: 96.38
     scheduling:

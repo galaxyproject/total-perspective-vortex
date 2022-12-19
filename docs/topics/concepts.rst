@@ -10,7 +10,7 @@ Conceptually, TPV consists of the following types of objects.
 1. Entities - An entity is anything that will be considered for scheduling
 by TPV. Entities include Tools, Users, Groups, Rules and Destinations.
 All entities have some common properties (id, cores, mem, env, params,
-and tags).
+and scheduling tags).
 
 2. Scheduling Tags - Entities can have scheduling tags defined on them that determine which
 entities match up, and which destination they can schedule on. Tags fall into one of four categories,
@@ -57,10 +57,10 @@ For example, if a tool specifies `cores`, and a user also specifies `cores`, the
 precedence. Properties defined on destinations have the highest priority of all.
 The combine operation follows the following additional rules:
 
-Combining tags
-^^^^^^^^^^^^^^
-When combining tags, if a role expresses a preferences for tag `training` for example, and a tool expresses a
-requirement for tag `high-mem`, the combined entity would share both preferences. This can be used to route certain
+Combining scheduling tags
+^^^^^^^^^^^^^^^^^^^^^^^^^
+When combining scheduling tags, if a role expresses a preferences for tag `training` for example, and a tool expresses
+a requirement for tag `high-mem`, the combined entity would share both preferences. This can be used to route certain
 roles or users to specific destinations for example.
 
 However, if the tags are mutually exclusive, then an IncompatibleTagsException is raised. For example, if a role
@@ -86,10 +86,10 @@ max_gpus. Afterwards, these values can be compared with a destination's values, 
 The match operation is used to find matching destinations for the combined, evaluated entity. This step ensures
 that the destination has sufficient gpus, cores and mem to satisfy the entity's request. The maximum size of a job that
 a destination can accept can be defined using the `max_accepted_cores`, `max_accepted_mem` and `max_accepted_gpus`
-fields. If these are not defined, a match is assumed. In addition, all destinations that do not have tags required by
-the entity are rejected, and all destinations that have tags rejected by the entity are also rejected. Preference and
-acceptance is not considered at this stage, simply compatibility with available destinations based on the tag
-compatibility table documented later.
+fields. If these are not defined, a match is assumed. In addition, all destinations that do not have scheduling tags
+required by the entity are rejected, and all destinations that have scheduling tags rejected by the entity are also
+rejected. Preference and acceptance is not considered at this stage, simply compatibility with available destination
+based on the tag compatibility table documented later.
 
 5. Rank
 --------
@@ -181,8 +181,8 @@ Scheduling
 
 TPV offers several mechanisms for controlling scheduling, all of which are optional.
 In its simplest form, no scheduling constraints would be defined at all, in which case
-the entity would schedule on the first available destination. Admins can use tags to exert additional control
-over which destinations jobs can schedule. Tags fall into one of four categories,
+the entity would schedule on the first available destination. Admins can use scheduling tags to exert additional control
+over which destinations jobs can schedule. Scheduling tags fall into one of four categories,
 (required, preferred, accepted, rejected), ranging from indicating a requirement for a particular entity,
 to indicating complete aversion.
 
@@ -204,8 +204,8 @@ to indicating complete aversion.
 +-----------+--------------------------------------------------------------------------------------------------------+
 
 
-Tag compatibility table
------------------------
+Scheduling tag compatibility table
+----------------------------------
 
 +------------+---------+--------+--------+--------+------------+
 | Tag Type   | Require | Prefer | Accept | Reject | Not Tagged |
@@ -224,7 +224,7 @@ Tag compatibility table
 
 Scheduling by tag match
 ------------------------
-Tags can be used to model anything from compatibility with a destination, to
+Scheduling tags can be used to model anything from compatibility with a destination, to
 permissions to execute a tool. (e.g. a tool can be tagged as requiring the "restricted"
 tag, and users can be tagged as rejecting the "restricted" tag by default. Then, only users
 who are specifically marked as requiring, tolerating, or preferring the "restricted" tag
