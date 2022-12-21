@@ -7,22 +7,22 @@ Object types
 
 Conceptually, TPV consists of the following types of objects.
 
-1. Entities - An entity is anything that will be considered for scheduling
+1. **Entities** - An entity is anything that will be considered for scheduling
 by TPV. Entities include Tools, Users, Groups, Rules and Destinations.
 All entities have some common properties (id, cores, mem, env, params,
 and scheduling tags).
 
-2. Scheduling Tags - Entities can have scheduling tags defined on them that determine which
+2. **Scheduling Tags** - Entities can have scheduling tags defined on them that determine which
 entities match up, and which destination they can schedule on. Tags fall into one of four categories,
 (required, preferred, accepted, rejected), ranging from indicating a requirement for a particular destination,
 to indicating complete aversion.
 
-3. Loader - The loader is responsible for loading entity definitions from a config file.
+3. **Loader** - The loader is responsible for loading entity definitions from a config file.
 The loader will parse and validate entity definitions, including compiling python expressions,
 and processing inheritance, to produce a list of entities suitable for mapping. The loader is also
 capable of loading config files from multiple sources, including https urls.
 
-4. Mapper - The mapper is responsible for routing a Galaxy job to its destination, based on the current user,
+4. **Mapper** - The mapper is responsible for routing a Galaxy job to its destination, based on the current user,
 tool and job that must be scheduled. The mapper will respect the scheduling constraints expressed by the
 loaded entities.
 
@@ -107,13 +107,13 @@ When a typical job is dispatched, TPV follows the process below.
 .. image:: ../images/job-dispatch-process.svg
 
 
-1. lookup - Looks up Tool, User and Role entity definitions that match the job.
-3. combine() - Combines entity requirements to create a merged entity.
-3. evaluate() - Evaluates expressions in combined entity.
-4. match() - Matches the combined entity requirements with a suitable destination.
-5. rank() - Rank the matching destinations using a pluggable rank function.
-6. choose - The entity is combined with the best matching destination and any expressions on the destination are
-   evaluated, with the first non-failing match chosen (no rule failures)
+#. lookup - Looks up Tool, User and Role entity definitions that match the job.
+#. combine() - Combines entity requirements to create a merged entity.
+#. evaluate() - Evaluates expressions in combined entity.
+#. match() - Matches the combined entity requirements with a suitable destination.
+#. rank() - Rank the matching destinations using a pluggable rank function.
+#. choose - The entity is combined with the best matching destination and any expressions on the destination are
+   evaluated, with the first non-failing match chosen (no rule failures).
 
 
 Expressions
@@ -172,9 +172,10 @@ Properties that do not support expressions
 ------------------------------------------
 
 Some properties do not support expressions. These are primarily:
-a. max_accepted_cores, max_accepted_mem and max_accepted_gpus, which can only be defined on destinations. This is
-   because when a combined entity is matched with a destination, concrete values are required.
-b. tags defined on entities
+
+* max_accepted_cores, max_accepted_mem and max_accepted_gpus, which can only be defined on destinations. This is
+  because when a combined entity is matched with a destination, concrete values are required.
+* tags defined on entities
 
 Scheduling
 ==========

@@ -1,0 +1,25 @@
+global:
+  default_inherits: default
+
+tools:
+  default:
+    cores: 2
+    params:
+      native_spec: "--mem {mem} --cores {cores} --gpus {gpus}"
+  bwa:
+    gpus: 2
+
+destinations:
+  default:
+    max_accepted_cores: 4
+    max_accepted_mem: 16
+    scheduling:
+      prefer:
+        - general
+  local:
+    runner: local
+    max_accepted_cores: 4
+    max_accepted_mem: 16
+    scheduling:
+      prefer:
+        - general
