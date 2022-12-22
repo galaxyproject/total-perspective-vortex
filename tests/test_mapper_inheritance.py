@@ -68,16 +68,29 @@ class TestMapperInheritance(unittest.TestCase):
         destination = self._map_to_destination(tool, user, datasets=[], tpv_config_path=tpv_config_path)
         self.assertEqual(destination.id, "local")
 
-    def test_map_with_shared_rules(self):
+    # ref: https://github.com/galaxyproject/total-perspective-vortex/pull/68
+    def test_map_with_default_tool_in_same_file(self):
         tool_id = 'toolshed.g2.bx.psu.edu/repos/bgruening/bionano_scaffold/bionano_scaffold/1.23a'
         user = mock_galaxy.User('majikthise', 'majikthise@vortex.org')
         tool = mock_galaxy.Tool(tool_id)
         tpv_config_files = [
-            os.path.join(os.path.dirname(__file__), 'fixtures/scenario-shared-rules.yml'),
-            os.path.join(os.path.dirname(__file__), 'fixtures/scenario-local-config-default-tool.yml'),
-            os.path.join(os.path.dirname(__file__), 'fixtures/scenario-local-config-tools.yml'),
-            os.path.join(os.path.dirname(__file__), 'fixtures/scenario-local-config-destinations.yml'),
+            os.path.join(os.path.dirname(__file__), 'fixtures/default_tool/scenario-shared-rules.yml'),
+            os.path.join(os.path.dirname(__file__), 'fixtures/default_tool/scenario-local-config-default-tool.yml'),
+            os.path.join(os.path.dirname(__file__), 'fixtures/default_tool/scenario-local-config-tools.yml'),
+            os.path.join(os.path.dirname(__file__), 'fixtures/default_tool/scenario-local-config-destinations.yml'),
         ]
         destination = self._map_to_destination(tool, user, datasets=[], tpv_config_files=tpv_config_files)
-        self.assertEqual('--cores=8 --mem=24', destination.params.get('submit_native_specification'))
-        
+        self.assertEqual('--cores=8 --mem=250', destination.params.get('submit_native_specification'))
+
+    # ref: https://github.com/galaxyproject/total-perspective-vortex/pull/68
+    def test_map_with_default_rules_in_dedicated_file(self):
+        tool_id = 'toolshed.g2.bx.psu.edu/repos/bgruening/bionano_scaffold/bionano_scaffold/1.23a'
+        user = mock_galaxy.User('majikthise', 'majikthise@vortex.org')
+        tool = mock_galaxy.Tool(tool_id)
+        tpv_config_files = [
+            os.path.join(os.path.dirname(__file__), 'fixtures/default_tool/scenario-shared-rules.yml'),
+            os.path.join(os.path.dirname(__file__), 'fixtures/default_tool/scenario-local-config-tools-with-default.yml'),
+            os.path.join(os.path.dirname(__file__), 'fixtures/default_tool/scenario-local-config-destinations.yml'),
+        ]
+        destination = self._map_to_destination(tool, user, datasets=[], tpv_config_files=tpv_config_files)
+        self.assertEqual('--cores=8 --mem=250', destination.params.get('submit_native_specification'))
