@@ -1,3 +1,4 @@
+wheel
 galaxy-util@git+https://github.com/galaxyproject/galaxy.git@release_22.05#subdirectory=packages/util
 galaxy-objectstore@git+https://github.com/galaxyproject/galaxy.git@release_22.05#subdirectory=packages/objectstore
 galaxy-files@git+https://github.com/galaxyproject/galaxy.git@release_22.05#subdirectory=packages/files

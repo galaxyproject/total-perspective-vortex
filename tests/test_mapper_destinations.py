@@ -131,3 +131,48 @@ class TestMapperDestinations(unittest.TestCase):
         datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=12 * 1024 ** 3))]
         destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
         self.assertEqual(destination.id, "my_concrete_destination")
+
+    def test_min_accepted_cpus_honoured(self):
+        user = mock_galaxy.User('toolmatchuser', 'toolmatchuser@vortex.org')
+        config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-destinations.yml')
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=12 * 1024 ** 3))]
+
+        # First tool should not match
+        tool = mock_galaxy.Tool('tool_for_testing_min_cpu_acceptance_non_match')
+        destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
+        self.assertEqual(destination.id, "destination_without_min_cpu_accepted")
+
+        # second tool should match the min requirements for the destination
+        tool = mock_galaxy.Tool('tool_for_testing_min_cpu_acceptance_match')
+        destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
+        self.assertEqual(destination.id, "destination_with_min_cpu_accepted")
+
+    def test_min_accepted_gpus_honoured(self):
+        user = mock_galaxy.User('toolmatchuser', 'toolmatchuser@vortex.org')
+        config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-destinations.yml')
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=12 * 1024 ** 3))]
+
+        # First tool should not match
+        tool = mock_galaxy.Tool('tool_for_testing_min_gpu_acceptance_non_match')
+        destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
+        self.assertEqual(destination.id, "destination_without_min_gpu_accepted")
+
+        # second tool should match the min requirements for the destination
+        tool = mock_galaxy.Tool('tool_for_testing_min_gpu_acceptance_match')
+        destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
+        self.assertEqual(destination.id, "destination_with_min_gpu_accepted")
+
+    def test_min_accepted_mem_honoured(self):
+        user = mock_galaxy.User('toolmatchuser', 'toolmatchuser@vortex.org')
+        config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-destinations.yml')
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=12 * 1024 ** 3))]
+
+        # First tool should not match
+        tool = mock_galaxy.Tool('tool_for_testing_min_mem_acceptance_non_match')
+        destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
+        self.assertEqual(destination.id, "destination_without_min_mem_accepted")
+
+        # second tool should match the min requirements for the destination
+        tool = mock_galaxy.Tool('tool_for_testing_min_mem_acceptance_match')
+        destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
+        self.assertEqual(destination.id, "destination_with_min_mem_accepted")

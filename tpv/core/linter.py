@@ -33,6 +33,14 @@ class TPVConfigLinter(object):
             if not destination.runner and not destination.abstract:
                 self.errors.append(f"Destination '{destination.id}' does not define the runner parameter. "
                                    "The runner parameter is mandatory.")
+            if ((destination.cores and not destination.max_accepted_cores) or
+                    (destination.mem and not destination.max_accepted_mem) or
+                    (destination.gpus and not destination.max_accepted_gpus)):
+                self.errors.append(
+                    f"The destination named: {destination.id} defines the cores/mem/gpus property instead of "
+                    f"max_accepted_cores/mem/gpus. This is probably an error. If you're migrating from an older "
+                    f"version of TPV, the destination properties for cores/mem/gpus have been superseded by the "
+                    f"max_accepted_cores/mem/gpus property. Simply renaming them will give you the same functionality.")
             if default_inherits == destination.id:
                 self.warnings.append(
                     f"The destination named: {default_inherits} is marked globally as the destination to inherit from "

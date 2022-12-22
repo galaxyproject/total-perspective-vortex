@@ -57,6 +57,48 @@ tools:
       require:
         - something_abstract
         - also_concrete
+  tool_for_testing_min_cpu_acceptance_non_match:
+    cores: 15
+    mem: 53
+    gpus: 2
+    scheduling:
+      require:
+        - test_of_min_cpu_accepted
+  tool_for_testing_min_gpu_acceptance_non_match:
+    cores: 15
+    mem: 53
+    gpus: 1
+    scheduling:
+      require:
+        - test_of_min_gpu_accepted
+  tool_for_testing_min_mem_acceptance_non_match:
+    cores: 15
+    mem: 53
+    gpus: 2
+    scheduling:
+      require:
+        - test_of_min_mem_accepted
+  tool_for_testing_min_cpu_acceptance_match:
+    cores: 17
+    mem: 68
+    gpus: 2
+    scheduling:
+      require:
+        - test_of_min_cpu_accepted
+  tool_for_testing_min_gpu_acceptance_match:
+    cores: 17
+    mem: 68
+    gpus: 2
+    scheduling:
+      require:
+        - test_of_min_gpu_accepted
+  tool_for_testing_min_mem_acceptance_match:
+    cores: 17
+    mem: 68
+    gpus: 2
+    scheduling:
+      require:
+        - test_of_min_mem_accepted
 
 destinations:
   local:
@@ -162,3 +204,39 @@ destinations:
     scheduling:
       require:
         - also_concrete
+  destination_with_min_cpu_accepted:
+    runner: k8s
+    min_accepted_cores: 16
+    min_accepted_mem: 64
+    min_accepted_gpus: 2
+    scheduling:
+      require:
+        - test_of_min_cpu_accepted
+  destination_without_min_cpu_accepted:
+    runner: k8s
+    scheduling:
+      require:
+        - test_of_min_cpu_accepted
+  destination_with_min_gpu_accepted:
+    runner: k8s
+    min_accepted_gpus: 2
+    scheduling:
+      require:
+        - test_of_min_gpu_accepted
+  destination_without_min_gpu_accepted:
+    runner: k8s
+    scheduling:
+      require:
+        - test_of_min_gpu_accepted
+  destination_with_min_mem_accepted:
+    runner: k8s
+    min_accepted_mem: 64
+    min_accepted_gpus: 2
+    scheduling:
+      require:
+        - test_of_min_mem_accepted
+  destination_without_min_mem_accepted:
+    runner: k8s
+    scheduling:
+      require:
+        - test_of_min_mem_accepted
