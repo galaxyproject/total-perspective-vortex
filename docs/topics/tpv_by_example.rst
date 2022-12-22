@@ -379,7 +379,7 @@ Variable names follow Python conventions, where all uppercase variables indicate
 Lower case indicates a public variable that can be overridden and changed, even across multiple TPV config files.
 An underscore indicates a protected variable that can be overridden within the same file, but not across files.
 
-Additional, the tool defaults section defines an additional context variable named 'additional_spec`, which is only
+Additionally, the tool defaults section defines a context variable named 'additional_spec`, which is only
 available to inheriting tools.
 
 If we were to dispatch a job, say bwa, with an input_size of 15, the large file rule in the defaults section would
