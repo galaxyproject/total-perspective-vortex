@@ -56,6 +56,7 @@ installed. **This should not be used in the Galaxy virtualenv**:
    topics/concepts.rst
    topics/configure_galaxy.rst
    topics/shell_commands.rst
+   topics/migration_guide.rst
 
 Indices and tables
 ==================
