@@ -1,9 +1,13 @@
+2.0.1 - Jan 11, 2023. (sha 8860c1d570ed94310f5ed57b2166390124d9bbf8)
+--------------------------------------------------------------------
+* create __init__.py in tpv core test folder by @bgruening (PR #70)
+
 2.0.0 - Dec 24, 2022. (sha b593d5527bce51a7070684569dc8f19aff3d24e0)
 --------------------------------------------------------------------
 * Add a `tpv dry-run` subcommand by @natefoo (PR #52)
 * Simplify TPV by disambiguating terms by @nuwang (PR #58)
 * Additional context params by @nuwang (PR #62)
-* Use only TPV defined destinations, ignoring job_conf by @nuwang (#PR 63)
+* Use only TPV defined destinations, ignoring job_conf by @nuwang (PR #63)
 * Add support for abstract entities by @nuwang (PR #64)
 * Add destination min accepted by @nuwang (PR #67)
 * Shared rules inheritance test by @cat-bro (PR #68)
