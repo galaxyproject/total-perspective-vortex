@@ -34,3 +34,20 @@ class TestParamsSpecific(unittest.TestCase):
 
         destination = self._map_to_destination(tool, user)
         self.assertEqual(destination.params['container_override'][0]['identifier'], 'busybox:ubuntu-14.04-2')
+
+    def test_env_with_int_value_is_converted_to_string(self):
+        tool = mock_galaxy.Tool('grappa')
+        user = mock_galaxy.User('gargravarr', 'fairycake@vortex.org')
+
+        destination = self._map_to_destination(tool, user)
+        self.assertEqual(type(destination.env[1]['value']), str)
+        self.assertEqual(destination.env[1]['value'], '42')
+
+    def test_param_with_int_or_bool_value_is_not_converted_to_string(self):
+        tool = mock_galaxy.Tool('grappa')
+        user = mock_galaxy.User('gargravarr', 'fairycake@vortex.org')
+
+        destination = self._map_to_destination(tool, user)
+        self.assertEqual(type(destination.params['is_a_bool']), bool)
+        self.assertEqual(destination.params['is_a_bool'], True)
+        self.assertEqual(destination.params['int_value'], 1010)
