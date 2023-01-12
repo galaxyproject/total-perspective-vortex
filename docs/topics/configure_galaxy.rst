@@ -41,14 +41,14 @@ TPV allows rules to be loaded from remote or local sources.
    :linenos:
    :emphasize-lines: 7-9,14-19
 
-    tpv_dispatcher:
-     runner: dynamic
-     type: python
-     function: map_tool_to_destination
-     rules_module: tpv.rules
-     tpv_config_files:
-       - https://usegalaxy.org/shared_rules.yml
-       - config/tpv_rules_australia.yml
+   tpv_dispatcher:
+    runner: dynamic
+    type: python
+    function: map_tool_to_destination
+    rules_module: tpv.rules
+    tpv_config_files:
+      - https://usegalaxy.org/shared_rules.yml
+      - config/tpv_rules_australia.yml
 
 The config files listed first are overridden by config files listed later. The normal rules of inheritance apply.
 This allows a central database of common rules to be maintained, with individual, site-specific overrides.
