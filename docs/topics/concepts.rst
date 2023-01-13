@@ -66,7 +66,7 @@ roles or users to specific destinations for example.
 However, if the tags are mutually exclusive, then an IncompatibleTagsException is raised. For example, if a role
 expresses a preference for training, but the tool rejects tag `training`, then the job can no longer be scheduled.
 If the tags are compatible, then the tag with the stronger claim takes effect. For example, if a tool requires
-'high-mem` and a user prefers `high-mem`, then the combined entity will require `high-mem`. An example of using
+`high-mem` and a user prefers `high-mem`, then the combined entity will require `high-mem`. An example of using
 this property would be to restrict the availability of dangerous tools only to trusted users.
 
 Combining envs and params

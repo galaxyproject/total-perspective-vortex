@@ -10,23 +10,23 @@ The simplest possible example of a useful TPV config might look like the followi
    :linenos:
    :emphasize-lines: 4
 
-    tools:
-      toolshed.g2.bx.psu.edu/repos/iuc/hisat2/.*:
-        cores: 12
-        mem: cores * 4
-        gpus: 1
+   tools:
+     toolshed.g2.bx.psu.edu/repos/iuc/hisat2/.*:
+       cores: 12
+       mem: cores * 4
+       gpus: 1
 
-    destinations:
-     slurm:
-       runner: slurm
-       max_accepted_cores: 16
-       max_accepted_mem: 64
-       max_accepted_gpus: 2
-     general_pulsar_1:
-       runner: pulsar_1
-       max_accepted_cores: 8
-       max_accepted_mem: 32
-       max_accepted_gpus: 1
+   destinations:
+    slurm:
+      runner: slurm
+      max_accepted_cores: 16
+      max_accepted_mem: 64
+      max_accepted_gpus: 2
+    general_pulsar_1:
+      runner: pulsar_1
+      max_accepted_cores: 8
+      max_accepted_mem: 32
+      max_accepted_gpus: 1
 
 
 Here, we define one tool and its resource requirements, the destinations available, and the total resources available
@@ -45,19 +45,19 @@ Inheritance provides a mechanism for an entity to inherit properties from anothe
    :linenos:
    :emphasize-lines: 1-2,4-7
 
-    global:
-      default_inherits: default
+   global:
+     default_inherits: default
 
-    tools:
-      default:
-        cores: 2
-        mem: 4
-        params:
-          nativeSpecification: "--nodes=1 --ntasks={cores} --ntasks-per-node={cores} --mem={mem*1024}"
-      toolshed.g2.bx.psu.edu/repos/iuc/hisat2/hisat2/2.1.0+galaxy7:
-        cores: 12
-        mem: cores * 4
-        gpus: 1
+   tools:
+     default:
+       cores: 2
+       mem: 4
+       params:
+         nativeSpecification: "--nodes=1 --ntasks={cores} --ntasks-per-node={cores} --mem={mem*1024}"
+     toolshed.g2.bx.psu.edu/repos/iuc/hisat2/hisat2/2.1.0+galaxy7:
+       cores: 12
+       mem: cores * 4
+       gpus: 1
 
 
 The `global` section is used to define global TPV properties. The `default_inherits` property defines a "base class"
@@ -76,23 +76,23 @@ Explicit inheritance provides a mechanism for exerting greater control over the 
    :linenos:
    :emphasize-lines: 1-2,15
 
-    global:
-      default_inherits: default
+   global:
+     default_inherits: default
 
-    tools:
-      default:
-        cores: 2
-        mem: 4
-        params:
-          nativeSpecification: "--nodes=1 --ntasks={cores} --ntasks-per-node={cores} --mem={mem*1024}"
-      toolshed.g2.bx.psu.edu/repos/iuc/hisat2/.*:
-        cores: 12
-        mem: cores * 4
-        gpus: 1
-      .*minimap2.*:
-        inherits: toolshed.g2.bx.psu.edu/repos/iuc/hisat2/.*:
-        cores: 8
-        gpus: 0
+   tools:
+     default:
+       cores: 2
+       mem: 4
+       params:
+         nativeSpecification: "--nodes=1 --ntasks={cores} --ntasks-per-node={cores} --mem={mem*1024}"
+     toolshed.g2.bx.psu.edu/repos/iuc/hisat2/.*:
+       cores: 12
+       mem: cores * 4
+       gpus: 1
+     .*minimap2.*:
+       inherits: toolshed.g2.bx.psu.edu/repos/iuc/hisat2/.*:
+       cores: 8
+       gpus: 0
 
 In this example, the minimap2 tool explicitly inherits requirements from the hisat2 tool, which in turn inherits
 the default tool. There is no limit to how deep the inheritance hierarchy can be.
@@ -108,53 +108,53 @@ preferred destinations, or to explicitly control which users can execute which t
    :linenos:
    :emphasize-lines: 7-9,14-19
 
-    tools:
-      default:
-        cores: 2
-        mem: 4
-        params:
-          nativeSpecification: "--nodes=1 --ntasks={cores} --ntasks-per-node={cores} --mem={mem*1024}"
-        scheduling:
-          reject:
-            - offline
-      toolshed.g2.bx.psu.edu/repos/iuc/hisat2/.*:
-        cores: 4
-        mem: cores * 4
-        gpus: 1
-        scheduling:
-          require:
-          prefer:
-            - highmem
-          accept:
-          reject:
-      toolshed.g2.bx.psu.edu/repos/iuc/minimap2/.*:
-        cores: 4
-        mem: cores * 4
-        gpus: 1
-        scheduling:
-          require:
-            - highmem
+   tools:
+     default:
+       cores: 2
+       mem: 4
+       params:
+         nativeSpecification: "--nodes=1 --ntasks={cores} --ntasks-per-node={cores} --mem={mem*1024}"
+       scheduling:
+         reject:
+           - offline
+     toolshed.g2.bx.psu.edu/repos/iuc/hisat2/.*:
+       cores: 4
+       mem: cores * 4
+       gpus: 1
+       scheduling:
+         require:
+         prefer:
+           - highmem
+         accept:
+         reject:
+     toolshed.g2.bx.psu.edu/repos/iuc/minimap2/.*:
+       cores: 4
+       mem: cores * 4
+       gpus: 1
+       scheduling:
+         require:
+           - highmem
 
-    destinations:
+   destinations:
      slurm:
        runner: slurm
        max_accepted_cores: 16
        max_accepted_mem: 64
        max_accepted_gpus: 2
        scheduling:
-          prefer:
-            - general
-
+         prefer:
+           - general
+ 
      general_pulsar_1:
        runner: pulsar_1
        max_accepted_cores: 8
        max_accepted_mem: 32
        max_accepted_gpus: 1
        scheduling:
-          prefer:
-            - highmem
-          reject:
-            - offline
+         prefer:
+           - highmem
+         reject:
+           - offline
 
 In this example, all tools reject destinations marked as offline. The hisat2 tool expresses a preference for highmem,
 and inherits the rejection of offline tags. Inheritance can be used to override scheduling tags. For example, the
@@ -183,34 +183,34 @@ Rules provide a means by which to conditionally change entity requirements.
    :linenos:
    :emphasize-lines: 5-8,13-25
 
-    tools:
-      default:
-        cores: 2
-        mem: cores * 3
-        rules:
-          - id: my_overridable_rule
-            if: input_size < 5
-            fail: We don't run piddling datasets of {input_size}GB
-      bwa:
-        scheduling:
-          require:
-            - pulsar
-        rules:
-          - id: my_overridable_rule
-            if: input_size < 1
-            fail: We don't run piddling datasets
-          - if: input_size <= 10
-            cores: 4
-            mem: cores * 4
-            execute: |
-               from galaxy.jobs.mapper import JobNotReadyException
-               raise JobNotReadyException()
-          - if: input_size > 10 and input_size < 20
-            scheduling:
-              require:
-                - highmem
-          - if: input_size >= 20
-            fail: Input size: {input_size} is too large shouldn't run
+   tools:
+     default:
+       cores: 2
+       mem: cores * 3
+       rules:
+         - id: my_overridable_rule
+           if: input_size < 5
+           fail: We don't run piddling datasets of {input_size}GB
+     bwa:
+       scheduling:
+         require:
+           - pulsar
+       rules:
+         - id: my_overridable_rule
+           if: input_size < 1
+           fail: We don't run piddling datasets
+         - if: input_size <= 10
+           cores: 4
+           mem: cores * 4
+           execute: |
+              from galaxy.jobs.mapper import JobNotReadyException
+              raise JobNotReadyException()
+         - if: input_size > 10 and input_size < 20
+           scheduling:
+             require:
+               - highmem
+         - if: input_size >= 20
+           fail: Input size: {input_size} is too large shouldn't run
 
 The ``if`` clause can contain arbitrary python code, including multi-line python code. The only requirement is that the
 last statement in the code block must evaluate to a boolean value. In this example, the `input_size` variable is an
@@ -239,43 +239,43 @@ Scheduling rules can also be expressed for users and roles.
    :linenos:
    :emphasize-lines: 7-9,14-19
 
-    tools:
-      default:
-        scheduling:
-          require: []
-          prefer:
-            - general
-          accept:
-          reject:
-            - pulsar
-        rules: []
-      dangerous_interactive_tool:
-        cores: 8
-        mem: 8
-        scheduling:
-          require:
-            - authorize_dangerous_tool
-    users:
-      default:
-        scheduling:
-          reject:
-            - authorize_dangerous_tool
-      fairycake@vortex.org:
-        cores: 4
-        mem: 16
-        scheduling:
-          accept:
-            - authorize_dangerous_tool
-          prefer:
-            - highmem
+   tools:
+     default:
+       scheduling:
+         require: []
+         prefer:
+           - general
+         accept:
+         reject:
+           - pulsar
+       rules: []
+     dangerous_interactive_tool:
+       cores: 8
+       mem: 8
+       scheduling:
+         require:
+           - authorize_dangerous_tool
+   users:
+     default:
+       scheduling:
+         reject:
+           - authorize_dangerous_tool
+     fairycake@vortex.org:
+       cores: 4
+       mem: 16
+       scheduling:
+         accept:
+           - authorize_dangerous_tool
+         prefer:
+           - highmem
 
-    roles:
-      training.*:
-        cores: 5
-        mem: 7
-        scheduling:
-          reject:
-            - pulsar
+   roles:
+     training.*:
+       cores: 5
+       mem: 7
+       scheduling:
+         reject:
+           - pulsar
 
 In this example, if user `fairycake@vortex.org` attempts to dispatch a `dangerous_interactive_tool` job, the
 requirements for both entities would be combined. Most requirements would simply be merged, such as env vars
@@ -303,30 +303,30 @@ python code.
 .. code-block:: yaml
    :linenos:
 
-    tools:
-     default:
-       cores: 2
-       mem: 8
-       rank: |
-         import requests
+   tools:
+    default:
+      cores: 2
+      mem: 8
+      rank: |
+        import requests
 
-         params = {
-           'pretty': 'true',
-           'db': 'pulsar-test',
-           'q': 'SELECT last("percent_allocated") from "sinfo" group by "host"'
-         }
+        params = {
+          'pretty': 'true',
+          'db': 'pulsar-test',
+          'q': 'SELECT last("percent_allocated") from "sinfo" group by "host"'
+        }
 
-         try:
-           response = requests.get('http://stats.genome.edu.au:8086/query', params=params)
-           data = response.json()
-           cpu_by_destination = {s['tags']['host']:s['values'][0][1] for s in data.get('results')[0].get('series', [])}
-           # sort by destination preference, and then by cpu usage
-           candidate_destinations.sort(key=lambda d: (-1 * d.score(entity), cpu_by_destination.get(d.dest_name)))
-           final_destinations = candidate_destinations
-         except Exception:
-           log.exception("An error occurred while querying influxdb. Using a weighted random candidate destination")
-           final_destinations = helpers.weighted_random_sampling(candidate_destinations)
-         final_destinations
+        try:
+          response = requests.get('http://stats.genome.edu.au:8086/query', params=params)
+          data = response.json()
+          cpu_by_destination = {s['tags']['host']:s['values'][0][1] for s in data.get('results')[0].get('series', [])}
+          # sort by destination preference, and then by cpu usage
+          candidate_destinations.sort(key=lambda d: (-1 * d.score(entity), cpu_by_destination.get(d.dest_name)))
+          final_destinations = candidate_destinations
+        except Exception:
+          log.exception("An error occurred while querying influxdb. Using a weighted random candidate destination")
+          final_destinations = helpers.weighted_random_sampling(candidate_destinations)
+        final_destinations
 
 
 In this example, the rank function queries a remote influx database to find the least loaded destination, The matching
@@ -345,33 +345,33 @@ or at the level of each entity, with entity level context variables overriding g
 .. code-block:: yaml
    :linenos:
 
-    global:
-      default_inherits: default
-      context:
-        ABSOLUTE_FILE_SIZE_LIMIT: 100
-        large_file_size: 10
-        _a_protected_var: "some value"
+   global:
+     default_inherits: default
+     context:
+       ABSOLUTE_FILE_SIZE_LIMIT: 100
+       large_file_size: 10
+       _a_protected_var: "some value"
 
-    tools:
-      default:
-        context:
-          additional_spec: --my-custom-param
-        cores: 2
-        mem: 4
-        params:
-          nativeSpecification: "--nodes=1 --ntasks={cores} --ntasks-per-node={cores} --mem={mem*1024} {additional_spec}"
-         rules:
-          - if: input_size >= ABSOLUTE_FILE_SIZE_LIMIT
-            fail: Job input: {input_size} exceeds absolute limit of: {ABSOLUTE_FILE_SIZE_LIMIT}
-          - if: input_size > large_file_size
-            cores: 10
+   tools:
+     default:
+       context:
+         additional_spec: --my-custom-param
+       cores: 2
+       mem: 4
+       params:
+         nativeSpecification: "--nodes=1 --ntasks={cores} --ntasks-per-node={cores} --mem={mem*1024} {additional_spec}"
+        rules:
+         - if: input_size >= ABSOLUTE_FILE_SIZE_LIMIT
+           fail: Job input: {input_size} exceeds absolute limit of: {ABSOLUTE_FILE_SIZE_LIMIT}
+         - if: input_size > large_file_size
+           cores: 10
 
-      toolshed.g2.bx.psu.edu/repos/iuc/hisat2/hisat2/2.1.0+galaxy7:
-        context:
-          large_file_size: 20
-          additional_spec: --overridden-param
-        mem: cores * 4
-        gpus: 1
+     toolshed.g2.bx.psu.edu/repos/iuc/hisat2/hisat2/2.1.0+galaxy7:
+       context:
+         large_file_size: 20
+         additional_spec: --overridden-param
+       mem: cores * 4
+       gpus: 1
 
 
 In this example, three global context variables are defined, which are made available to all entities.
@@ -379,7 +379,7 @@ Variable names follow Python conventions, where all uppercase variables indicate
 Lower case indicates a public variable that can be overridden and changed, even across multiple TPV config files.
 An underscore indicates a protected variable that can be overridden within the same file, but not across files.
 
-Additionally, the tool defaults section defines a context variable named 'additional_spec`, which is only
+Additionally, the tool defaults section defines a context variable named `additional_spec`, which is only
 available to inheriting tools.
 
 If we were to dispatch a job, say bwa, with an input_size of 15, the large file rule in the defaults section would
@@ -398,20 +398,20 @@ multiple TPV config files, again based on order of appearance.
 .. code-block:: yaml
    :linenos:
 
-    tools:
-      default:
-        cores: 2
-        mem: 4
-        params:
-          nativeSpecification: "--nodes=1 --ntasks={cores} --ntasks-per-node={cores} --mem={mem*1024}"
+   tools:
+     default:
+       cores: 2
+       mem: 4
+       params:
+         nativeSpecification: "--nodes=1 --ntasks={cores} --ntasks-per-node={cores} --mem={mem*1024}"
 
-      toolshed.g2.bx.psu.edu/repos/iuc/hisat2/hisat2/*:
-        mem: cores * 4
-        gpus: 1
+     toolshed.g2.bx.psu.edu/repos/iuc/hisat2/hisat2/*:
+       mem: cores * 4
+       gpus: 1
 
-      toolshed.g2.bx.psu.edu/repos/iuc/hisat2/hisat2/2.1.0+galaxy7:
-        env:
-           MY_ADDITIONAL_FLAG: "test"
+     toolshed.g2.bx.psu.edu/repos/iuc/hisat2/hisat2/2.1.0+galaxy7:
+       env:
+         MY_ADDITIONAL_FLAG: "test"
 
 
 In this example, dispatching a hisat2 job would result in a mem value of 8, with 1 gpu. However, dispatching
@@ -424,16 +424,16 @@ TPV has explict support for job resubmissions, so that advanced control over job
 .. code-block:: yaml
    :linenos:
 
-    tools:
-      default:
-        cores: 2
-        mem: 4 * int(job.destination_params.get('SCALING_FACTOR', 1)) if job.destination_params else 1
-        params:
-          SCALING_FACTOR: "{2 * int(job.destination_params.get('SCALING_FACTOR', 2)) if job.destination_params else 2}"
-        resubmit:
-          with_more_mem_on_failure:
-            condition: memory_limit_reached and attempt <= 3
-            destination: tpv_dispatcher
+   tools:
+     default:
+       cores: 2
+       mem: 4 * int(job.destination_params.get('SCALING_FACTOR', 1)) if job.destination_params else 1
+       params:
+         SCALING_FACTOR: "{2 * int(job.destination_params.get('SCALING_FACTOR', 2)) if job.destination_params else 2}"
+       resubmit:
+         with_more_mem_on_failure:
+           condition: memory_limit_reached and attempt <= 3
+           destination: tpv_dispatcher
 
 In this example, we have defined a resubmission handler that resubmits the job if the memory limited is reached.
 Note that the resubmit section looks exactly the same as Galaxy's, except that it follows a dictionary structure
@@ -459,7 +459,7 @@ as follows:
    :linenos:
    :emphasize-lines: 7-9,14-19
 
-    tpv_dispatcher:
+   tpv_dispatcher:
      runner: dynamic
      type: python
      function: map_tool_to_destination
@@ -488,7 +488,7 @@ tools to use the maximum your cluster can support. You can achieve that effect a
    :linenos:
    :emphasize-lines: 7-9,14-19
 
-    destinations:
+   destinations:
      slurm:
        runner: slurm
        max_accepted_cores: 32
@@ -513,7 +513,7 @@ property.
    :linenos:
    :emphasize-lines: 4
 
-    destinations:
+   destinations:
      slurm:
        runner: slurm
        destination_name_override: "my-dest-with-{cores}-cores-{mem}-mem"
