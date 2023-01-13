@@ -28,6 +28,8 @@ tools:
   grappa:
     params:
       earth: 'mostly harmless'
+      is_a_bool: true
+      int_value: 1010
     env:
       JAVA_MEM: 42
 

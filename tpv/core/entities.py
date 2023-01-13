@@ -212,27 +212,27 @@ class Entity(object):
                 setattr(result, k, copy.deepcopy(v, memodict))
         return result
 
-    def process_complex_property(self, prop, context, func):
+    def process_complex_property(self, prop, context, func, stringify=False):
         if isinstance(prop, str):
             return func(prop, context)
         elif isinstance(prop, dict):
-            evaluated_props = {key: self.process_complex_property(childprop, context, func)
+            evaluated_props = {key: self.process_complex_property(childprop, context, func, stringify=stringify)
                                for key, childprop in prop.items()}
             return evaluated_props
         elif isinstance(prop, list):
-            evaluated_props = [self.process_complex_property(childprop, context, func)
+            evaluated_props = [self.process_complex_property(childprop, context, func, stringify=stringify)
                                for childprop in prop]
             return evaluated_props
         else:
-            return prop
+            return str(prop) if stringify else prop  # To handle special case of env vars provided as ints
 
     def compile_complex_property(self, prop):
         return self.process_complex_property(
             prop, None, lambda p, c: self.loader.compile_code_block(p, as_f_string=True))
 
-    def evaluate_complex_property(self, prop, context):
+    def evaluate_complex_property(self, prop, context, stringify=False):
         return self.process_complex_property(
-            prop, context, lambda p, c: self.loader.eval_code_block(p, c, as_f_string=True))
+            prop, context, lambda p, c: self.loader.eval_code_block(p, c, as_f_string=True), stringify=stringify)
 
     def validate(self):
         """
@@ -384,7 +384,7 @@ class Entity(object):
             new_entity.mem = min(new_entity.max_mem, new_entity.mem or 0) if new_entity.max_mem else new_entity.mem
             context['mem'] = new_entity.mem
         if self.env:
-            new_entity.env = self.evaluate_complex_property(self.env, context)
+            new_entity.env = self.evaluate_complex_property(self.env, context, stringify=True)
             context['env'] = new_entity.env
         if self.params:
             new_entity.params = self.evaluate_complex_property(self.params, context)
