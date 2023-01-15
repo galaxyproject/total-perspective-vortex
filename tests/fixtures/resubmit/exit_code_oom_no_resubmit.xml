@@ -1,8 +1,14 @@
 <tool id="exit_code_oom_no_resubmit" name="exit_code_oom_no_resubmit" version="0.1.1" profile="16.04">
     <!-- tool errors out with identified OOM error if less than 10MB are allocated. -->
+    <stdio>
+        <exit_code range="42" level="fatal_oom" description="Out of Memory" />
+    </stdio>
     <command detect_errors="exit_code" oom_exit_code="42"><![CDATA[
 mv hi.txt '$out_file1' &&
-echo "\$OOM_TOOL_MEMORY" &&
+echo "OOM_TOOL_MEMORY \$OOM_TOOL_MEMORY" &&
+if [[ -z \$OOM_TOOL_MEMORY ]]; then
+    exit 1;
+fi && 
 if [ "\$OOM_TOOL_MEMORY" -lt 10 ]; then
     exit 42;
 else
@@ -17,7 +23,7 @@ fi
         <param name="input" type="integer" label="Dummy" value="6" />
     </inputs>
     <outputs>
-        <data name="out_file1" />
+        <data name="out_file1" format="txt" />
     </outputs>
     <tests>
         <test>
@@ -25,6 +31,7 @@ fi
             <output name="out_file1">
                 <assert_contents>
                     <has_line line="Hello" />
+                    <has_line line="OOM_TOOL_MEMORY 16" />
                 </assert_contents>
             </output>
         </test>

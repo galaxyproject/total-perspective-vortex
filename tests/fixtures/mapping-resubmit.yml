@@ -22,7 +22,7 @@ tools:
     mem: 4
     resubmit:
       with_more_mem_on_failure:
-        condition: any_failure and attempt <= 3
+        condition: memory_limit_reached and attempt <= 3
         destination: tpv_dispatcher
   exit_code_oom_no_resubmit:
     cores: 2
