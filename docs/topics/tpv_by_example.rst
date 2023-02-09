@@ -405,18 +405,53 @@ multiple TPV config files, again based on order of appearance.
        params:
          nativeSpecification: "--nodes=1 --ntasks={cores} --ntasks-per-node={cores} --mem={mem*1024}"
 
-     toolshed.g2.bx.psu.edu/repos/iuc/hisat2/hisat2/*:
+     toolshed.g2.bx.psu.edu/repos/iuc/hisat2/hisat2/.*:
        mem: cores * 4
        gpus: 1
 
      toolshed.g2.bx.psu.edu/repos/iuc/hisat2/hisat2/2.1.0+galaxy7:
        env:
-         - name: MY_ADDITIONAL_FLAG
-           value: "test"
+         MY_ADDITIONAL_FLAG: "test"
 
 
 In this example, dispatching a hisat2 job would result in a mem value of 8, with 1 gpu. However, dispatching
 the specific version of `2.1.0+galaxy7` would result in the additional env variable, with mem remaining at 8.
+
+Job Environment
+---------------
+
+As seen in the previous example, it is possible to specify environment variables that will be set in the job's executing
+environment. It is also possible to source environment files and execute commands, using the same syntax as in Galaxy's
+job_conf.yml, by specifying ``env`` as a list instead of a dictionary.
+
+.. code-block:: yaml
+   :linenos:
+
+   tools:
+     default:
+       cores: 2
+       mem: 4
+       params:
+         nativeSpecification: "--nodes=1 --ntasks={cores} --ntasks-per-node={cores} --mem={mem*1024}"
+       env:
+         - execute: echo "Don't Panic!"
+
+     toolshed.g2.bx.psu.edu/repos/iuc/hisat2/hisat2/.*:
+       mem: cores * 4
+       gpus: 1
+       env:
+         - name: MY_ADDITIONAL_FLAG
+           value: "arthur"
+         - file: /galaxy/tools/hisat2.env
+
+     toolshed.g2.bx.psu.edu/repos/iuc/hisat2/hisat2/2.1.0+galaxy7:
+       inherits: toolshed.g2.bx.psu.edu/repos/iuc/hisat2/hisat2/.*:
+       env:
+         MY_ADDITIONAL_FLAG: "zaphod"
+
+In this example, all jobs will execute the command ``echo "Don't Panic!"``. All versions of hisat2 will have
+``$MY_ADDITIONAL_FLAG`` set and will source the file ``/galaxy/tools/hisat2.env``, but version ``2.1.0+galaxy7`` will
+have the value ``zaphod`` set for ``$MY_ADDITIONAL_FLAG`` instead of the hisat2 default of ``arthur``.
 
 Job Resubmission
 ----------------
