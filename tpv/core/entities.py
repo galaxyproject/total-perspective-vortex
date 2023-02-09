@@ -280,6 +280,16 @@ class Entity(object):
                f"tags={self.tpv_tags}, rank={self.rank[:10] if self.rank else ''}, inherits={self.inherits}, "\
                f"context={self.context}"
 
+    def merge_env_list(self, original, replace):
+        for i, original_elem in enumerate(original):
+            for j, replace_elem in enumerate(replace):
+                if (("name" in replace_elem and original_elem.get("name") == replace_elem["name"])
+                        or original_elem == replace_elem):
+                    original[i] = replace.pop(j)
+                    break
+        original.extend(replace)
+        return original
+
     def override(self, entity):
         if entity.merge_order <= self.merge_order:
             # Use the broader class as a base when copying. Useful in particular for Rules
@@ -297,8 +307,7 @@ class Entity(object):
         new_entity.max_cores = self.max_cores if self.max_cores is not None else entity.max_cores
         new_entity.max_mem = self.max_mem if self.max_mem is not None else entity.max_mem
         new_entity.max_gpus = self.max_gpus if self.max_gpus is not None else entity.max_gpus
-        new_entity.env = copy.copy(entity.env) or []
-        new_entity.env.extend(self.env or [])
+        new_entity.env = self.merge_env_list(copy.deepcopy(entity.env) or [], copy.deepcopy(self.env) or [])
         new_entity.params = copy.copy(entity.params) or {}
         new_entity.params.update(self.params or {})
         new_entity.resubmit = copy.copy(entity.resubmit) or {}
