@@ -190,7 +190,7 @@ class Entity(object):
         self.max_cores = max_cores
         self.max_mem = max_mem
         self.max_gpus = max_gpus
-        self.env = env
+        self.env = self.convert_env(env)
         self.params = params
         self.resubmit = resubmit
         self.tpv_tags = TagSetManager.from_dict(tpv_tags or {})
@@ -234,9 +234,10 @@ class Entity(object):
         return self.process_complex_property(
             prop, context, lambda p, c: self.loader.eval_code_block(p, c, as_f_string=True), stringify=stringify)
 
-    def convert_env(self):
-        if isinstance(self.env, dict):
-            self.env = [dict(name=k, value=v) for (k, v) in self.env.items()]
+    def convert_env(self, env):
+        if isinstance(env, dict):
+            env = [dict(name=k, value=v) for (k, v) in env.items()]
+        return env
 
     def validate(self):
         """
@@ -244,7 +245,6 @@ class Entity(object):
         This process also results in the compiled code being cached by the loader,
         so that future evaluations are faster.
         """
-        self.convert_env()
         if self.cores:
             self.loader.compile_code_block(self.cores)
         if self.mem:
