@@ -411,7 +411,8 @@ multiple TPV config files, again based on order of appearance.
 
      toolshed.g2.bx.psu.edu/repos/iuc/hisat2/hisat2/2.1.0+galaxy7:
        env:
-         MY_ADDITIONAL_FLAG: "test"
+         - name: MY_ADDITIONAL_FLAG
+           value: "test"
 
 
 In this example, dispatching a hisat2 job would result in a mem value of 8, with 1 gpu. However, dispatching

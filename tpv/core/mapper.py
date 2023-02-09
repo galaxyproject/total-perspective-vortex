@@ -75,7 +75,7 @@ class EntityToDestinationMapper(object):
             tags=destination.handler_tags,
             runner=destination.runner,
             params=destination.params,
-            env=[dict(name=k, value=v) for (k, v) in destination.env.items()],
+            env=destination.env,
             resubmit=list(destination.resubmit.values()),
         )
 

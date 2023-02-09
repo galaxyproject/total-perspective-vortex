@@ -234,12 +234,17 @@ class Entity(object):
         return self.process_complex_property(
             prop, context, lambda p, c: self.loader.eval_code_block(p, c, as_f_string=True), stringify=stringify)
 
+    def convert_env(self):
+        if isinstance(self.env, dict):
+            self.env = [dict(name=k, value=v) for (k, v) in self.env.items()]
+
     def validate(self):
         """
         Validates each code block and makes sure the code can be compiled.
         This process also results in the compiled code being cached by the loader,
         so that future evaluations are faster.
         """
+        self.convert_env()
         if self.cores:
             self.loader.compile_code_block(self.cores)
         if self.mem:
@@ -292,8 +297,8 @@ class Entity(object):
         new_entity.max_cores = self.max_cores if self.max_cores is not None else entity.max_cores
         new_entity.max_mem = self.max_mem if self.max_mem is not None else entity.max_mem
         new_entity.max_gpus = self.max_gpus if self.max_gpus is not None else entity.max_gpus
-        new_entity.env = copy.copy(entity.env) or {}
-        new_entity.env.update(self.env or {})
+        new_entity.env = copy.copy(entity.env) or []
+        new_entity.env.extend(self.env or [])
         new_entity.params = copy.copy(entity.params) or {}
         new_entity.params.update(self.params or {})
         new_entity.resubmit = copy.copy(entity.resubmit) or {}
