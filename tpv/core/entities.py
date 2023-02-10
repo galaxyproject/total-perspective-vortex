@@ -190,7 +190,7 @@ class Entity(object):
         self.max_cores = max_cores
         self.max_mem = max_mem
         self.max_gpus = max_gpus
-        self.env = env
+        self.env = self.convert_env(env)
         self.params = params
         self.resubmit = resubmit
         self.tpv_tags = TagSetManager.from_dict(tpv_tags or {})
@@ -234,6 +234,11 @@ class Entity(object):
         return self.process_complex_property(
             prop, context, lambda p, c: self.loader.eval_code_block(p, c, as_f_string=True), stringify=stringify)
 
+    def convert_env(self, env):
+        if isinstance(env, dict):
+            env = [dict(name=k, value=v) for (k, v) in env.items()]
+        return env
+
     def validate(self):
         """
         Validates each code block and makes sure the code can be compiled.
@@ -275,6 +280,16 @@ class Entity(object):
                f"tags={self.tpv_tags}, rank={self.rank[:10] if self.rank else ''}, inherits={self.inherits}, "\
                f"context={self.context}"
 
+    def merge_env_list(self, original, replace):
+        for i, original_elem in enumerate(original):
+            for j, replace_elem in enumerate(replace):
+                if (("name" in replace_elem and original_elem.get("name") == replace_elem["name"])
+                        or original_elem == replace_elem):
+                    original[i] = replace.pop(j)
+                    break
+        original.extend(replace)
+        return original
+
     def override(self, entity):
         if entity.merge_order <= self.merge_order:
             # Use the broader class as a base when copying. Useful in particular for Rules
@@ -292,8 +307,7 @@ class Entity(object):
         new_entity.max_cores = self.max_cores if self.max_cores is not None else entity.max_cores
         new_entity.max_mem = self.max_mem if self.max_mem is not None else entity.max_mem
         new_entity.max_gpus = self.max_gpus if self.max_gpus is not None else entity.max_gpus
-        new_entity.env = copy.copy(entity.env) or {}
-        new_entity.env.update(self.env or {})
+        new_entity.env = self.merge_env_list(copy.deepcopy(entity.env) or [], copy.deepcopy(self.env) or [])
         new_entity.params = copy.copy(entity.params) or {}
         new_entity.params.update(self.params or {})
         new_entity.resubmit = copy.copy(entity.resubmit) or {}
