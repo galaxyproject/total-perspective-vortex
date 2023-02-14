@@ -61,6 +61,7 @@ class App:
             default_job_resubmission_condition="",
             track_jobs_in_database=True,
             server_name="main",
+            is_set=lambda x: True,
         )
         self.application_stack = ApplicationStack()
         self.job_metrics = JobMetrics()
