@@ -40,8 +40,7 @@ class TestMapperMergeMultipleConfigs(unittest.TestCase):
         self.assertEqual(destination.id, "k8s_environment")
         self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_JOB_SLOTS'], ['2'])
         self.assertEqual(destination.params['native_spec'], '--mem 8 --cores 2')
-        # FIXME: This can be uncommented once merged into the main branch
-        # self.assertEqual(destination.params['custom_context_remote'], 'remote var')
+        self.assertEqual(destination.params['custom_context_remote'], 'remote var')
         self.assertEqual(destination.params['custom_context_local'], 'local var')
         self.assertEqual(destination.params['custom_context_override'], 'local override')
 
