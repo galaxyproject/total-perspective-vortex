@@ -30,7 +30,7 @@ example:
         rules: []
     EOF
     $ tpv lint good.yml
-    INFO : tpv.core.shell: lint successful.
+    INFO : tpv.commands.shell: lint successful.
     $ echo $?
     0
 
@@ -40,7 +40,7 @@ example:
           cores: 1
     EOF
     $ tpv lint bad.yml
-    INFO : tpv.core.shell: lint failed.
+    INFO : tpv.commands.shell: lint failed.
     $ echo $?
     1
     

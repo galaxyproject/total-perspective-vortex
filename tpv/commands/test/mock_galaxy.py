@@ -63,15 +63,15 @@ class App:
             server_name="main",
             is_set=lambda x: True,
         )
-        self.application_stack = ApplicationStack()
         self.job_metrics = JobMetrics()
-        self.job_config = JobConfiguration(self)
         if create_model:
             self.model = mapping.init(
                 "/tmp",
                 "sqlite:///:memory:",
                 create_tables=True
             )
+        self.application_stack = ApplicationStack(app=self)
+        self.job_config = JobConfiguration(self)
 
 
 class User:

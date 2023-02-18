@@ -9,7 +9,7 @@ import pytest
 import yaml
 from galaxy.jobs.mapper import JobMappingException
 
-from tpv.core.shell import main
+from tpv.commands.shell import main
 
 
 @pytest.fixture

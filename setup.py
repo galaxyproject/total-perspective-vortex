@@ -55,7 +55,7 @@ setuptools.setup(
     },
     entry_points={
         'console_scripts': [
-            'tpv = tpv.core.shell:main'
+            'tpv = tpv.commands.shell:main'
         ]
     },
     classifiers=[

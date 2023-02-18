@@ -7,7 +7,7 @@ import shutil
 import unittest
 from galaxy.jobs.mapper import JobMappingException
 from tpv.rules import gateway
-from tpv.core.test import mock_galaxy
+from tpv.commands.test import mock_galaxy
 
 
 class TestScenarios(unittest.TestCase):

@@ -5,6 +5,7 @@ galaxy-files@git+https://github.com/galaxyproject/galaxy.git@release_22.05#subdi
 galaxy-data@git+https://github.com/galaxyproject/galaxy.git@release_22.05#subdirectory=packages/data
 galaxy-auth@git+https://github.com/galaxyproject/galaxy.git@release_22.05#subdirectory=packages/auth
 galaxy-selenium@git+https://github.com/galaxyproject/galaxy.git@release_22.05#subdirectory=packages/selenium
+galaxy-data@git+https://github.com/galaxyproject/galaxy.git@release_22.05#subdirectory=packages/data
 galaxy-job-execution@git+https://github.com/galaxyproject/galaxy.git@release_22.05#subdirectory=packages/job_execution
 galaxy-job-metrics@git+https://github.com/galaxyproject/galaxy.git@release_22.05#subdirectory=packages/job_metrics
 galaxy-tool-util@git+https://github.com/galaxyproject/galaxy.git@release_22.05#subdirectory=packages/tool_util

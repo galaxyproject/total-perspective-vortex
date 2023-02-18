@@ -4,7 +4,7 @@ import tempfile
 import shutil
 import unittest
 from tpv.rules import gateway
-from tpv.core.test import mock_galaxy
+from tpv.commands.test import mock_galaxy
 from galaxy.jobs.mapper import JobMappingException
 from galaxy.jobs.mapper import JobNotReadyException
 

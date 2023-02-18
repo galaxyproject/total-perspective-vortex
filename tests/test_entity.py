@@ -3,7 +3,7 @@ import unittest
 from tpv.rules import gateway
 from tpv.core.entities import Tag
 from tpv.core.entities import TagType
-from tpv.core.test import mock_galaxy
+from tpv.commands.test import mock_galaxy
 
 
 class TestEntity(unittest.TestCase):

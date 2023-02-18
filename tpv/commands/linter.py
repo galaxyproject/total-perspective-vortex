@@ -1,6 +1,6 @@
 import logging
 
-from .loader import TPVConfigLoader
+from tpv.core.loader import TPVConfigLoader
 
 log = logging.getLogger(__name__)
 
