@@ -15,6 +15,8 @@ with open(os.path.join("tpv", "__init__.py")) as f:
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
+# Galaxy's runtime environment and packages are implicitly assumed to be present, and only
+# explicitly installed for tests.
 REQS_FULL = [
     "cachetools>=3.1.0",
     "watchdog",
@@ -53,7 +55,7 @@ setuptools.setup(
     },
     entry_points={
         'console_scripts': [
-            'tpv = tpv.core.shell:main'
+            'tpv = tpv.commands.shell:main'
         ]
     },
     classifiers=[

@@ -1,7 +1,7 @@
 import os
 import unittest
 from tpv.rules import gateway
-from tpv.core.test import mock_galaxy
+from tpv.commands.test import mock_galaxy
 
 
 class TestMapperRank(unittest.TestCase):

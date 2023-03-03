@@ -1,7 +1,7 @@
 from __future__ import annotations
 import logging
 
-from . import util
+from tpv.core import util
 
 log = logging.getLogger(__name__)
 

@@ -1,6 +1,6 @@
 import logging
 
-from .loader import TPVConfigLoader
+from tpv.core.loader import TPVConfigLoader
 
 log = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ class TPVConfigLinter(object):
             loader = TPVConfigLoader.from_url_or_path(self.url_or_path)
         except Exception as e:
             log.error(f"Linting failed due to syntax errors in yaml file: {e}")
-            raise TPVLintError("Linting failed due to syntax error in yaml file: ") from e
+            raise TPVLintError("Linting failed due to syntax errors in yaml file: ") from e
         default_inherits = loader.global_settings.get('default_inherits')
         for tool in loader.tools.values():
             if default_inherits == tool.id:

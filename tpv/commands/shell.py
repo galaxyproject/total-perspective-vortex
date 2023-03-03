@@ -4,11 +4,10 @@ import sys
 
 from ruamel.yaml import YAML, RoundTripRepresenter
 
+from .dryrunner import TPVDryRunner
 from .formatter import TPVConfigFormatter
 from .linter import TPVConfigLinter
 from .linter import TPVLintError
-from .test import mock_galaxy
-from ..rules import gateway
 
 log = logging.getLogger(__name__)
 
@@ -53,31 +52,9 @@ def tpv_format_config_file(args):
 
 
 def tpv_dry_run_config_files(args):
-    if args.user is not None:
-        if '@' in args.user:
-            username, email = args.user.split('@', 1)
-        else:
-            username, email = (args.user, 'example.org')
-        user = mock_galaxy.User(username, email)
-    else:
-        user = None
-    if args.tool:
-        tool = mock_galaxy.Tool(args.tool)
-    else:
-        tool = None
-    galaxy_app = mock_galaxy.App(job_conf=args.job_conf, create_model=True)
-    if args.config:
-        tpv_config_files = args.config
-    else:
-        tpv_config_files = galaxy_app.job_config.get_destination('tpv_dispatcher').params['tpv_config_files']
-    job = mock_galaxy.Job()
-    if args.input_size:
-        dataset = mock_galaxy.DatasetAssociation(
-            "test",
-            mock_galaxy.Dataset("test.txt", file_size=args.input_size*1024**3))
-        job.add_input_dataset(dataset)
-    gateway.ACTIVE_DESTINATION_MAPPER = None
-    destination = gateway.map_tool_to_destination(galaxy_app, job, tool, user, tpv_config_files=tpv_config_files)
+    dry_runner = TPVDryRunner.from_params(user=args.user, tool=args.tool, job_conf=args.job_conf, tpv_confs=args.config,
+                                          input_size=args.input_size)
+    destination = dry_runner.run()
     yaml = YAML(typ='unsafe', pure=True)
     yaml.dump(destination, sys.stdout)
 
@@ -121,7 +98,7 @@ def create_parser():
         help="Galaxy job configuration file")
     dry_run_parser.add_argument(
         '--input-size', type=int,
-        help="Input dataest size (in GB)")
+        help="Input dataset size (in GB)")
     dry_run_parser.add_argument(
         '--tool', type=str,
         default='_default_',

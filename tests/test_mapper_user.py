@@ -2,7 +2,7 @@ import os
 import unittest
 from tpv.rules import gateway
 from tpv.core.entities import IncompatibleTagsException
-from tpv.core.test import mock_galaxy
+from tpv.commands.test import mock_galaxy
 
 
 class TestMapperUser(unittest.TestCase):
