@@ -16,8 +16,7 @@ def sum_total(prev, current):
 def calculate_dataset_total(datasets):
     if datasets:
         unique_datasets = {inp_ds.dataset.dataset.id: inp_ds.dataset.dataset for inp_ds in datasets if inp_ds.dataset}
-        return reduce(sum_total,
-                      map(get_dataset_size, unique_datasets.values()))
+        return reduce(sum_total, map(get_dataset_size, unique_datasets.values()), 0.0)
     else:
         return 0.0
 
