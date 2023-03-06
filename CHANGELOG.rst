@@ -1,3 +1,12 @@
+2.1.0 - Mar 06, 2023. (sha 0f47032a1faf416b34969fb26c332428cb74209a)
+--------------------------------------------------------------------
+* Automatically convert envs to string, but make sure params are preserved by @nuwang (PR #73)
+* Fix indentation by @bernt-matthias in (PR #76)
+* Convert env to a list compatible with Galaxy job conf by @natefoo in (PR #79)
+* Fix missing app.config.is_set() in mock config for dry-run by @natefoo in (PR #80)
+* Refactor and fix dryrun by @nuwang in (PR #82)
+* Add initializer to handle empty sequence when reducing by @nuwang in (PR #84)
+
 2.0.1 - Jan 11, 2023. (sha 8860c1d570ed94310f5ed57b2166390124d9bbf8)
 --------------------------------------------------------------------
 * create __init__.py in tpv core test folder by @bgruening (PR #70)
