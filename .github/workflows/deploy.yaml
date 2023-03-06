@@ -1,7 +1,7 @@
 name: Publish TPV to PyPI
 on:
   release:
-    types: [created]
+    types: [published]
   push:
     tags:
       - '*'
