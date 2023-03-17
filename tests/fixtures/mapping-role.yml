@@ -9,16 +9,23 @@ tools:
       TOOL_AND_ROLE_DEFINED: "tool"
       TOOL_AND_USER_DEFINED: "tool"
       TOOL_USER_AND_ROLE_DEFINED: "tool"
+    params:
+      native_spec: '--mem {mem} --cores {cores}'
     scheduling:
       require: []
       prefer:
         - general
-      accept:
-      reject:
-        - pulsar
     rules: []
   bwa:
     scheduling:
+      require:
+        - pulsar
+  flye:
+    cores: 6
+    mem: 12
+    scheduling:
+      accept:
+        - pulsar-training-large
       require:
         - pulsar
 users:
@@ -60,14 +67,12 @@ roles:
     max_cores: 8
     max_mem: 8
     env: []
-    scheduling:
-      require:
-        - general
     rules: []
   training:
     scheduling:
       require:
         - pulsar
+        - general
   newtraining2021.*:
     env:
       TOOL_AND_ROLE_DEFINED: "role"
@@ -78,7 +83,20 @@ roles:
         - pulsar
       reject:
         - general
-
+  seminar-ga:
+    rules:
+      - id: default_training_rule
+        if: helpers.tag_values_match(entity, match_tag_values=[], exclude_tag_values=['pulsar'])
+        max_cores: 1
+        max_mem: 1
+      - id: small_pulsar_training_rule
+        if: helpers.tag_values_match(entity, match_tag_values=['pulsar'], exclude_tag_values=['pulsar-training-large'])
+        max_cores: 2
+        max_mem: 2
+      - id: large_pulsar_training_rule
+        if: helpers.tag_values_match(entity, match_tag_values=['pulsar-training-large'], exclude_tag_values=[])
+        max_cores: 3
+        max_mem: 3
 destinations:
   local:
     runner: local

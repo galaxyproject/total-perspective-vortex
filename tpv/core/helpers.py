@@ -76,3 +76,12 @@ def concurrent_job_count_for_tool(app, tool, user=None):  # requires galaxy vers
     query = query.filter(model.Job.table.c.state.in_(['queued', 'running']))
     query = query.filter(model.Job.table.c.tool_id.regexp_match(tool_id_regex))
     return query.count()
+
+
+def tag_values_match(entity, match_tag_values=[], exclude_tag_values=[]):
+    # Return true if an entity has require/prefer/accept tags in the match_tags_values list
+    # and no require/prefer/accept tags in the exclude_tag_values list
+    return (
+        all([any(entity.tpv_tags.filter(tag_value=tag_value)) for tag_value in match_tag_values])
+        and not any([any(entity.tpv_tags.filter(tag_value=tag_value)) for tag_value in exclude_tag_values])
+    )
