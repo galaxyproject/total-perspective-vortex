@@ -48,3 +48,21 @@ class TestMapperRole(unittest.TestCase):
                          ['user'])
         self.assertEqual([env['value'] for env in destination.env if env['name'] == 'USER_AND_ROLE_DEFINED'],
                          ['user'])
+
+    def test_map_role_training_matching_tag_values(self):
+        user = mock_galaxy.User('trin', 'tragula@perspective.org', roles=["seminar-ga"])
+
+        # test default training rule
+        tool = mock_galaxy.Tool('quast')
+        destination = self._map_to_destination(tool, user)
+        self.assertEqual(destination.params['native_spec'], '--mem 1 --cores 1')
+
+        # test training small pulsar rule
+        tool = mock_galaxy.Tool('bwa')
+        destination = self._map_to_destination(tool, user)
+        self.assertEqual(destination.params['native_spec'], '--mem 2 --cores 2')
+
+        # test default training large pulsar rule
+        tool = mock_galaxy.Tool('flye')
+        destination = self._map_to_destination(tool, user)
+        self.assertEqual(destination.params['native_spec'], '--mem 3 --cores 3')
