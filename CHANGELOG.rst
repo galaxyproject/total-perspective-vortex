@@ -1,3 +1,9 @@
+2.2.0 - Mar 22, 2023. (sha 129c65b58998661da325294fa8461f0a48fcebb0)
+--------------------------------------------------------------------
+* Add helper for checking entity tags within a tpv rule by @cat-bro (PR #86)
+* Remove condition from tpv packaging by @nuwang (PR #87)
+* refactor: remove unnecessary overrides of superclass __init__ by @nuwang (PR #88)
+
 2.1.0 - Mar 06, 2023. (sha 0f47032a1faf416b34969fb26c332428cb74209a)
 --------------------------------------------------------------------
 * Automatically convert envs to string, but make sure params are preserved by @nuwang (PR #73)
