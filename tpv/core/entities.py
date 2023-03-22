@@ -502,39 +502,15 @@ class Tool(EntityWithRules):
 
     merge_order = 2
 
-    def __init__(self, loader, id=None, abstract=False, cores=None, mem=None, gpus=None, min_cores=None, min_mem=None,
-                 min_gpus=None, max_cores=None, max_mem=None, max_gpus=None, env=None, params=None, resubmit=None,
-                 tpv_tags=None, rank=None, inherits=None, context=None, rules=None):
-        super().__init__(loader, id=id, abstract=abstract, cores=cores, mem=mem, gpus=gpus, min_cores=min_cores,
-                         min_mem=min_mem, min_gpus=min_gpus, max_cores=max_cores, max_mem=max_mem, max_gpus=max_gpus,
-                         env=env, params=params, resubmit=resubmit, tpv_tags=tpv_tags, rank=rank, inherits=inherits,
-                         context=context, rules=rules)
-
 
 class Role(EntityWithRules):
 
     merge_order = 3
 
-    def __init__(self, loader, id=None, abstract=False, cores=None, mem=None, gpus=None, min_cores=None, min_mem=None,
-                 min_gpus=None, max_cores=None, max_mem=None, max_gpus=None, env=None, params=None, resubmit=None,
-                 tpv_tags=None, rank=None, inherits=None, context=None, rules=None):
-        super().__init__(loader, id=id, abstract=abstract, cores=cores, mem=mem, gpus=gpus, min_cores=min_cores,
-                         min_mem=min_mem, min_gpus=min_gpus, max_cores=max_cores, max_mem=max_mem, max_gpus=max_gpus,
-                         env=env, params=params, resubmit=resubmit, tpv_tags=tpv_tags, rank=rank, inherits=inherits,
-                         context=context, rules=rules)
-
 
 class User(EntityWithRules):
 
     merge_order = 4
-
-    def __init__(self, loader, id=None, abstract=False, cores=None, mem=None, gpus=None, min_cores=None, min_mem=None,
-                 min_gpus=None, max_cores=None, max_mem=None, max_gpus=None, env=None, params=None, resubmit=None,
-                 tpv_tags=None, rank=None, inherits=None, context=None, rules=None):
-        super().__init__(loader, id=id, abstract=abstract, cores=cores, mem=mem, gpus=gpus, min_cores=min_cores,
-                         min_mem=min_mem, min_gpus=min_gpus, max_cores=max_cores, max_mem=max_mem, max_gpus=max_gpus,
-                         env=env, params=params, resubmit=resubmit, tpv_tags=tpv_tags, rank=rank, inherits=inherits,
-                         context=context, rules=rules)
 
 
 class Destination(EntityWithRules):
