@@ -1,3 +1,7 @@
+2.2.1 - Mar 30, 2023. (sha 060ff9e411b35a2fed444b19b61bbedfe2d2cc4d)
+--------------------------------------------------------------------
+* A role rule has no access to a tool's scheduling tags by @cat-bro (PR #89)
+
 2.2.0 - Mar 22, 2023. (sha 129c65b58998661da325294fa8461f0a48fcebb0)
 --------------------------------------------------------------------
 * Add helper for checking entity tags within a tpv rule by @cat-bro (PR #86)
