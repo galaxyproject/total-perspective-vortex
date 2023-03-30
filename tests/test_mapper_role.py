@@ -58,7 +58,7 @@ class TestMapperRole(unittest.TestCase):
         self.assertEqual(destination.params['native_spec'], '--mem 1 --cores 1')
 
         # test training small pulsar rule
-        tool = mock_galaxy.Tool('bwa')
+        tool = mock_galaxy.Tool('fastqc')
         destination = self._map_to_destination(tool, user)
         self.assertEqual(destination.params['native_spec'], '--mem 2 --cores 2')
 
