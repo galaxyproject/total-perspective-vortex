@@ -28,6 +28,23 @@ tools:
         - pulsar-training-large
       require:
         - pulsar
+  fastqc:
+    cores: 8
+    mem: 30.7
+    env:
+      _JAVA_OPTIONS: -Xmx{int(mem)}G -Xms1G
+    scheduling:
+      require:
+      - pulsar
+    rules:
+    - id: fastqc_small_input_rule
+      if: input_size < 0.01
+      cores: 2
+      mem: 7.6
+    - id: fastqc_medium_input_rule
+      if: 0.01 <= input_size < 2
+      cores: 4
+      mem: 15.3
 users:
   default:
     max_cores: 3
