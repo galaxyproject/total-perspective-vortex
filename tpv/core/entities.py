@@ -484,14 +484,14 @@ class EntityWithRules(Entity):
         for rule in self.rules.values():
             if rule.is_matching(context):
                 rule = rule.evaluate(context)
-                context.update({
-                    'entity': rule
-                })
                 new_entity = rule.inherit(new_entity)
                 new_entity.gpus = rule.gpus or self.gpus
                 new_entity.cores = rule.cores or self.cores
                 new_entity.mem = rule.mem or self.mem
                 new_entity.id = f"{new_entity.id}, Rule: {rule.id}"
+                context.update({
+                    'entity': new_entity
+                })
         return super(EntityWithRules, new_entity).evaluate(context)
 
     def __repr__(self):
