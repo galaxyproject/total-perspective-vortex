@@ -80,6 +80,7 @@ class TPVConfigFormatter(object):
 
         basic_entity_sort_order = {
             'id': {},
+            'inherits': {},
             'if': {},
             'context': {},
             'gpus': {},
