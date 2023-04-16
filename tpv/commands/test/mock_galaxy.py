@@ -44,9 +44,10 @@ class Dataset:
 
 # Tool mock and helpers=========================================
 class Tool:
-    def __init__(self, id):
+    def __init__(self, id, version=None):
         self.id = id
         self.old_id = id
+        self.version = version
         self.installed_tool_dependencies = []
 
 
