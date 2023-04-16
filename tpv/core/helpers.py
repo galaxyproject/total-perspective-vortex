@@ -1,3 +1,4 @@
+import packaging.version
 import random
 from functools import reduce
 from galaxy import model
@@ -85,3 +86,19 @@ def tag_values_match(entity, match_tag_values=[], exclude_tag_values=[]):
         all([any(entity.tpv_tags.filter(tag_value=tag_value)) for tag_value in match_tag_values])
         and not any([any(entity.tpv_tags.filter(tag_value=tag_value)) for tag_value in exclude_tag_values])
     )
+
+
+def tool_version_lte(tool, version):
+    return packaging.version.parse(tool.version) <= packaging.version.parse(version)
+
+
+def tool_version_lt(tool, version):
+    return packaging.version.parse(tool.version) < packaging.version.parse(version)
+
+
+def tool_version_gte(tool, version):
+    return packaging.version.parse(tool.version) >= packaging.version.parse(version)
+
+
+def tool_version_gt(tool, version):
+    return packaging.version.parse(tool.version) > packaging.version.parse(version)

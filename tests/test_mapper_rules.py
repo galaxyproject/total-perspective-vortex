@@ -226,3 +226,42 @@ class TestMapperRules(unittest.TestCase):
         with self.assertRaises(JobNotReadyException):
             tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rule-tool-limits.yml')
             self._map_to_destination(tool_total_limit_3, user_roosta, datasets, tpv_config_files=[tpv_config], app=app)
+
+    def test_tool_version_comparison_helpers(self):
+        tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rule-tool-limits.yml')
+        user = mock_galaxy.User('ford', 'prefect@vortex.org')
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=1*1024**3))]
+
+        def mock_trinity_with_version(version):
+            return mock_galaxy.Tool(
+                id=f'toolshed.g2.bx.psu.edu/repos/iuc/trinity/trinity/{version}',
+                version=version
+            )
+
+        env_keys = [ # env keys that may be added by cooked trinity rules
+            'version_gte_2.15.1+galaxy0',
+            'version_gt_2.15.1+galaxy0',
+            'version_lt_2.10.1+galaxy7',
+            'version_lte_2.10.1+galaxy7',
+        ]
+        # trinity version 3.15.1+galaxy0
+        tool = mock_trinity_with_version('3.15.1+galaxy0')
+        destination = self._map_to_destination(tool, user, datasets, tpv_config_files=[tpv_config])
+        self.assertCountEqual(
+            [e.get('name') for e in destination.env if e.get('name') in env_keys],
+            ['version_gte_2.15.1+galaxy0', 'version_gt_2.15.1+galaxy0'],
+        )
+        # trinity version 2.15.1+galaxy0
+        tool = mock_trinity_with_version('2.15.1+galaxy0')
+        destination = self._map_to_destination(tool, user, datasets, tpv_config_files=[tpv_config])
+        self.assertCountEqual(
+            [e.get('name') for e in destination.env if e.get('name') in env_keys],
+            ['version_gte_2.15.1+galaxy0'],
+        )
+        # trinity version 2.10.1+galaxy6
+        tool = mock_trinity_with_version('2.10.1+galaxy6')
+        destination = self._map_to_destination(tool, user, datasets, tpv_config_files=[tpv_config])
+        self.assertCountEqual(
+            [e.get('name') for e in destination.env if e.get('name') in env_keys],
+            ['version_lt_2.10.1+galaxy7', 'version_lte_2.10.1+galaxy7'],
+        )

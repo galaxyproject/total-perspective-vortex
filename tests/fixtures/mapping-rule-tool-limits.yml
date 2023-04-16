@@ -26,7 +26,20 @@ tools:
         execute: |
           from galaxy.jobs.mapper import JobNotReadyException
           raise JobNotReadyException()
-
+  toolshed.g2.bx.psu.edu/repos/iuc/trinity/trinity/.*:
+    rules:
+      - if: helpers.tool_version_gte(tool, '2.15.1+galaxy0')
+        env:
+          version_gte_2.15.1+galaxy0: true
+      - if: helpers.tool_version_gt(tool, '2.15.1+galaxy0')
+        env:
+          version_gt_2.15.1+galaxy0: true
+      - if: helpers.tool_version_lt(tool, '2.10.1+galaxy7')
+        env:
+          version_lt_2.10.1+galaxy7: true
+      - if: helpers.tool_version_lte(tool, '2.10.1+galaxy7')
+        env:
+          version_lte_2.10.1+galaxy7: true
 
 destinations:
   local:
