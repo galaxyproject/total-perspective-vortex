@@ -18,5 +18,6 @@ tools:
   toolshed.g2.bx.psu.edu/repos/iuc/mothur_shhh_seqs/mothur_shhh_seqs/.*:
     cores: 2
     mem: 20
+    inherits: wig_to_bigWig
     env:
       TERM: vt100
