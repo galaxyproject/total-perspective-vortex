@@ -287,5 +287,5 @@ class TPVShellTestCase(unittest.TestCase):
         output = self.call_shell_command(
             "tpv", "dry-run", "--job-conf", job_config, "--input-size", "6", "--user", "fairycake@vortex.org",
             tpv_config)
-        self.assertTrue("name: TEST_JOB_SLOTS" in output,
-                        f"Expected 'name: TEST_JOB_SLOTS' in destination\n{output}")
+        self.assertTrue("name: TEST_JOB_SLOTS_USER" in output,
+                        f"Expected 'name: TEST_JOB_SLOTS_USER' in destination\n{output}")
