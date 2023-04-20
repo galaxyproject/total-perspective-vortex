@@ -42,6 +42,11 @@ users:
     scheduling:
       require:
         - pulsar
+  krikkitrobot@planetkrikkit.org:
+    env:
+      TEST_JOB_SLOTS_USER: "{cores}"
+    params:
+      native_spec_user: "--mem {mem} --cores {cores}"
   arthur@vortex.org:
     scheduling:
       require:
