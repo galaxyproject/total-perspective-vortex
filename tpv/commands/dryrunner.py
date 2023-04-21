@@ -23,11 +23,8 @@ class TPVDryRunner():
     @staticmethod
     def from_params(job_conf, user=None, tool=None, tpv_confs=None, input_size=None):
         if user is not None:
-            if '@' in user:
-                username, email = user.split('@', 1)
-            else:
-                username, email = (user, 'example.org')
-            user = mock_galaxy.User(username, email)
+            email = user
+            user = mock_galaxy.User('gargravarr', email)
         else:
             user = None
 

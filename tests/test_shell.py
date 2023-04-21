@@ -285,7 +285,7 @@ class TPVShellTestCase(unittest.TestCase):
         job_config = os.path.join(os.path.dirname(__file__), 'fixtures/job_conf_dry_run.yml')
         tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rules.yml')
         output = self.call_shell_command(
-            "tpv", "dry-run", "--job-conf", job_config, "--input-size", "6", "--user", "fairycake@vortex.org",
+            "tpv", "dry-run", "--job-conf", job_config, "--input-size", "6", "--user", "krikkitrobot@planetkrikkit.org",
             tpv_config)
-        self.assertTrue("name: TEST_JOB_SLOTS" in output,
-                        f"Expected 'name: TEST_JOB_SLOTS' in destination\n{output}")
+        self.assertTrue("name: TEST_JOB_SLOTS_USER" in output,
+                        f"Expected 'name: TEST_JOB_SLOTS_USER' in destination\n{output}")
