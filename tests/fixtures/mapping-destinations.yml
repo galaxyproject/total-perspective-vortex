@@ -19,6 +19,7 @@ tools:
       accept:
       reject:
         - pulsar
+        - offline
     rules:
       - if: input_size < 2
         fail: Data size too small
@@ -99,6 +100,14 @@ tools:
     scheduling:
       require:
         - test_of_min_mem_accepted
+
+users:
+  pulsar_canberra_user@act.au:
+    scheduling:
+      accept:
+        - offline
+      require:
+        - pulsar-canberra
 
 destinations:
   local:
@@ -240,3 +249,8 @@ destinations:
     scheduling:
       require:
         - test_of_min_mem_accepted
+  pulsar-canberra:
+    runner: k8s
+    scheduling:
+      accept:
+        - pulsar-canberra
