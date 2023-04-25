@@ -1,3 +1,10 @@
+2.2.2 - Apr 25, 2023. (sha 3ab3f209ffdf3117a2efcc8cf70ebbf4c57efc6f)
+--------------------------------------------------------------------
+* Fix formatter ordering of inherits field by @nuwang (PR #90)
+* Add helpers for tool version comparison by @cat-bro (PR #91)
+* Fix dry run user by @cat-bro (PR #92)
+* Failing test for pulsar user scenario by @cat-bro and @nuwang (PR #93)
+
 2.2.1 - Mar 30, 2023. (sha 060ff9e411b35a2fed444b19b61bbedfe2d2cc4d)
 --------------------------------------------------------------------
 * A role rule has no access to a tool's scheduling tags by @cat-bro (PR #89)
