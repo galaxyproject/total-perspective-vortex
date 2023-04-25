@@ -289,3 +289,14 @@ class TPVShellTestCase(unittest.TestCase):
             tpv_config)
         self.assertTrue("name: TEST_JOB_SLOTS_USER" in output,
                         f"Expected 'name: TEST_JOB_SLOTS_USER' in destination\n{output}")
+        
+    def test_dry_run_tool_with_version(self):
+        job_config = os.path.join(os.path.dirname(__file__), 'fixtures/job_conf_dry_run.yml')
+        tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rules.yml')
+        output = self.call_shell_command(
+            "tpv", "dry-run", "--job-conf", job_config, "--input-size", "6", "--user", "krikkitrobot@planetkrikkit.org",
+            "--tool", "toolshed.g2.bx.psu.edu/repos/iuc/bwameth/bwameth/42",
+            tpv_config)
+        self.assertTrue("bwameth_is_great" in output,
+                        f"Expected 'bwameth_is_great' in destination\n{output}")
+

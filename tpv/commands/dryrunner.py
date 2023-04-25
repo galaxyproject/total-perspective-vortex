@@ -30,6 +30,10 @@ class TPVDryRunner():
 
         if tool:
             tool = mock_galaxy.Tool(tool)
+            # tool = mock_galaxy.Tool(
+            #     tool,
+            #     version=tool.split('/')[-1] if '/' in tool else '0._unversioned'
+            # )
         else:
             tool = None
 
