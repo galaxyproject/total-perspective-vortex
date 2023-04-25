@@ -34,7 +34,7 @@ at each destination (optional). The tools are matched by tool id, and can be a r
 resource requirements can also be computed as python expressions. If resource requirements are defined at the
 destination, TPV will check whether the job will fit. For example, hisat2 will not schedule on `general_pulsar_1`
 as it has insufficient cores. If resource requirements are omitted in the tool or destination, it is considered a match.
-Note that TPV only considers destinations defined in its own config file, and ignore destinations in job_conf.yml.
+Note that TPV only considers destinations defined in its own config file, and ignores destinations in job_conf.yml.
 
 Default inheritance
 -------------------

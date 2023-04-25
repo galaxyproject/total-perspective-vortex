@@ -485,9 +485,9 @@ class EntityWithRules(Entity):
             if rule.is_matching(context):
                 rule = rule.evaluate(context)
                 new_entity = rule.inherit(new_entity)
-                new_entity.gpus = rule.gpus or self.gpus
-                new_entity.cores = rule.cores or self.cores
-                new_entity.mem = rule.mem or self.mem
+                new_entity.gpus = rule.gpus or new_entity.gpus
+                new_entity.cores = rule.cores or new_entity.cores
+                new_entity.mem = rule.mem or new_entity.mem
                 new_entity.id = f"{new_entity.id}, Rule: {rule.id}"
                 context.update({
                     'entity': new_entity
