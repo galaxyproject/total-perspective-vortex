@@ -19,6 +19,7 @@ tools:
       accept:
       reject:
         - pulsar
+        - offline
     rules:
       - if: input_size < 2
         fail: Data size too small
@@ -26,6 +27,11 @@ tools:
     scheduling:
       require:
         - pulsar
+  toolshed_hifiasm:
+    cores: 1000
+    rules:
+      - if: input_size < 1000
+        cores: 2
   inheritance_test_tool:
     scheduling:
       accept:
@@ -99,6 +105,18 @@ tools:
     scheduling:
       require:
         - test_of_min_mem_accepted
+
+users:
+  pulsar_canberra_user@act.au:
+      rules:
+        - id: pulsar_user_mapping_rule
+          if: tool.id.startswith('toolshed') or tool.id.startswith('testtoolshed')
+          scheduling:
+            accept:
+              - pulsar # pulsar must be in require/prefer/accept for a job to be scheduled to pulsar
+              - offline # allow scheduling to a destination even when it is offline
+            require:
+              - pulsar-canberra
 
 destinations:
   local:
@@ -240,3 +258,9 @@ destinations:
     scheduling:
       require:
         - test_of_min_mem_accepted
+  pulsar-canberra:
+    runner: k8s
+    max_accepted_cores: 32
+    scheduling:
+      accept:
+        - pulsar-canberra

@@ -176,3 +176,13 @@ class TestMapperDestinations(unittest.TestCase):
         tool = mock_galaxy.Tool('tool_for_testing_min_mem_acceptance_match')
         destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
         self.assertEqual(destination.id, "destination_with_min_mem_accepted")
+
+    def test_user_map_to_destination_accepting_offline(self):
+        user = mock_galaxy.User('albo', 'pulsar_canberra_user@act.au')
+
+        config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-destinations.yml')
+
+        tool = mock_galaxy.Tool('toolshed_hifiasm')
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=12 * 1024 ** 3))]
+        destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
+        self.assertEqual(destination.id, "pulsar-canberra")
