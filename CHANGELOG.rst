@@ -1,3 +1,8 @@
+2.2.3 - May 04, 2023. (sha d1ac1a9553aaab19434c79e5d78f3db63647915c)
+--------------------------------------------------------------------
+* Add id to `mock_galaxy.User` by @kysrpex (PR #96)
+* Fix dry run tool version by @cat-bro (PR #94)
+
 2.2.2 - Apr 25, 2023. (sha 3ab3f209ffdf3117a2efcc8cf70ebbf4c57efc6f)
 --------------------------------------------------------------------
 * Fix formatter ordering of inherits field by @nuwang (PR #90)
