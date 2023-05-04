@@ -33,6 +33,11 @@ tools:
             - highmem
       - if: input_size >= 20
         fail: Too much data, shouldn't run
+  toolshed.g2.bx.psu.edu/repos/iuc/bwameth/bwameth/.*:
+    rules:
+      - if: helpers.tool_version_gte(tool, '42')
+        env:
+          bwameth_is_great: yes
 users:
   fairycake@vortex.org:
     env:
