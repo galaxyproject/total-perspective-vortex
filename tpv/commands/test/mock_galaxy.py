@@ -1,3 +1,5 @@
+import random
+
 from galaxy.model import mapping
 from galaxy.job_metrics import JobMetrics
 from galaxy.jobs import JobConfiguration
@@ -76,10 +78,11 @@ class App:
 
 
 class User:
-    def __init__(self, username, email, roles=[]):
+    def __init__(self, username, email, roles=[], id=None):
         self.username = username
         self.email = email
         self.roles = [Role(name) for name in roles]
+        self.id = id or random.randint(1, 1000000)
 
     def all_roles(self):
         """
