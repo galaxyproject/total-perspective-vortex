@@ -1,3 +1,5 @@
+import hashlib
+
 from galaxy.model import mapping
 from galaxy.job_metrics import JobMetrics
 from galaxy.jobs import JobConfiguration
@@ -76,10 +78,13 @@ class App:
 
 
 class User:
-    def __init__(self, username, email, roles=[]):
+    def __init__(self, username, email, roles=[], id=None):
         self.username = username
         self.email = email
         self.roles = [Role(name) for name in roles]
+        self.id = id or int(
+            hashlib.sha256(f"{self.username}".encode("utf-8")).hexdigest(), 16
+        ) % 1000000
 
     def all_roles(self):
         """
