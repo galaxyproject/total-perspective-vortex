@@ -642,17 +642,17 @@ class Destination(EntityWithRules):
         """
         if self.abstract:
             return False
-        if self.max_accepted_cores and entity.cores and self.max_accepted_cores < entity.cores:
+        if self.max_accepted_cores is not None and entity.cores is not None and self.max_accepted_cores < entity.cores:
             return False
-        if self.max_accepted_mem and entity.mem and self.max_accepted_mem < entity.mem:
+        if self.max_accepted_mem is not None and entity.mem is not None and self.max_accepted_mem < entity.mem:
             return False
-        if self.max_accepted_gpus and entity.gpus and self.max_accepted_gpus < entity.gpus:
+        if self.max_accepted_gpus is not None and entity.gpus is not None and self.max_accepted_gpus < entity.gpus:
             return False
-        if self.min_accepted_cores and entity.cores and self.min_accepted_cores > entity.cores:
+        if self.min_accepted_cores is not None and entity.cores is not None and self.min_accepted_cores > entity.cores:
             return False
-        if self.min_accepted_mem and entity.mem and self.min_accepted_mem > entity.mem:
+        if self.min_accepted_mem is not None and entity.mem is not None and self.min_accepted_mem > entity.mem:
             return False
-        if self.min_accepted_gpus and entity.gpus and self.min_accepted_gpus > entity.gpus:
+        if self.min_accepted_gpus is not None and entity.gpus is not None and self.min_accepted_gpus > entity.gpus:
             return False
         return entity.tpv_tags.match(self.tpv_dest_tags or {})
 
