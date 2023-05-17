@@ -471,8 +471,8 @@ class EntityWithRules(Entity):
 
     def override(self, entity):
         new_entity = super().override(entity)
-        new_entity.rules = copy.deepcopy(entity.rules)
-        new_entity.rules.update(self.rules or {})
+        new_entity.rules = copy.deepcopy(self.rules)
+        new_entity.rules.update(entity.rules or {})
         for rule in self.rules.values():
             if entity.rules.get(rule.id):
                 new_entity.rules[rule.id] = rule.inherit(entity.rules[rule.id])
