@@ -1,0 +1,59 @@
+global:
+  default_inherits: default
+
+tools:
+  default:
+    abstract: true
+    cores: 2
+    mem: 8
+    env: {}
+    scheduling:
+      require: []
+      prefer:
+        - general
+      accept:
+      reject:
+        - pulsar
+    rules: []
+  my_abstract_tool:
+    inherits: default
+    abstract: true
+  my_concrete_tool:
+    inherits: default
+  bwa\:
+    scheduling:
+      require:
+        - pulsar
+  unschedulable_tool:
+    scheduling:
+      require:
+        - non_existent
+  invalidly_tagged_tool:
+    scheduling:
+      require:
+        - general
+      reject:
+        - general
+  regex_tool.*:
+    scheduling:
+      require:
+        - pulsar
+      reject:
+        - general
+
+destinations:
+  local:
+    runner: local
+    max_accepted_cores: 4
+    max_accepted_mem: 16
+    scheduling:
+      prefer:
+        - general
+  k8s_environment:
+    runner: k8s
+    max_accepted_cores: 16
+    max_accepted_mem: 64
+    max_accepted_gpus: 2
+    scheduling:
+      prefer:
+        - pulsar
