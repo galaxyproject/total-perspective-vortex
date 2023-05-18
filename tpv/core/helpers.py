@@ -88,6 +88,10 @@ def tag_values_match(entity, match_tag_values=[], exclude_tag_values=[]):
     )
 
 
+def tool_version_eq(tool, version):
+    return packaging.version.parse(tool.version) == packaging.version.parse(version)
+
+
 def tool_version_lte(tool, version):
     return packaging.version.parse(tool.version) <= packaging.version.parse(version)
 
