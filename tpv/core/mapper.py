@@ -27,7 +27,11 @@ class EntityToDestinationMapper(object):
         self.inherit_matching_entities = functools.lru_cache(maxsize=None)(self.__inherit_matching_entities)
 
     def __compile_tool_regex(self, key):
-        return re.compile(key)
+        try:
+            return re.compile(key)
+        except re.error:
+            log.error(f"Failed to compile regex: {key}")
+            raise
 
     def _find_entities_matching_id(self, entity_list, entity_name):
         matches = []
