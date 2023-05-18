@@ -1,4 +1,5 @@
 import logging
+import re
 
 from tpv.core.loader import TPVConfigLoader
 
@@ -23,7 +24,11 @@ class TPVConfigLinter(object):
             log.error(f"Linting failed due to syntax errors in yaml file: {e}")
             raise TPVLintError("Linting failed due to syntax errors in yaml file: ") from e
         default_inherits = loader.global_settings.get('default_inherits')
-        for tool in loader.tools.values():
+        for tool_regex, tool in loader.tools.items():
+            try:
+                re.compile(tool_regex)
+            except re.error:
+                self.errors.append(f"Failed to compile regex: {tool_regex}")
             if default_inherits == tool.id:
                 self.warnings.append(
                     f"The tool named: {default_inherits} is marked globally as the tool to inherit from "

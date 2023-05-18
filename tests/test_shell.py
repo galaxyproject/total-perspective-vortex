@@ -63,6 +63,16 @@ class TPVShellTestCase(unittest.TestCase):
             "oops syntax!" in output,
             f"Expected lint to fail but output was: {output}")
 
+    def test_lint_invalid_regex(self):
+        tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/linter/linter-invalid-regex.yml')
+        output = self.call_shell_command("tpv", "lint", tpv_config)
+        self.assertTrue(
+            "lint failed" in output,
+            f"Expected lint to fail but output was: {output}")
+        self.assertTrue(
+            "Failed to compile regex: bwa" in output,
+            f"Expected lint to fail but output was: {output}")
+
     def test_lint_no_runner_defined(self):
         tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/linter/linter-no-runner-defined.yml')
         output = self.call_shell_command("tpv", "-vv", "lint", tpv_config)
