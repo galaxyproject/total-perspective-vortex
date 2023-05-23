@@ -63,48 +63,69 @@ tools:
       require:
         - something_abstract
         - also_concrete
-  tool_for_testing_min_cpu_acceptance_non_match:
+  tool_for_testing_cpu_acceptance_non_match:
     cores: 15
     mem: 53
     gpus: 2
     scheduling:
       require:
-        - test_of_min_cpu_accepted
-  tool_for_testing_min_gpu_acceptance_non_match:
+        - test_of_cpu_accepted
+  tool_for_testing_gpu_acceptance_non_match:
     cores: 15
     mem: 53
     gpus: 1
     scheduling:
       require:
-        - test_of_min_gpu_accepted
-  tool_for_testing_min_mem_acceptance_non_match:
+        - test_of_gpu_accepted
+  tool_for_testing_mem_acceptance_non_match:
     cores: 15
     mem: 53
     gpus: 2
     scheduling:
       require:
-        - test_of_min_mem_accepted
-  tool_for_testing_min_cpu_acceptance_match:
+        - test_of_mem_accepted
+  tool_for_testing_cpu_acceptance_match:
     cores: 17
     mem: 68
     gpus: 2
     scheduling:
       require:
-        - test_of_min_cpu_accepted
-  tool_for_testing_min_gpu_acceptance_match:
+        - test_of_cpu_accepted
+  tool_for_testing_gpu_acceptance_match:
     cores: 17
     mem: 68
     gpus: 2
     scheduling:
       require:
-        - test_of_min_gpu_accepted
-  tool_for_testing_min_mem_acceptance_match:
+        - test_of_gpu_accepted
+  tool_for_testing_mem_acceptance_match:
     cores: 17
     mem: 68
     gpus: 2
     scheduling:
       require:
-        - test_of_min_mem_accepted
+        - test_of_mem_accepted
+  tool_for_testing_cpu_acceptance_zero:
+    cores: 0
+    mem: 53
+    gpus: 2
+    scheduling:
+      require:
+        - test_of_cpu_accepted
+  tool_for_testing_gpu_acceptance_zero:
+    cores: 17
+    mem: 68
+    gpus: 0
+    scheduling:
+      require:
+        - test_of_gpu_accepted
+  tool_for_testing_mem_acceptance_zero:
+    cores: 15
+    mem: 0
+    gpus: 2
+    scheduling:
+      require:
+        - test_of_mem_accepted
 
 users:
   pulsar_canberra_user@act.au:
@@ -229,35 +250,53 @@ destinations:
     min_accepted_gpus: 2
     scheduling:
       require:
-        - test_of_min_cpu_accepted
+        - test_of_cpu_accepted
   destination_without_min_cpu_accepted:
     runner: k8s
     scheduling:
       require:
-        - test_of_min_cpu_accepted
+        - test_of_cpu_accepted
+  destination_zero_max_cpu_accepted:
+    runner: k8s
+    max_accepted_cores: 0
+    scheduling:
+      require:
+        - test_of_cpu_accepted
   destination_with_min_gpu_accepted:
     runner: k8s
     min_accepted_gpus: 2
     scheduling:
       require:
-        - test_of_min_gpu_accepted
+        - test_of_gpu_accepted
   destination_without_min_gpu_accepted:
     runner: k8s
     scheduling:
       require:
-        - test_of_min_gpu_accepted
+        - test_of_gpu_accepted
+  destination_zero_max_gpu_accepted:
+    runner: k8s
+    max_accepted_gpus: 0
+    scheduling:
+      require:
+        - test_of_gpu_accepted
   destination_with_min_mem_accepted:
     runner: k8s
     min_accepted_mem: 64
     min_accepted_gpus: 2
     scheduling:
       require:
-        - test_of_min_mem_accepted
+        - test_of_mem_accepted
   destination_without_min_mem_accepted:
     runner: k8s
     scheduling:
       require:
-        - test_of_min_mem_accepted
+        - test_of_mem_accepted
+  destination_zero_max_mem_accepted:
+    runner: k8s
+    max_accepted_mem: 0
+    scheduling:
+      require:
+        - test_of_mem_accepted
   pulsar-canberra:
     runner: k8s
     max_accepted_cores: 32
