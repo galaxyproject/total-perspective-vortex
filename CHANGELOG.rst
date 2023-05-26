@@ -1,3 +1,8 @@
+2.2.4 - May 26, 2023. (sha 16222dffa1a8d5aac60ebe78328283b29552f8de)
+--------------------------------------------------------------------
+* Add id to `mock_galaxy.User` by @kysrpex (PR #96)
+* Fix dry run tool version by @cat-bro (PR #94)
+
 2.2.3 - May 04, 2023. (sha d1ac1a9553aaab19434c79e5d78f3db63647915c)
 --------------------------------------------------------------------
 * Add id to `mock_galaxy.User` by @kysrpex (PR #96)
