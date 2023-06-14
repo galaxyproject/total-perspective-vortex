@@ -1,7 +1,10 @@
 2.2.4 - May 26, 2023. (sha 16222dffa1a8d5aac60ebe78328283b29552f8de)
 --------------------------------------------------------------------
-* Add id to `mock_galaxy.User` by @kysrpex (PR #96)
-* Fix dry run tool version by @cat-bro (PR #94)
+* When regex compilation fails, log what was attempting to be compiled by @natefoo (PR #97)
+* Add helper for tool version equality comparison by @sanjaysrikakulam (PR #98)
+* Match cores, mem and gpus whenever they are defined by @kysrpex (PR #99)
+* Modify linter to flag regex errors by @nuwang  (PR #102)
+* Create dependabot.yml by @nuwang (PR #103)
 
 2.2.3 - May 04, 2023. (sha d1ac1a9553aaab19434c79e5d78f3db63647915c)
 --------------------------------------------------------------------
