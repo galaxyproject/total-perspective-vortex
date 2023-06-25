@@ -42,6 +42,11 @@ tools:
         scheduling:
           require:
             - highmem
+  toolshed.g2.bx.psu.edu/repos/iuc/disco/.*:
+    cores: 8
+    mem: 24
+    env:
+      DISCO_MAX_MEMORY: '{mem}'
 
 destinations:
   another_k8s_environment:

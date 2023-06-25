@@ -46,6 +46,13 @@ tools:
         scheduling:
           require:
             - pulsar
+  toolshed.g2.bx.psu.edu/repos/iuc/disco/disco/.*:
+    mem: 40
+    env:
+      DISCO_MORE_PARAMS: "just another param"
+    scheduling:
+      require:
+        - pulsar
 
 users:
   fairycake@vortex.org:
