@@ -61,13 +61,9 @@ class TPVConfigLoader(object):
                 raise InvalidParentException(f"The specified parent: {entity.inherits} for"
                                              f" entity: {entity} does not exist")
             return entity.inherit(self.process_inheritance(entity_list, parent_entity))
-        else:
-            default_inherits = self.global_settings.get('default_inherits')
-            if default_inherits and not entity.id == default_inherits:
-                default_parent = entity_list.get(default_inherits)
-                return entity.inherit(default_parent)
-            else:
-                return entity
+        # do not process default inheritance here, only at runtime, as multiple can cause default inheritance
+        # to override later matches.
+        return entity
 
     def recompute_inheritance(self, entities: dict[str, Entity]):
         for key, entity in entities.items():

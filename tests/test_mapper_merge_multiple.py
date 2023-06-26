@@ -38,7 +38,7 @@ class TestMapperMergeMultipleConfigs(unittest.TestCase):
         datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=7*1024**3))]
         destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config_first, config_second])
         self.assertEqual(destination.id, "k8s_environment")
-        self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_JOB_SLOTS'], ['2'])
+        self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_JOB_SLOTS'], ['4'])
         self.assertEqual(destination.params['native_spec'], '--mem 8 --cores 2')
         self.assertEqual(destination.params['custom_context_remote'], 'remote var')
         self.assertEqual(destination.params['custom_context_local'], 'local var')
@@ -65,7 +65,7 @@ class TestMapperMergeMultipleConfigs(unittest.TestCase):
         datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=7*1024**3))]
         destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config_first, config_second])
         self.assertEqual(destination.id, "k8s_environment")
-        self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_JOB_SLOTS'], ['2'])
+        self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_JOB_SLOTS'], ['4'])
         self.assertEqual(destination.params['native_spec'], '--mem 8 --cores 2')
         self.assertEqual(destination.params['custom_context_remote'], 'remote var')
         self.assertEqual(destination.params['custom_context_local'], 'local var')
@@ -105,7 +105,7 @@ class TestMapperMergeMultipleConfigs(unittest.TestCase):
         self.assertEqual([env['value'] for env in destination.env if env['name'] == 'MORE_JOB_SLOTS'], ['12'])
         self.assertEqual(destination.params['native_spec'], '--mem 18 --cores 6')
 
-    def test_merge_rules_with_multiple_matches_regex(self):
+    def test_merge_rules_local_defaults_do_not_override_remote_tool(self):
         tool = mock_galaxy.Tool('toolshed.g2.bx.psu.edu/repos/iuc/disco/disco/v1.0')
         user = mock_galaxy.User('ford', 'prefect@vortex.org')
 
@@ -117,7 +117,7 @@ class TestMapperMergeMultipleConfigs(unittest.TestCase):
         destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config_first, config_second])
         self.assertEqual(destination.id, "k8s_environment")
         # since the last defined hisat2 contains overridden defaults, those defaults will apply
-        self.assertEqual([env['value'] for env in destination.env if env['name'] == 'DISCO_MAX_MEMORY'], ['40'])
+        self.assertEqual([env['value'] for env in destination.env if env['name'] == 'DISCO_MAX_MEMORY'], ['24'])
         self.assertEqual([env['value'] for env in destination.env if env['name'] == 'DISCO_MORE_PARAMS'], ['just another param'])
         # this var is not overridden by the last defined defaults, and therefore, the remote value applies
-        self.assertEqual(destination.params['native_spec'], '--mem 40 --cores 2')
+        self.assertEqual(destination.params['native_spec'], '--mem 24 --cores 8')

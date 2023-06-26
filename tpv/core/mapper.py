@@ -35,6 +35,10 @@ class EntityToDestinationMapper(object):
 
     def _find_entities_matching_id(self, entity_list, entity_name):
         matches = []
+        if self.default_inherits:
+            default_match = entity_list.get(self.default_inherits)
+            if default_match:
+                matches.append(default_match)
         for key in entity_list.keys():
             if self.lookup_tool_regex(key).match(entity_name):
                 match = entity_list[key]
@@ -43,10 +47,6 @@ class EntityToDestinationMapper(object):
                     raise JobMappingException(f"This entity is abstract and cannot be mapped : {match}")
                 else:
                     matches.append(match)
-        if not matches and self.default_inherits:
-            default_match = entity_list.get(self.default_inherits)
-            if default_match:
-                matches.append(default_match)
         return matches
 
     def __inherit_matching_entities(self, entity_type, entity_name):
