@@ -77,6 +77,8 @@ users:
     scheduling:
       require:
         - special_resources
+      reject:
+        - pulsar
 
 destinations:
   local:

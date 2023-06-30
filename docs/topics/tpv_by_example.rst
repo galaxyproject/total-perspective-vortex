@@ -294,7 +294,7 @@ Metascheduling
 --------------
 
 Custom rank functions can be used to implement metascheduling capabilities. A rank function is used to select
-the best matching destination from a list of matching destination. If no rank function is provided, the default
+the best matching destination from a list of matching destinations. If no rank function is provided, the default
 rank function simply chooses the most preferred destination out of the available destinations.
 
 When more sophisticated control over scheduling is required, a rank function can be implemented through custom
