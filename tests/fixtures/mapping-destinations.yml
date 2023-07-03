@@ -126,6 +126,13 @@ tools:
     scheduling:
       require:
         - test_of_mem_accepted
+  tool_for_testing_resource_clamping:
+    cores: 16
+    env:
+      MY_TOOL_ENV: "cores: {cores} mem: {mem} gpus: {gpus}"
+    scheduling:
+      require:
+        - test_of_resource_clamping
 
 users:
   pulsar_canberra_user@act.au:
@@ -303,3 +310,15 @@ destinations:
     scheduling:
       accept:
         - pulsar-canberra
+  clamped_destination:
+    runner: k8s
+    max_accepted_cores: 32
+    max_accepted_mem: 128
+    max_accepted_gpus: 2
+    cores: 8
+    gpus: 1
+    env:
+      MY_DEST_ENV: "cores: {cores} mem: {mem} gpus: {gpus}"
+    scheduling:
+      accept:
+        - test_of_resource_clamping

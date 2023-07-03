@@ -207,3 +207,18 @@ class TestMapperDestinations(unittest.TestCase):
         datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=12 * 1024 ** 3))]
         destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
         self.assertEqual(destination.id, "pulsar-canberra")
+
+    def test_destination_clamping(self):
+        """_summary_ Any variables defined in a tool should be evaluated as late as possible, so that destination level
+                     clamping works.
+        """
+        user = mock_galaxy.User('albo', 'pulsar_canberra_user@act.au')
+
+        config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-destinations.yml')
+
+        tool = mock_galaxy.Tool('tool_for_testing_resource_clamping')
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=12 * 1024 ** 3))]
+        destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
+        self.assertEqual(destination.id, "clamped_destination")
+        self.assertEqual([env['value'] for env in destination.env if env['name'] == 'MY_DEST_ENV'], ['cores: 8 mem: 24 gpus: 1'])
+        self.assertEqual([env['value'] for env in destination.env if env['name'] == 'MY_TOOL_ENV'], ['cores: 8 mem: 24 gpus: 1'])
