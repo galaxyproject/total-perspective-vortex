@@ -351,14 +351,7 @@ class Entity(object):
         new_entity.tpv_tags = entity.tpv_tags.combine(self.tpv_tags)
         return new_entity
 
-    def evaluate(self, context):
-        """
-        Evaluate expressions in entity properties that must be evaluated as late as possible, which is
-        to say, after combining entity requirements. This includes env, params and resubmit, that rely on
-        properties such as cores, mem and gpus after they are combined.
-        :param context:
-        :return:
-        """
+    def evaluate_resources(self, context):
         new_entity = copy.deepcopy(self)
         context.update(self.context or {})
         if self.min_gpus is not None:
@@ -397,6 +390,17 @@ class Entity(object):
             new_entity.mem = max(new_entity.min_mem or 0, new_entity.mem or 0)
             new_entity.mem = min(new_entity.max_mem, new_entity.mem or 0) if new_entity.max_mem else new_entity.mem
             context['mem'] = new_entity.mem
+        return new_entity
+
+    def evaluate(self, context):
+        """
+        Evaluate expressions in entity properties that must be evaluated as late as possible, which is
+        to say, after combining entity requirements. This includes env, params and resubmit, that rely on
+        properties such as cores, mem and gpus after they are combined.
+        :param context:
+        :return:
+        """
+        new_entity = self.evaluate_resources(context)
         if self.env:
             new_entity.env = self.evaluate_complex_property(self.env, context, stringify=True)
             context['env'] = new_entity.env
@@ -406,7 +410,6 @@ class Entity(object):
         if self.resubmit:
             new_entity.resubmit = self.evaluate_complex_property(self.resubmit, context)
             context['resubmit'] = new_entity.resubmit
-
         return new_entity
 
     def rank_destinations(self, destinations, context):
@@ -478,7 +481,7 @@ class EntityWithRules(Entity):
                 new_entity.rules[rule.id] = rule.inherit(entity.rules[rule.id])
         return new_entity
 
-    def evaluate(self, context):
+    def evaluate_rules(self, context):
         new_entity = copy.deepcopy(self)
         context.update(new_entity.context or {})
         for rule in self.rules.values():
@@ -492,6 +495,10 @@ class EntityWithRules(Entity):
                 context.update({
                     'entity': new_entity
                 })
+        return new_entity
+
+    def evaluate(self, context):
+        new_entity = self.evaluate_rules(context)
         return super(EntityWithRules, new_entity).evaluate(context)
 
     def __repr__(self):

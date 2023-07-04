@@ -70,7 +70,9 @@ class EntityToDestinationMapper(object):
         return entity.rank_destinations(destinations, context)
 
     def match_and_rank_destinations(self, entity, destinations, context):
-        matches = [dest for dest in destinations.values() if dest.matches(entity, context)]
+        # At this point, the resource requirements (cores, mem, gpus) are unevaluated.
+        # So temporarily evaluate them so we can match up with a destination.
+        matches = [dest for dest in destinations.values() if dest.matches(entity.evaluate_resources(context), context)]
         return self.rank(entity, matches, context)
 
     def to_galaxy_destination(self, destination):
@@ -116,8 +118,9 @@ class EntityToDestinationMapper(object):
             'self': combined_entity
         })
 
-        # 3. Evaluate expressions
-        evaluated_entity = combined_entity.evaluate(context)
+        # 3. Evaluate rules only, so that all expressions are collapsed into a flat entity. The final
+        #    values for expressions should be evaluated only after combining with the destination.
+        evaluated_entity = combined_entity.evaluate_rules(context)
         context.update({
             'entity': evaluated_entity,
             'self': evaluated_entity
