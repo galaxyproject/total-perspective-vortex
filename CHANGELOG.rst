@@ -1,3 +1,9 @@
+2.3.0 - Jul 05, 2023. (sha fb5cb966e5f8e370a1566f94313146f4f3a50054)
+--------------------------------------------------------------------
+* fix resubmission tests by @bernt-matthias (PR #78)
+* Fix issue with how default inheritance is applied to multiple files by @nuwang (PR #105)
+* Fix evaluation to support resource clamping by @nuwang (PR #107)
+
 2.2.4 - May 26, 2023. (sha 16222dffa1a8d5aac60ebe78328283b29552f8de)
 --------------------------------------------------------------------
 * When regex compilation fails, log what was attempting to be compiled by @natefoo (PR #97)
