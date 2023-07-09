@@ -48,21 +48,3 @@ class TestScenarios(unittest.TestCase):
         destination = self._map_to_destination(tool, user, datasets=datasets, tpv_config_path=rules_file,
                                                 job_conf='fixtures/job_conf_scenario_locations.yml')
         self.assertEqual(destination.id, "pulsar_australia")
-
-# def main():
-        
-#     tool = mock_galaxy.Tool('fastp')
-#     user = mock_galaxy.User('jenkinsbot', 'jenkinsbot@unimelb.edu.au')
-#     datasets = [mock_galaxy.DatasetAssociation("input", mock_galaxy.Dataset("input.fastq",
-#                                                                             file_size=1000*1024**3))]
-#     rules_file = os.path.join(os.path.dirname(__file__), 'fixtures/scenario-locations.yml')
-#     # destination = _map_to_destination(tool, user, datasets, tpv_config_path=rules_file)
-#     destination = _map_to_destination(tool, user, datasets=datasets, tpv_config_path=rules_file,
-#                                             job_conf='fixtures/job_conf.yml')
-#     print("destination: ",destination)
-    # t = {'test':1}
-    # v = t.values()
-    # v0 = v[0]
-    # v0.matches()
-
-# main()
