@@ -12,7 +12,7 @@ condor_belgium:
   other_stuff_that_we_find_useful: foobar
 slurm_germany:
   latitude: 51.1642292
-  longitude: 10.4541194
+  longitude: 10.4541192
   other_stuff_that_we_find_useful: foobar
 condor_france:
   latitude: 46.71109
