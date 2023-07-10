@@ -26,19 +26,13 @@ tools:
    
       def closest(data, o):
         min_dist = 999999.99
-        # closest_dest = str
         for p in data:
           d_lat = data[p]['latitude']
           d_lon = data[p]['longitude']
           dist = distance(o['latitude'],o['longitude'],d_lat,d_lon)
-          # min_dist = dist
-          # last_min_dist = min_dist
-          # closest_dest = p
-          print(p, dist)
           if dist < min_dist:
             min_dist = dist
             closest_dest = p
-            print("closer",closest_dest, min_dist)
         return {closest_dest: min_dist}
 
       yaml=YAML(typ='safe')
@@ -47,10 +41,7 @@ tools:
       f2 = pathlib.Path("tests/fixtures/object_store_locations.yml")
       object_store = yaml.load(f2)['object_store_australia']
       closest_dest = closest(destination_locations, object_store)
-      print("closest_dest: ", closest_dest)
-      print("candidate_destinations: ", candidate_destinations)
-      # candidate_destinations.get(list(closest_dest.keys())[0])
-      final_destinations = list(closest_dest.keys())
+      final_destinations = [c for c in candidate_destinations if c.dest_name == list(closest_dest.keys())[0]]
       final_destinations
   trinity:
     cores: 2
