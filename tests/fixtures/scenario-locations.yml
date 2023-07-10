@@ -42,9 +42,9 @@ tools:
         return {closest_dest: min_dist}
 
       yaml=YAML(typ='safe')
-      f1 = pathlib.Path("/home/padge/Elixir/esg/destinations_locations.yml")
+      f1 = pathlib.Path("tests/fixtures/destinations_locations.yml")
       destination_locations = yaml.load(f1)
-      f2 = pathlib.Path("/home/padge/Elixir/esg/object_store_locations.yml")
+      f2 = pathlib.Path("tests/fixtures/object_store_locations.yml")
       object_store = yaml.load(f2)['object_store_australia']
       closest_dest = closest(destination_locations, object_store)
       print("closest_dest: ", closest_dest)
@@ -79,43 +79,43 @@ destinations:
     max_accepted_mem: 32
     scheduling:
       accept:
-          general
+        - general
       require:
-          pulsar
+        - pulsar
   slurm_poland:
     runner: slurm
     max_accepted_cores: 16
     max_accepted_mem: 64
     scheduling:
       accept:
-          slurm
+        - slurm
   condor_belgium:
     runner: condor
     max_accepted_cores: 16
     max_accepted_mem: 64
     scheduling:
       accept:
-          condor
+        - condor
   slurm_germany:
     runner: slurm
     max_accepted_cores: 16
     max_accepted_mem: 64
     scheduling:
       accept:
-          slurm
+        - slurm
   condor_france:
     runner: condor
     max_accepted_cores: 16
     max_accepted_mem: 64
     scheduling:
       accept:
-          condor
+        - condor
   pulsar_australia:
     runner: general_pulsar_1
     max_accepted_cores: 8
     max_accepted_mem: 32
     scheduling:
       accept:
-          general
+        - general
       require:
-          pulsar
+        - pulsar
