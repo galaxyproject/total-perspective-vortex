@@ -15,33 +15,10 @@ tools:
           offline
     rules: []
     rank: |
-      from ruamel.yaml import YAML
-      import pathlib
-      from math import cos, asin, sqrt
-
-      def distance(lat1, lon1, lat2, lon2):
-        p = 0.017453292519943295
-        hav = 0.5 - cos((lat2-lat1)*p)/2 + cos(lat1*p)*cos(lat2*p) * (1-cos((lon2-lon1)*p)) / 2
-        return 12742 * asin(sqrt(hav))
-   
-      def closest(data, o):
-        min_dist = 999999.99
-        for p in data:
-          d_lat = data[p]['latitude']
-          d_lon = data[p]['longitude']
-          dist = distance(o['latitude'],o['longitude'],d_lat,d_lon)
-          if dist < min_dist:
-            min_dist = dist
-            closest_dest = p
-        return {closest_dest: min_dist}
-
-      yaml=YAML(typ='safe')
-      f1 = pathlib.Path("tests/fixtures/destinations_locations.yml")
-      destination_locations = yaml.load(f1)
-      f2 = pathlib.Path("tests/fixtures/object_store_locations.yml")
-      object_store = yaml.load(f2)['object_store_australia']
-      closest_dest = closest(destination_locations, object_store)
-      final_destinations = [c for c in candidate_destinations if c.dest_name == list(closest_dest.keys())[0]]
+      from tests.closest_location import closest_destination
+      objectstore_loc_path = "tests/fixtures/object_store_locations.yml"
+      selected_object_store = "object_store_australia"
+      final_destinations = closest_destination(candidate_destinations, objectstore_loc_path, selected_object_store)
       final_destinations
   trinity:
     cores: 2
@@ -73,6 +50,9 @@ destinations:
         - general
       require:
         - pulsar
+    context:
+      latitude: 50.0689816
+      longitude: 19.9070188
   slurm_poland:
     runner: slurm
     max_accepted_cores: 16
@@ -80,6 +60,9 @@ destinations:
     scheduling:
       accept:
         - slurm
+    context:
+      latitude: 51.9189046
+      longitude: 19.1343786
   condor_belgium:
     runner: condor
     max_accepted_cores: 16
@@ -87,6 +70,9 @@ destinations:
     scheduling:
       accept:
         - condor
+    context:
+      latitude: 50.5010789
+      longitude: 4.4764595
   slurm_germany:
     runner: slurm
     max_accepted_cores: 16
@@ -94,6 +80,9 @@ destinations:
     scheduling:
       accept:
         - slurm
+    context:
+      latitude: 51.1642292
+      longitude: 10.4541192
   condor_france:
     runner: condor
     max_accepted_cores: 16
@@ -101,6 +90,9 @@ destinations:
     scheduling:
       accept:
         - condor
+    context:
+      latitude: 46.71109
+      longitude: 1.7191036
   pulsar_australia:
     runner: general_pulsar_1
     max_accepted_cores: 8
@@ -110,3 +102,6 @@ destinations:
         - general
       require:
         - pulsar
+    context:
+      latitude: -26.4390917
+      longitude: 133.281323
