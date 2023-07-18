@@ -47,8 +47,20 @@ tools:
   tophat:
     inherits: ~
     gpus: 5
+  kraken2:
+    scheduling:
+      require:
+        - custom-indices
+  kraken5:
+    scheduling:
+      accept:
+        - pulsar
+      require:
+        - k8s-special
 
 destinations:
+  default:
+    runner: local
   local:
     runner: local
     max_accepted_cores: 4
@@ -61,6 +73,25 @@ destinations:
     max_accepted_cores: 16
     max_accepted_mem: 64
     max_accepted_gpus: 5
+    params:
+      docker_extra: extra-args
+    env:
+      ABC: def
     scheduling:
       prefer:
         - pulsar
+  destination_that_inherits_runner_from_default:
+    max_accepted_cores: 4
+    max_accepted_mem: 16
+    scheduling:
+      accept:
+        - custom-indices
+      prefer:
+        - general
+  destination_that_inherits_everything_from_k8s:
+    inherits: k8s_environment
+    scheduling:
+      accept:
+        - k8s-special
+
+
