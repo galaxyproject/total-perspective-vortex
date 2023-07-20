@@ -1,3 +1,7 @@
+2.3.1 - Jul 20, 2023. (sha fc8733723fd264c06471cabc89dc32813207eff0)
+--------------------------------------------------------------------
+* Add two tests around destination inheritance (one fails) + fix by @cat-bro, @nuwang (PR #110)
+
 2.3.0 - Jul 05, 2023. (sha fb5cb966e5f8e370a1566f94313146f4f3a50054)
 --------------------------------------------------------------------
 * fix resubmission tests by @bernt-matthias (PR #78)
