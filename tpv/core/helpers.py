@@ -1,4 +1,10 @@
-import packaging.version
+try:
+    from galaxy.tool_util.version import parse_version
+except ImportError:
+    # Fallback to an older `packaging` version when Galaxy < 23.1.
+    # If Galaxy is < 23.1 you need to have `packaging` in <= 21.3
+    from packaging.version import parse as parse_version
+
 import random
 from functools import reduce
 from galaxy import model
@@ -89,20 +95,20 @@ def tag_values_match(entity, match_tag_values=[], exclude_tag_values=[]):
 
 
 def tool_version_eq(tool, version):
-    return packaging.version.parse(tool.version) == packaging.version.parse(version)
+    return parse_version(tool.version) == parse_version(version)
 
 
 def tool_version_lte(tool, version):
-    return packaging.version.parse(tool.version) <= packaging.version.parse(version)
+    return parse_version(tool.version) <= parse_version(version)
 
 
 def tool_version_lt(tool, version):
-    return packaging.version.parse(tool.version) < packaging.version.parse(version)
+    return parse_version(tool.version) < parse_version(version)
 
 
 def tool_version_gte(tool, version):
-    return packaging.version.parse(tool.version) >= packaging.version.parse(version)
+    return parse_version(tool.version) >= parse_version(version)
 
 
 def tool_version_gt(tool, version):
-    return packaging.version.parse(tool.version) > packaging.version.parse(version)
+    return parse_version(tool.version) > parse_version(version)
