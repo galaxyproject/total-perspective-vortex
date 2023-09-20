@@ -34,11 +34,11 @@ class EntityToDestinationMapper(object):
             raise
 
     def _find_entities_matching_id(self, entity_list, entity_name):
-        matches = []
-        if self.default_inherits:
-            default_match = entity_list.get(self.default_inherits)
-            if default_match:
-                matches.append(default_match)
+        default_inherits = self.__get_default_inherits(entity_list)
+        if default_inherits:
+            matches = [default_inherits]
+        else:
+            matches = []
         for key in entity_list.keys():
             if self.lookup_tool_regex(key).match(entity_name):
                 match = entity_list[key]
@@ -53,6 +53,20 @@ class EntityToDestinationMapper(object):
         entity_list = self.entities.get(entity_type)
         matches = self._find_entities_matching_id(entity_list, entity_name)
         return self.inherit_entities(matches)
+
+    def __get_default_inherits(self, entity_list):
+        if self.default_inherits:
+            default_match = entity_list.get(self.default_inherits)
+            if default_match:
+                return default_match
+        return None
+
+    def __apply_default_destination_inheritance(self, entity_list):
+        default_inherits = self.__get_default_inherits(entity_list)
+        if default_inherits:
+            return [self.inherit_entities([default_inherits, entity]) for entity in entity_list.values()]
+        else:
+            return entity_list.values()
 
     def inherit_entities(self, entities):
         if entities:
@@ -72,7 +86,8 @@ class EntityToDestinationMapper(object):
     def match_and_rank_destinations(self, entity, destinations, context):
         # At this point, the resource requirements (cores, mem, gpus) are unevaluated.
         # So temporarily evaluate them so we can match up with a destination.
-        matches = [dest for dest in destinations.values() if dest.matches(entity.evaluate_resources(context), context)]
+        matches = [dest for dest in self.__apply_default_destination_inheritance(destinations)
+                   if dest.matches(entity.evaluate_resources(context), context)]
         return self.rank(entity, matches, context)
 
     def to_galaxy_destination(self, destination):

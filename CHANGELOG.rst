@@ -1,3 +1,12 @@
+2.3.2 - Aug 25, 2023. (sha 26ddcfb024679a8bb2d698461e7fcbfa8453c45e)
+--------------------------------------------------------------------
+* Fix legacy version parsing by using Galaxy's version parsing if available by @bgruening (PR #112)
+* Fix E721 for type comparison by @mvdbeek (PR #113)
+
+2.3.1 - Jul 20, 2023. (sha fc8733723fd264c06471cabc89dc32813207eff0)
+--------------------------------------------------------------------
+* Add two tests around destination inheritance (one fails) + fix by @cat-bro, @nuwang (PR #110)
+
 2.3.0 - Jul 05, 2023. (sha fb5cb966e5f8e370a1566f94313146f4f3a50054)
 --------------------------------------------------------------------
 * fix resubmission tests by @bernt-matthias (PR #78)

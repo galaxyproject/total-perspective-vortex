@@ -100,7 +100,7 @@ class TagSetManager(object):
             return True
 
     def inherit(self, other) -> TagSetManager:
-        assert type(self) == type(other)
+        assert type(self) is type(other)
         new_tag_set = TagSetManager()
         new_tag_set.add_tag_overrides(other.filter(TagType.ACCEPT))
         new_tag_set.add_tag_overrides(other.filter(TagType.PREFER))

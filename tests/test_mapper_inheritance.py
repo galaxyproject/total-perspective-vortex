@@ -94,3 +94,23 @@ class TestMapperInheritance(unittest.TestCase):
         ]
         destination = self._map_to_destination(tool, user, datasets=[], tpv_config_files=tpv_config_files)
         self.assertEqual('--cores=8 --mem=250', destination.params.get('submit_native_specification'))
+
+    def test_destination_inherits_runner_from_default(self):
+        tool_id = 'kraken2'
+        user = mock_galaxy.User('benjy', 'benjymouse@vortex.org')
+        tool = mock_galaxy.Tool(tool_id)
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=5*1024**3))]
+        destination = self._map_to_destination(tool, user, datasets)
+        self.assertEqual('destination_that_inherits_runner_from_default', destination.id)
+        self.assertEqual('local', destination.runner)
+
+    def test_general_destination_inheritance(self):
+        tool_id = 'kraken5'
+        user = mock_galaxy.User('frankie', 'frankiemouse@vortex.org')
+        tool = mock_galaxy.Tool(tool_id)
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=5*1024**3))]
+        destination = self._map_to_destination(tool, user, datasets)
+        self.assertEqual('destination_that_inherits_everything_from_k8s', destination.id)
+        self.assertTrue('ABC' in [e.get('name') for e in destination.env])
+        self.assertEqual('extra-args', destination.params.get('docker_extra'))
+        self.assertEqual('k8s', destination.runner)
