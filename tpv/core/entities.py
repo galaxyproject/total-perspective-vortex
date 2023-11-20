@@ -170,6 +170,15 @@ class TagSetManager(object):
             tag_list.append(Tag(name="scheduling", value=tag_val, tag_type=TagType.REJECT))
         return TagSetManager(tags=tag_list)
 
+    def to_dict(self) -> dict:
+        result_dict = {
+            'require': [tag.value for tag in self.tags if tag.tag_type == TagType.REQUIRE],
+            'prefer': [tag.value for tag in self.tags if tag.tag_type == TagType.PREFER],
+            'accept': [tag.value for tag in self.tags if tag.tag_type == TagType.ACCEPT],
+            'reject': [tag.value for tag in self.tags if tag.tag_type == TagType.REJECT]
+        }
+        return result_dict
+
 
 class Entity(object):
 
@@ -577,6 +586,39 @@ class Destination(EntityWithRules):
             rules=entity_dict.get('rules'),
             handler_tags=entity_dict.get('tags')
         )
+
+    def to_dict(self):
+        dest_dict = {
+            'id': self.id,
+            'abstract': self.abstract,
+            'runner': self.runner,
+            'destination_name_override': self.dest_name,
+            'cores': self.cores,
+            'mem': self.mem,
+            'gpus': self.gpus,
+            'min_cores': self.min_cores,
+            'min_mem': self.min_mem,
+            'min_gpus': self.min_gpus,
+            'max_cores': self.max_cores,
+            'max_mem': self.max_mem,
+            'max_gpus': self.max_gpus,
+            'min_accepted_cores': self.min_accepted_cores,
+            'min_accepted_mem': self.min_accepted_mem,
+            'min_accepted_gpus': self.min_accepted_gpus,
+            'max_accepted_cores': self.max_accepted_cores,
+            'max_accepted_mem': self.max_accepted_mem,
+            'max_accepted_gpus': self.max_accepted_gpus,
+            'env': self.env,
+            'params': self.params,
+            'resubmit': self.resubmit,
+            'scheduling': self.tpv_dest_tags.to_dict(),
+            'inherits': self.inherits,
+            'context': self.context,
+            'rules': self.rules,
+            'tags': self.handler_tags
+        }
+
+        return dest_dict
 
     def __repr__(self):
         return f"runner={self.runner}, dest_name={self.dest_name}, min_accepted_cores={self.min_accepted_cores}, "\
