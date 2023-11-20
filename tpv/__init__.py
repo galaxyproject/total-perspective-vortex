@@ -1,7 +1,7 @@
 """Total Perspective Vortex library setup."""
 
 # Current version of the library
-__version__ = "2.3.0"
+__version__ = "2.3.2"
 
 
 def get_version():
