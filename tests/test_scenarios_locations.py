@@ -40,3 +40,19 @@ class TestScenarios(unittest.TestCase):
         destination = self._map_to_destination(tool, user, datasets=datasets, tpv_config_path=rules_file,
                                                 job_conf='fixtures/job_conf_scenario_locations.yml')
         self.assertEqual(destination.id, "pulsar_australia")
+
+    def test_scenario_esg_group_user_api(self):
+        """
+        pulsar-hm2-user is a user to specifically run jobs on hm2 with a minimum spec. Regardless of anything else.
+        Each endpoint will have a user that does this.
+        """
+
+        tool = mock_galaxy.Tool('trinity')
+        user = mock_galaxy.User('pulsar-hm2-user', 'pulsar-hm2-user@unimelb.edu.au', roles=["ga_admins"])
+        datasets = [mock_galaxy.DatasetAssociation("input", mock_galaxy.Dataset("input.fastq",
+                                                                                file_size=1000*1024**3))]
+        rules_file = os.path.join(os.path.dirname(__file__), 'fixtures/scenario-locations-api.yml')
+        destination = self._map_to_destination(tool, user, datasets=datasets, tpv_config_path=rules_file,
+                                                job_conf='fixtures/job_conf_scenario_locations.yml')
+        self.assertEqual(destination.id, "pulsar_australia")
+
