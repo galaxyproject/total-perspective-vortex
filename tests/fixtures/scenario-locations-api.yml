@@ -17,10 +17,19 @@ tools:
     rank: |
       import httpx
       import json
+      import pathlib
+      from ruamel.yaml import YAML
 
-      from tests.closest_location import closest_destination
+      # NOTE: currently object store info is stored in a yaml 
       objectstore_loc_path = "tests/fixtures/object_store_locations.yml"
       selected_object_store = "object_store_australia"
+
+      yaml=YAML(typ='safe')
+      objectstore_file = pathlib.Path(objectstore_loc_path)
+      objectstore_dict = yaml.load(objectstore_file)
+
+      print("object:")
+      print(type(objectstore_dict))
       
       # Define the URL of your FastAPI application
       api_url = "http://localhost:8000/process_destinations"
@@ -29,8 +38,8 @@ tools:
 
       input_data = {
         "destinations": candidate_destinations_list,
-        "yaml_file": "/home/padge/Elixir/esg/total-perspective-vortex/tests/fixtures/object_store_locations.yml",
-        "input_string": "object_store_australia"
+        "objectstores": objectstore_dict,
+        "selected_objectstore": selected_object_store
       }
 
       # Send a POST request to the API endpoint
