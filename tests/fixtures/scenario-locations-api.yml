@@ -27,9 +27,6 @@ tools:
       yaml=YAML(typ='safe')
       objectstore_file = pathlib.Path(objectstore_loc_path)
       objectstore_dict = yaml.load(objectstore_file)
-
-      print("object:")
-      print(type(objectstore_dict))
       
       # Define the URL of your FastAPI application
       api_url = "http://localhost:8000/process_destinations"
