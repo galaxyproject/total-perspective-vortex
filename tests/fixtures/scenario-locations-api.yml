@@ -27,35 +27,22 @@ tools:
 
       candidate_destinations_list = [dest.to_dict() for dest in candidate_destinations]
 
-      print("dest 1:")
-      print(candidate_destinations_list[0])
-
-      sample_data = {
+      input_data = {
         "destinations": candidate_destinations_list,
         "yaml_file": "/home/padge/Elixir/esg/total-perspective-vortex/tests/fixtures/object_store_locations.yml",
         "input_string": "object_store_australia"
       }
 
       # Send a POST request to the API endpoint
-      response = httpx.post(api_url, json=sample_data)
+      response = httpx.post(api_url, json=input_data)
 
       # Check if the request was successful (status code 200)
       if response.status_code == 200:
           result = response.json()
-          print("Processed Destinations:")
-          for info in result["processed_destinations"]:
-              print(info)
-          print("YAML Data:", result["yaml_data"])
-          print("Input String Length:", result["input_string_length"])
       else:
           print(f"Request failed with status code {response.status_code}: {response.text}")
 
-      # Print the response
-      print("response:")
-      print(response.status_code)
-      print(response.json())
-
-      final_destinations = closest_destination(candidate_destinations, objectstore_loc_path, selected_object_store)
+      final_destinations = [dest for dest in candidate_destinations if dest.id == result["selected_destination_id"]]
       final_destinations
   trinity:
     cores: 2
