@@ -43,6 +43,9 @@ class Dataset:
         self.file_name = file_name
         self.file_size = file_size
 
+    def get_size(self, calculate_size=False):
+        return self.file_size
+
 
 # Tool mock and helpers=========================================
 class Tool:
