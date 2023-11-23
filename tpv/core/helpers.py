@@ -13,7 +13,9 @@ GIGABYTES = 1024.0**3
 
 
 def get_dataset_size(dataset):
-    return float(dataset.file_size)
+    # calculate_size would mark file_size column as dirty
+    # and may have unintended consequences
+    return float(dataset.get_size(calculate_size=False))
 
 
 def sum_total(prev, current):
