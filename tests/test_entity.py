@@ -1,8 +1,10 @@
 import os
 import unittest
 from tpv.rules import gateway
+from tpv.core.entities import Destination
 from tpv.core.entities import Tag
 from tpv.core.entities import TagType
+from tpv.core.loader import TPVConfigLoader
 from tpv.commands.test import mock_galaxy
 
 
@@ -37,6 +39,22 @@ class TestEntity(unittest.TestCase):
         assert evaluated_entity.loader == original_loader
         for rule in evaluated_entity.rules:
             assert rule.loader == original_loader
+
+    def test_destination_to_dict_(self):
+
+        tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rule-argument-based.yml')
+        loader = TPVConfigLoader.from_url_or_path(tpv_config)
+
+        # create a destination
+        destination = loader.destinations["k8s_environment"] #loader.destinations.values()[0]
+        # serialize the destination
+        serialized_destination = destination.to_dict()
+        # deserialize the same destination
+        deserialized_destination = Destination.from_dict(loader, serialized_destination)
+        # make sure the deserialized destination is the same as the original
+        self.assertEqual(deserialized_destination, destination)
+        assert deserialized_destination == destination
+        assert deserialized_destination.__dict__ == destination.__dict__
 
     def test_tag_equivalence(self):
         tag1 = Tag("tag_name", "tag_value", TagType.REQUIRE)

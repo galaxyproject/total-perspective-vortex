@@ -154,6 +154,13 @@ class TagSetManager(object):
                 # penalize tags that don't exist in the other
                 - sum(int(tag.tag_type) for tag in self.tags if not other.contains_tag(tag)))
 
+    def __eq__(self, other):
+        if not isinstance(other, TagSetManager):
+            # don't attempt to compare against unrelated types
+            return NotImplemented
+
+        return self.tags == other.tags
+
     def __repr__(self):
         return f"{self.__class__} tags={[tag for tag in self.tags]}"
 
@@ -619,6 +626,41 @@ class Destination(EntityWithRules):
         }
 
         return dest_dict
+
+    def __eq__(self, other):
+        if not isinstance(other, Destination):
+            # don't attempt to compare against unrelated types
+            return NotImplemented
+
+        return (
+            self.id == other.id and
+            self.abstract == other.abstract and
+            self.runner == other.runner and
+            self.dest_name == other.dest_name and
+            self.cores == other.cores and
+            self.mem == other.mem and
+            self.gpus == other.gpus and
+            self.min_cores == other.min_cores and
+            self.min_mem == other.min_mem and
+            self.min_gpus == other.min_gpus and
+            self.max_cores == other.max_cores and
+            self.max_mem == other.max_mem and
+            self.max_gpus == other.max_gpus and
+            self.min_accepted_cores == other.min_accepted_cores and
+            self.min_accepted_mem == other.min_accepted_mem and
+            self.min_accepted_gpus == other.min_accepted_gpus and
+            self.max_accepted_cores == other.max_accepted_cores and
+            self.max_accepted_mem == other.max_accepted_mem and
+            self.max_accepted_gpus == other.max_accepted_gpus and
+            self.env == other.env and
+            self.params == other.params and
+            self.resubmit == other.resubmit and
+            self.tpv_dest_tags == other.tpv_dest_tags and
+            self.inherits == other.inherits and
+            self.context == other.context and
+            self.rules == other.rules and
+            self.handler_tags == other.handler_tags
+        )
 
     def __repr__(self):
         return f"runner={self.runner}, dest_name={self.dest_name}, min_accepted_cores={self.min_accepted_cores}, "\
