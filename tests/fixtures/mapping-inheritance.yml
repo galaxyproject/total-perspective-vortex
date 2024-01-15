@@ -48,6 +48,14 @@ tools:
     inherits: ~
     gpus: 5
   kraken2:
+    env:
+      this_is_kraken2: yes
+    scheduling:
+      require:
+        - custom-indices
+  kraken2000:
+    env:
+      this_is_kraken2000: yes
     scheduling:
       require:
         - custom-indices
