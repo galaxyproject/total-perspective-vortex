@@ -438,6 +438,28 @@ class Entity(object):
             log.debug(f"Ranking destinations: {destinations} for entity: {self} using default ranker")
             return sorted(destinations, key=lambda d: d.score(self), reverse=True)
 
+    def to_dict(self):
+        dict_obj = {
+            'id': self.id,
+            'abstract': self.abstract,
+            'cores': self.cores,
+            'mem': self.mem,
+            'gpus': self.gpus,
+            'min_cores': self.min_cores,
+            'min_mem': self.min_mem,
+            'min_gpus': self.min_gpus,
+            'max_cores': self.max_cores,
+            'max_mem': self.max_mem,
+            'max_gpus': self.max_gpus,
+            'env': self.env,
+            'params': self.params,
+            'resubmit': self.resubmit,
+            'scheduling': self.tpv_tags.to_dict(),
+            'inherits': self.inherits,
+            'context': self.context
+        }
+        return dict_obj
+
 
 class EntityWithRules(Entity):
 
@@ -487,6 +509,11 @@ class EntityWithRules(Entity):
             context=entity_dict.get('context'),
             rules=entity_dict.get('rules')
         )
+
+    def to_dict(self):
+        dict_obj = super().to_dict()
+        dict_obj['rules'] = [rule.to_dict() for rule in self.rules]
+        return dict_obj
 
     def override(self, entity):
         new_entity = super().override(entity)
@@ -595,37 +622,18 @@ class Destination(EntityWithRules):
         )
 
     def to_dict(self):
-        dest_dict = {
-            'id': self.id,
-            'abstract': self.abstract,
-            'runner': self.runner,
-            'destination_name_override': self.dest_name,
-            'cores': self.cores,
-            'mem': self.mem,
-            'gpus': self.gpus,
-            'min_cores': self.min_cores,
-            'min_mem': self.min_mem,
-            'min_gpus': self.min_gpus,
-            'max_cores': self.max_cores,
-            'max_mem': self.max_mem,
-            'max_gpus': self.max_gpus,
-            'min_accepted_cores': self.min_accepted_cores,
-            'min_accepted_mem': self.min_accepted_mem,
-            'min_accepted_gpus': self.min_accepted_gpus,
-            'max_accepted_cores': self.max_accepted_cores,
-            'max_accepted_mem': self.max_accepted_mem,
-            'max_accepted_gpus': self.max_accepted_gpus,
-            'env': self.env,
-            'params': self.params,
-            'resubmit': self.resubmit,
-            'scheduling': self.tpv_dest_tags.to_dict(),
-            'inherits': self.inherits,
-            'context': self.context,
-            'rules': self.rules,
-            'tags': self.handler_tags
-        }
-
-        return dest_dict
+        dict_obj = super().to_dict()
+        dict_obj['runner'] = self.runner
+        dict_obj['destination_name_override'] = self.dest_name
+        dict_obj['min_accepted_cores'] = self.min_accepted_cores
+        dict_obj['min_accepted_mem'] = self.min_accepted_mem
+        dict_obj['min_accepted_gpus'] = self.min_accepted_gpus
+        dict_obj['max_accepted_cores'] = self.max_accepted_cores
+        dict_obj['max_accepted_mem'] = self.max_accepted_mem
+        dict_obj['max_accepted_gpus'] = self.max_accepted_gpus
+        dict_obj['scheduling'] = self.tpv_dest_tags.to_dict()
+        dict_obj['tags'] = self.handler_tags
+        return dict_obj
 
     def __eq__(self, other):
         if not isinstance(other, Destination):
@@ -809,6 +817,13 @@ class Rule(Entity):
             execute=entity_dict.get('execute'),
             fail=entity_dict.get('fail')
         )
+
+    def to_dict(self):
+        dict_obj = super().to_dict()
+        dict_obj['if'] = self.match
+        dict_obj['execute'] = self.execute
+        dict_obj['fail'] = self.fail
+        return dict_obj
 
     def override(self, entity):
         new_entity = super().override(entity)

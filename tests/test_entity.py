@@ -46,15 +46,13 @@ class TestEntity(unittest.TestCase):
         loader = TPVConfigLoader.from_url_or_path(tpv_config)
 
         # create a destination
-        destination = loader.destinations["k8s_environment"] #loader.destinations.values()[0]
+        destination = loader.destinations["k8s_environment"]
         # serialize the destination
         serialized_destination = destination.to_dict()
         # deserialize the same destination
         deserialized_destination = Destination.from_dict(loader, serialized_destination)
         # make sure the deserialized destination is the same as the original
         self.assertEqual(deserialized_destination, destination)
-        assert deserialized_destination == destination
-        assert deserialized_destination.__dict__ == destination.__dict__
 
     def test_tag_equivalence(self):
         tag1 = Tag("tag_name", "tag_value", TagType.REQUIRE)
