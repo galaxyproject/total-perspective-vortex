@@ -77,7 +77,6 @@ class TPVConfigLoader(object):
                 if not entity_dict:
                     entity_dict = {}
                 entity_dict['id'] = entity_id
-                entity_class.from_dict(self, entity_dict)
                 validated[entity_id] = entity_class.from_dict(self, entity_dict)
             except Exception:
                 log.exception(f"Could not load entity of type: {entity_class} with data: {entity_dict}")
