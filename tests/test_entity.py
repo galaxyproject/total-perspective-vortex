@@ -4,6 +4,7 @@ from tpv.rules import gateway
 from tpv.core.entities import Destination
 from tpv.core.entities import Tag
 from tpv.core.entities import TagType
+from tpv.core.entities import Tool
 from tpv.core.loader import TPVConfigLoader
 from tpv.commands.test import mock_galaxy
 
@@ -40,7 +41,7 @@ class TestEntity(unittest.TestCase):
         for rule in evaluated_entity.rules:
             assert rule.loader == original_loader
 
-    def test_destination_to_dict_(self):
+    def test_destination_to_dict(self):
 
         tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rule-argument-based.yml')
         loader = TPVConfigLoader.from_url_or_path(tpv_config)
@@ -53,6 +54,19 @@ class TestEntity(unittest.TestCase):
         deserialized_destination = Destination.from_dict(loader, serialized_destination)
         # make sure the deserialized destination is the same as the original
         self.assertEqual(deserialized_destination, destination)
+
+    def test_tool_to_dict(self):
+        tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rule-argument-based.yml')
+        loader = TPVConfigLoader.from_url_or_path(tpv_config)
+
+        # create a tool
+        tool = loader.tools["limbo"]
+        # serialize the tool
+        serialized_destination = tool.to_dict()
+        # deserialize the same tool
+        deserialized_destination = Tool.from_dict(loader, serialized_destination)
+        # make sure the deserialized tool is the same as the original
+        self.assertEqual(deserialized_destination, tool)
 
     def test_tag_equivalence(self):
         tag1 = Tag("tag_name", "tag_value", TagType.REQUIRE)

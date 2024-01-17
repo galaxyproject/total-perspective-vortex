@@ -296,6 +296,31 @@ class Entity(object):
                f"tags={self.tpv_tags}, rank={self.rank[:10] if self.rank else ''}, inherits={self.inherits}, "\
                f"context={self.context}"
 
+    def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            # don't attempt to compare against unrelated types
+            return NotImplemented
+
+        return (
+            self.id == other.id and
+            self.abstract == other.abstract and
+            self.cores == other.cores and
+            self.mem == other.mem and
+            self.gpus == other.gpus and
+            self.min_cores == other.min_cores and
+            self.min_mem == other.min_mem and
+            self.min_gpus == other.min_gpus and
+            self.max_cores == other.max_cores and
+            self.max_mem == other.max_mem and
+            self.max_gpus == other.max_gpus and
+            self.env == other.env and
+            self.params == other.params and
+            self.resubmit == other.resubmit and
+            self.tpv_tags == other.tpv_tags and
+            self.inherits == other.inherits and
+            self.context == other.context
+        )
+
     def merge_env_list(self, original, replace):
         for i, original_elem in enumerate(original):
             for j, replace_elem in enumerate(replace):
@@ -512,7 +537,7 @@ class EntityWithRules(Entity):
 
     def to_dict(self):
         dict_obj = super().to_dict()
-        dict_obj['rules'] = [rule.to_dict() for rule in self.rules]
+        dict_obj['rules'] = [rule.to_dict() for rule in self.rules.values()]
         return dict_obj
 
     def override(self, entity):
@@ -546,6 +571,11 @@ class EntityWithRules(Entity):
 
     def __repr__(self):
         return super().__repr__() + f", rules={self.rules}"
+
+    def __eq__(self, other):
+        return super().__eq__(other) and (
+            self.rules == other.rules
+        )
 
 
 class Tool(EntityWithRules):
@@ -640,33 +670,16 @@ class Destination(EntityWithRules):
             # don't attempt to compare against unrelated types
             return NotImplemented
 
-        return (
-            self.id == other.id and
-            self.abstract == other.abstract and
+        return super().__eq__(other) and (
             self.runner == other.runner and
             self.dest_name == other.dest_name and
-            self.cores == other.cores and
-            self.mem == other.mem and
-            self.gpus == other.gpus and
-            self.min_cores == other.min_cores and
-            self.min_mem == other.min_mem and
-            self.min_gpus == other.min_gpus and
-            self.max_cores == other.max_cores and
-            self.max_mem == other.max_mem and
-            self.max_gpus == other.max_gpus and
             self.min_accepted_cores == other.min_accepted_cores and
             self.min_accepted_mem == other.min_accepted_mem and
             self.min_accepted_gpus == other.min_accepted_gpus and
             self.max_accepted_cores == other.max_accepted_cores and
             self.max_accepted_mem == other.max_accepted_mem and
             self.max_accepted_gpus == other.max_accepted_gpus and
-            self.env == other.env and
-            self.params == other.params and
-            self.resubmit == other.resubmit and
             self.tpv_dest_tags == other.tpv_dest_tags and
-            self.inherits == other.inherits and
-            self.context == other.context and
-            self.rules == other.rules and
             self.handler_tags == other.handler_tags
         )
 
