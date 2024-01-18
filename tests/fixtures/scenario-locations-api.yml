@@ -45,11 +45,12 @@ tools:
       # Check if the request was successful (status code 200)
       if response.status_code == 200:
           result = response.json()
+          sorted_destination_ids = result["sorted_destinations"]
       else:
           print(f"Request failed with status code {response.status_code}: {response.text}")
 
-      final_destinations = [dest for dest in candidate_destinations if dest.id == result["selected_destination_id"]]
-      final_destinations
+      sorted_candidate_destinations = sorted(candidate_destinations, key=lambda x: sorted_destination_ids.index(x.id))
+      sorted_candidate_destinations
   trinity:
     cores: 2
     mem: cores * 4
