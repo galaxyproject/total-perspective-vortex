@@ -119,8 +119,4 @@ def tool_version_gt(tool, version):
 def object_store_ids_and_dataset_size(job):
     # Return a dictionary of dataset ids and their object store ids
     # and file sizes in bytes for all input datasets in a job
-    object_store_ids = {}
-    for i in job.get_input_datasets():
-        object_store_ids[i.dataset.dataset.id] = (i.dataset.dataset.object_store_id, float(i.dataset.dataset.get_size(calculate_size=False)))
-
-    return object_store_ids
+    return {i.dataset.dataset.id: {'object_store_id': i.dataset.dataset.object_store_id, 'size': get_dataset_size(i.dataset.dataset)} for i in datasets or {}}
