@@ -119,4 +119,9 @@ def tool_version_gt(tool, version):
 def get_dataset_attributes(datasets):
     # Return a dictionary of dataset ids and their object store ids
     # and file sizes in bytes for all input datasets in a job
-    return {i.dataset.dataset.id: {'object_store_id': i.dataset.dataset.object_store_id, 'size': get_dataset_size(i.dataset.dataset)} for i in datasets or {}}
+    return {
+        i.dataset.dataset.id: {
+            'object_store_id': i.dataset.dataset.object_store_id,
+            'size': get_dataset_size(i.dataset.dataset)}
+        for i in datasets or {}
+    }
