@@ -114,3 +114,13 @@ def tool_version_gte(tool, version):
 
 def tool_version_gt(tool, version):
     return parse_version(tool.version) > parse_version(version)
+
+
+def object_store_ids_and_dataset_size(job):
+    # Return a dictionary of dataset ids and their object store ids
+    # and file sizes in bytes for all input datasets in a job
+    object_store_ids = {}
+    for i in job.get_input_datasets():
+        object_store_ids[i.dataset.dataset.id] = (i.dataset.dataset.object_store_id, float(i.dataset.dataset.get_size(calculate_size=False)))
+
+    return object_store_ids
