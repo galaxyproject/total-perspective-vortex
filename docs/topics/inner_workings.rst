@@ -1,9 +1,9 @@
 #########################
-Concepts and Organisation
+Inner workings
 #########################
 
-Object types
-============
+Types of objects
+================
 
 Conceptually, TPV consists of the following types of objects.
 
