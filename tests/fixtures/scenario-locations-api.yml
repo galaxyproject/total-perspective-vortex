@@ -15,13 +15,17 @@ tools:
           offline
     rules: []
     rank: |
-      import httpx
+      import requests
       import json
       import pathlib
       from ruamel.yaml import YAML
+      from tpv.commands.test import mock_galaxy
+      from tpv.core.helpers import get_dataset_attributes
 
       # NOTE: currently object store info is stored in a yaml 
       objectstore_loc_path = "tests/fixtures/object_store_locations.yml"
+      print(dir(job))
+      dataset_attributes = helpers.get_dataset_attributes(job.input_datasets)
       selected_object_store = "object_store_australia"
 
       yaml=YAML(typ='safe')
@@ -36,11 +40,12 @@ tools:
       input_data = {
         "destinations": candidate_destinations_list,
         "objectstores": objectstore_dict,
-        "selected_objectstore": selected_object_store
+        # "selected_objectstore": selected_object_store
+        "dataset_attributes": dataset_attributes
       }
 
       # Send a POST request to the API endpoint
-      response = httpx.post(api_url, json=input_data)
+      response = requests.post(api_url, json=input_data)
 
       # Check if the request was successful (status code 200)
       if response.status_code == 200:
