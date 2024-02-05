@@ -63,6 +63,52 @@ Some properties do not support expressions. These are primarily:
   because when a combined entity is matched with a destination, concrete values are required.
 * tags defined on entities
 
+Evaluation by expression type
+-----------------------------
+
+The simple rule of thumb here is that all string expressions are evaluated as python f-strings,
+and all integers or boolean expressions are evaluated as python code blocks.
+
++--------------------+---------------+----------------------+
+| Field              | Evaluated As  | Expected type        |
++====================+===============+======================+
+| gpus               | code block    | float                |
++--------------------+---------------+----------------------+
+| cores              | code block    | float                |
++--------------------+---------------+----------------------+
+| mem                | code block    | float                |
++--------------------+---------------+----------------------+
+| env                | f-strings     | string               |
++--------------------+---------------+----------------------+
+| params             | f-strings     | string               |
++--------------------+---------------+----------------------+
+| min_gpus           | code block    | float                |
++--------------------+---------------+----------------------+
+| min_cores          | code block    | float                |
++--------------------+---------------+----------------------+
+| min_mem            | code block    | float                |
++--------------------+---------------+----------------------+
+| max_gpus           | code block    | float                |
++--------------------+---------------+----------------------+
+| max_cores          | code block    | float                |
++--------------------+---------------+----------------------+
+| max_mem            | code block    | float                |
++--------------------+---------------+----------------------+
+| rank               | code block    | list of destinations |
++--------------------+---------------+----------------------+
+| context            | not evaluated | string               |
++--------------------+---------------+----------------------+
+| scheduling tags    | not evaluated | string               |
++--------------------+---------------+----------------------+
+| inherits           | not evaluated | string               |
++--------------------+---------------+----------------------+
+| max_accepted_gpus  | not evaluated | float                |
++--------------------+---------------+----------------------+
+| max_accepted_cores | not evaluated | float                |
++--------------------+---------------+----------------------+
+| max_accepted_mem   | not evaluated | float                |
++--------------------+---------------+----------------------+
+
 Scheduling
 ==========
 

@@ -27,29 +27,12 @@ A shared database of TPV rules are maintained in: https://github.com/galaxyproje
 These rules are based on typical settings used in the usegalaxy.* federation, which you can override
 based on local resource availability.
 
-Getting Started
----------------
-
-1. ``pip install total-perspective-vortex`` into Galaxy's python virtual environment
-2. Create the TPV job mapping yaml file, specifying resource allocation and job routing preferences
-3. Configure Galaxy's ``job_conf.yml`` to use TPV
-4. Submit jobs as usual
-
-Standalone Installation
------------------------
-
-If you wish to install TPV outside of Galaxy's virtualenv (e.g. to use the ``tpv lint`` command locally or in a CI/CD
-pipeline), use the ``[cli]`` pip requirement specifier to make sure the necessary Galaxy dependency packages are also
-installed. **This should not be used in the Galaxy virtualenv**:
-
-.. code-block:: console
-
-   $ pip install 'total-perspective-vortex[cli]'
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
+   topics/installation.rst
    topics/tpv_by_example.rst
    topics/advanced_topics.rst
    topics/concepts.rst
