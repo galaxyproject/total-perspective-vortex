@@ -67,7 +67,11 @@ Evaluation by expression type
 -----------------------------
 
 The simple rule of thumb here is that all string expressions are evaluated as python f-strings,
-and all integers or boolean expressions are evaluated as python code blocks.
+and all integers or boolean expressions are evaluated as python code blocks. If evaluated as an
+f-string, the expressions must be a single line and must evaluate to a string. If evaluated as
+a code-block, expressions may span multiple lines of arbitrary Python code, but the last line must
+be an expression that evaluates to the expected return type (The return statement should not and cannot
+be used)
 
 +--------------------+---------------+----------------------+
 | Field              | Evaluated As  | Expected type        |
@@ -108,6 +112,17 @@ and all integers or boolean expressions are evaluated as python code blocks.
 +--------------------+---------------+----------------------+
 | max_accepted_mem   | not evaluated | float                |
 +--------------------+---------------+----------------------+
+| if                 | code block    | bool                 |
++--------------------+---------------+----------------------+
+| rules              | not evaluated | list of rules        |
++--------------------+---------------+----------------------+
+| execute            | code block    | void                 |
++--------------------+---------------+----------------------+
+| fail               | f-string      | string               |
++--------------------+---------------+----------------------+
+| resubmit           | f-strings     | string               |
++--------------------+---------------+----------------------+
+
 
 Scheduling
 ==========
