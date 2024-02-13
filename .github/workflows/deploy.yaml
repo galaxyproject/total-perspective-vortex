@@ -26,10 +26,11 @@ jobs:
         python3 setup.py sdist bdist_wheel
         twine check dist/*
         ls -l dist
-    - name: Publish distribution 📦 to Test PyPI
-      uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        repository_url: https://test.pypi.org/legacy/
+    # - name: Publish distribution 📦 to Test PyPI
+    #   uses: pypa/gh-action-pypi-publish@release/v1
+    #   with:
+    #     repository_url: https://test.pypi.org/legacy/
+    #     skip_existing: true
     - name: Publish distribution 📦 to PyPI
       if: github.event_name == 'release'
       uses: pypa/gh-action-pypi-publish@release/v1
