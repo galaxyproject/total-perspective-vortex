@@ -501,7 +501,7 @@ as follows:
      function: map_tool_to_destination
      rules_module: tpv.rules
      tpv_config_files:
-       - https://raw.githubusercontent.com/galaxyproject/tpv-shared-database/main/tools.yml
+       - https://gxy.io/tpv/db.yml
        - config/my_local_overrides.yml  # optional
 
 
