@@ -20,7 +20,7 @@ tools:
       import pathlib
       from ruamel.yaml import YAML
       from tpv.commands.test import mock_galaxy
-      from tpv.core.helpers import get_dataset_attributes
+      from tpv.core.helpers import get_dataset_attributes, concurrent_job_count_for_tool
 
       # NOTE: currently object store info is stored in a yaml 
       objectstore_loc_path = "tests/fixtures/object_store_locations.yml"
@@ -35,7 +35,22 @@ tools:
       # Define the URL of your FastAPI application
       api_url = "http://localhost:8000/process_destinations"
 
-      candidate_destinations_list = [dest.to_dict() for dest in candidate_destinations]
+      print("APP:",dir(app.Job))
+
+      # test = app.model.context.query(model.Job).filter(model.Job.state == "queued", model.Job.destination_id == dest.dest_name).count()
+
+      # print(test)
+      candidate_destinations_list = []
+      for dest in candidate_destinations:
+        dest_dict = dest.to_dict()
+        dest_dict["queued_job_count"] = app.model.context.query(model.Job).filter(model.Job.state == "queued", model.Job.destination_id == dest.dest_name).count()
+        candidate_destinations_list.append(dest_dict)
+
+      print(candidate_destinations[0])
+
+      # candidate_destinations_list = [{"id": dest.id, "context": dest.context} for dest in candidate_destinations]
+
+      print(candidate_destinations_list)
 
       input_data = {
         "destinations": candidate_destinations_list,
