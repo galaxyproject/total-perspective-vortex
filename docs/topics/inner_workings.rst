@@ -8,13 +8,13 @@ Types of objects
 Conceptually, TPV consists of the following types of objects.
 
 1. **Entities** - An entity is anything that will be considered for scheduling
-by TPV. Entities include Tools, Users, Groups, Rules and Destinations.
+by TPV. Entities include Tools, Users, Roles, Rules and Destinations.
 All entities have some common properties (id, cores, mem, env, params,
 and scheduling tags).
 
 2. **Scheduling Tags** - Entities can have scheduling tags defined on them that determine which
 entities match up, and which destination they can schedule on. Tags fall into one of four categories,
-(required, preferred, accepted, rejected), ranging from indicating a requirement for a particular destination,
+(require, prefer, accept, reject), ranging from indicating a requirement for a particular destination,
 to indicating complete aversion.
 
 3. **Loader** - The loader is responsible for loading entity definitions from a config file.
