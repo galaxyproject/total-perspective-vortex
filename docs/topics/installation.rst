@@ -1,13 +1,22 @@
+############
+Installation
+############
+
+Basic steps
+-----------
+
+1. ``pip install total-perspective-vortex`` into Galaxy's python virtual environment
+2. Create the TPV job mapping yaml file, specifying resource allocation and job routing preferences
+3. Configure Galaxy's ``job_conf.yml`` to use TPV
+4. Submit jobs as usual
+
 Configuring Galaxy
 ==================
-
-Simple configuration
---------------------
 
 1. First install TPV into your Galaxy virtual environment.
 
    TPV is a conditional dependency of Galaxy since Galaxy 22.05. If TPV is enabled in your Galaxy job configuration, it
-   will automatically be installed in the Galaxy virtualenv. Otherwise, or if you wish to upgrade to a newer version of
+   will automatically be installed into Galaxy's virtualenv. Otherwise, or if you wish to upgrade to a newer version of
    TPV, you can use the process below to install manually:
 
    .. code-block:: shell
@@ -52,3 +61,15 @@ TPV allows rules to be loaded from remote or local sources.
 
 The config files listed first are overridden by config files listed later. The normal rules of inheritance apply.
 This allows a central database of common rules to be maintained, with individual, site-specific overrides.
+
+
+Standalone Installation
+-----------------------
+
+If you wish to install TPV outside of Galaxy's virtualenv (e.g. to use the ``tpv lint`` command locally or in a CI/CD
+pipeline), use the ``[cli]`` pip requirement specifier to make sure the necessary Galaxy dependency packages are also
+installed. **This should not be used in the Galaxy virtualenv**:
+
+.. code-block:: console
+
+   $ pip install 'total-perspective-vortex[cli]'

@@ -1,5 +1,6 @@
 wheel
 galaxy-util
+galaxy-schema
 galaxy-objectstore
 galaxy-files
 galaxy-data
@@ -12,6 +13,7 @@ galaxy-tool-util
 galaxy-web-stack
 galaxy-config
 galaxy-web-framework
+galaxy-web-apps
 -e ".[test]"
 # The following packages are needed for resubmit integration testing (except galaxy-app)
 galaxy-job-execution
