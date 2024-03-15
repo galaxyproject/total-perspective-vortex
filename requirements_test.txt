@@ -1,5 +1,6 @@
 wheel
 galaxy-util
+galaxy-schema
 galaxy-objectstore
 galaxy-files
 galaxy-data
