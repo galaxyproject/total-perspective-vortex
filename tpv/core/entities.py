@@ -154,6 +154,13 @@ class TagSetManager(object):
                 # penalize tags that don't exist in the other
                 - sum(int(tag.tag_type) for tag in self.tags if not other.contains_tag(tag)))
 
+    def __eq__(self, other):
+        if not isinstance(other, TagSetManager):
+            # don't attempt to compare against unrelated types
+            return NotImplemented
+
+        return self.tags == other.tags
+
     def __repr__(self):
         return f"{self.__class__} tags={[tag for tag in self.tags]}"
 
@@ -169,6 +176,15 @@ class TagSetManager(object):
         for tag_val in tags.get('reject') or []:
             tag_list.append(Tag(name="scheduling", value=tag_val, tag_type=TagType.REJECT))
         return TagSetManager(tags=tag_list)
+
+    def to_dict(self) -> dict:
+        result_dict = {
+            'require': [tag.value for tag in self.tags if tag.tag_type == TagType.REQUIRE],
+            'prefer': [tag.value for tag in self.tags if tag.tag_type == TagType.PREFER],
+            'accept': [tag.value for tag in self.tags if tag.tag_type == TagType.ACCEPT],
+            'reject': [tag.value for tag in self.tags if tag.tag_type == TagType.REJECT]
+        }
+        return result_dict
 
 
 class Entity(object):
@@ -279,6 +295,31 @@ class Entity(object):
                f"max_gpus = {self.max_gpus}, env={self.env}, params={self.params}, resubmit={self.resubmit}, " \
                f"tags={self.tpv_tags}, rank={self.rank[:10] if self.rank else ''}, inherits={self.inherits}, "\
                f"context={self.context}"
+
+    def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            # don't attempt to compare against unrelated types
+            return NotImplemented
+
+        return (
+            self.id == other.id and
+            self.abstract == other.abstract and
+            self.cores == other.cores and
+            self.mem == other.mem and
+            self.gpus == other.gpus and
+            self.min_cores == other.min_cores and
+            self.min_mem == other.min_mem and
+            self.min_gpus == other.min_gpus and
+            self.max_cores == other.max_cores and
+            self.max_mem == other.max_mem and
+            self.max_gpus == other.max_gpus and
+            self.env == other.env and
+            self.params == other.params and
+            self.resubmit == other.resubmit and
+            self.tpv_tags == other.tpv_tags and
+            self.inherits == other.inherits and
+            self.context == other.context
+        )
 
     def merge_env_list(self, original, replace):
         for i, original_elem in enumerate(original):
@@ -422,6 +463,28 @@ class Entity(object):
             log.debug(f"Ranking destinations: {destinations} for entity: {self} using default ranker")
             return sorted(destinations, key=lambda d: d.score(self), reverse=True)
 
+    def to_dict(self):
+        dict_obj = {
+            'id': self.id,
+            'abstract': self.abstract,
+            'cores': self.cores,
+            'mem': self.mem,
+            'gpus': self.gpus,
+            'min_cores': self.min_cores,
+            'min_mem': self.min_mem,
+            'min_gpus': self.min_gpus,
+            'max_cores': self.max_cores,
+            'max_mem': self.max_mem,
+            'max_gpus': self.max_gpus,
+            'env': self.env,
+            'params': self.params,
+            'resubmit': self.resubmit,
+            'scheduling': self.tpv_tags.to_dict(),
+            'inherits': self.inherits,
+            'context': self.context
+        }
+        return dict_obj
+
 
 class EntityWithRules(Entity):
 
@@ -472,6 +535,11 @@ class EntityWithRules(Entity):
             rules=entity_dict.get('rules')
         )
 
+    def to_dict(self):
+        dict_obj = super().to_dict()
+        dict_obj['rules'] = [rule.to_dict() for rule in self.rules.values()]
+        return dict_obj
+
     def override(self, entity):
         new_entity = super().override(entity)
         new_entity.rules = copy.deepcopy(entity.rules)
@@ -503,6 +571,11 @@ class EntityWithRules(Entity):
 
     def __repr__(self):
         return super().__repr__() + f", rules={self.rules}"
+
+    def __eq__(self, other):
+        return super().__eq__(other) and (
+            self.rules == other.rules
+        )
 
 
 class Tool(EntityWithRules):
@@ -576,6 +649,38 @@ class Destination(EntityWithRules):
             context=entity_dict.get('context'),
             rules=entity_dict.get('rules'),
             handler_tags=entity_dict.get('tags')
+        )
+
+    def to_dict(self):
+        dict_obj = super().to_dict()
+        dict_obj['runner'] = self.runner
+        dict_obj['destination_name_override'] = self.dest_name
+        dict_obj['min_accepted_cores'] = self.min_accepted_cores
+        dict_obj['min_accepted_mem'] = self.min_accepted_mem
+        dict_obj['min_accepted_gpus'] = self.min_accepted_gpus
+        dict_obj['max_accepted_cores'] = self.max_accepted_cores
+        dict_obj['max_accepted_mem'] = self.max_accepted_mem
+        dict_obj['max_accepted_gpus'] = self.max_accepted_gpus
+        dict_obj['scheduling'] = self.tpv_dest_tags.to_dict()
+        dict_obj['tags'] = self.handler_tags
+        return dict_obj
+
+    def __eq__(self, other):
+        if not isinstance(other, Destination):
+            # don't attempt to compare against unrelated types
+            return NotImplemented
+
+        return super().__eq__(other) and (
+            self.runner == other.runner and
+            self.dest_name == other.dest_name and
+            self.min_accepted_cores == other.min_accepted_cores and
+            self.min_accepted_mem == other.min_accepted_mem and
+            self.min_accepted_gpus == other.min_accepted_gpus and
+            self.max_accepted_cores == other.max_accepted_cores and
+            self.max_accepted_mem == other.max_accepted_mem and
+            self.max_accepted_gpus == other.max_accepted_gpus and
+            self.tpv_dest_tags == other.tpv_dest_tags and
+            self.handler_tags == other.handler_tags
         )
 
     def __repr__(self):
@@ -725,6 +830,13 @@ class Rule(Entity):
             execute=entity_dict.get('execute'),
             fail=entity_dict.get('fail')
         )
+
+    def to_dict(self):
+        dict_obj = super().to_dict()
+        dict_obj['if'] = self.match
+        dict_obj['execute'] = self.execute
+        dict_obj['fail'] = self.fail
+        return dict_obj
 
     def override(self, entity):
         new_entity = super().override(entity)

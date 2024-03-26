@@ -1,5 +1,6 @@
 wheel
 galaxy-util
+galaxy-schema
 galaxy-objectstore
 galaxy-files
 galaxy-data
@@ -13,6 +14,7 @@ galaxy-web-stack
 galaxy-config
 galaxy-web-framework
 pytest-celery # required for the resubmission tests
+galaxy-web-apps
 -e ".[test]"
 # The following packages are needed for resubmit integration testing (except galaxy-app)
 galaxy-job-execution

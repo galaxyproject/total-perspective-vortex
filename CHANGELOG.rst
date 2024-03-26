@@ -1,3 +1,11 @@
+2.3.3 - Feb 13, 2024. (sha 97405a5e8ab586b80037f036caa3cea0eabfeb10)
+--------------------------------------------------------------------
+* Fix get_dataset_size for datasets with null file_size column by @mvdbeek (PR #116)
+* Add contributing doc and update readme by @afgane (PR #122)
+* Add readthedocs configuration by @nuwang (PR #121)
+* Add to to_dict functions to Destination and TagSetManager classes by @pauldg (PR #119)
+* Add a helper to get the object store ids and the datasets size for every dataset in a job by @sanjaysrikakulam (PR #125)
+
 2.3.2 - Aug 25, 2023. (sha 26ddcfb024679a8bb2d698461e7fcbfa8453c45e)
 --------------------------------------------------------------------
 * Fix legacy version parsing by using Galaxy's version parsing if available by @bgruening (PR #112)
