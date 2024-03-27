@@ -1,7 +1,4 @@
 import os
-
-import pytest
-
 from galaxy_test.driver.integration_util import IntegrationTestCase
 from galaxy.webapps.base import webapp
 
@@ -34,10 +31,9 @@ class TestMapperResubmission(IntegrationTestCase):
 
         assert exception_thrown
 
-    @pytest.mark.slow
-    def test_mapping_with_resubmission(self):
-        self._assert_job_passes(tool_id="exit_code_oom_with_resubmit")
-
-    @pytest.mark.slow
-    def test_mapping_without_resubmission(self):
-        self._assert_job_fails(tool_id="exit_code_oom_no_resubmit")
+    # FIXME: Temporarily disable tests till https://github.com/galaxyproject/galaxy/issues/14021 is resolved.
+    # def test_mapping_with_resubmission(self):
+    #     self._assert_job_passes(tool_id="exit_code_oom_with_resubmit")
+    #
+    # def test_mapping_without_resubmission(self):
+    #     self._assert_job_fails(tool_id="exit_code_oom_no_resubmit")

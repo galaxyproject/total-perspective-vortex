@@ -81,7 +81,7 @@ jobs:
         run: pip install tox
 
       - name: Run tox
-        run: tox -e py${{ matrix.python-version }} -- --runslow
+        run: tox -e py${{ matrix.python-version }}
         env:
           PYTHONUNBUFFERED: "True"
 
