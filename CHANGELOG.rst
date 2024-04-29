@@ -1,3 +1,9 @@
+2.4.0 - Feb 29, 2024. (sha cd877c4b34e81dde1a02d5e3d7a6385e6b6f5855)
+--------------------------------------------------------------------
+* Update shared db short link by @nuwang (PR #128)
+* Improved docs by @nuwang (PR #126)
+* Add optional slow tests by @nuwang (PR #66)
+
 2.3.3 - Feb 13, 2024. (sha 97405a5e8ab586b80037f036caa3cea0eabfeb10)
 --------------------------------------------------------------------
 * Fix get_dataset_size for datasets with null file_size column by @mvdbeek (PR #116)
