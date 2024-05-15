@@ -20,7 +20,7 @@ tools:
     abstract: true
   my_concrete_tool:
     inherits: default
-  bwa\:
+  bwa[:
     scheduling:
       require:
         - pulsar
