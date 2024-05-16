@@ -21,46 +21,46 @@ tools:
       from ruamel.yaml import YAML
       from tpv.commands.test import mock_galaxy
       from tpv.core.helpers import get_dataset_attributes, concurrent_job_count_for_tool
+      from galaxy import model
 
+      request_data = {}
+
+      # static objectstore info 
       # NOTE: currently object store info is stored in a yaml 
       objectstore_loc_path = "tests/fixtures/object_store_locations.yml"
-      print(dir(job))
-      dataset_attributes = helpers.get_dataset_attributes(job.input_datasets)
-      selected_object_store = "object_store_australia"
-
       yaml=YAML(typ='safe')
       objectstore_file = pathlib.Path(objectstore_loc_path)
       objectstore_dict = yaml.load(objectstore_file)
-      
-      # Define the URL of your FastAPI application
-      api_url = "http://localhost:8000/process_destinations"
+      request_data["static_objectstores_info"] = objectstore_dict
 
-      print("APP:",dir(app.Job))
+      # dataset info
+      request_data["static_dataset_info"] = helpers.get_dataset_attributes(job.input_datasets)
 
-      # test = app.model.context.query(model.Job).filter(model.Job.state == "queued", model.Job.destination_id == dest.dest_name).count()
+      # static job info
+      if not entity.gpus:
+        gpus = 0
+      request_data["static_job_info"] = {"tool_id": tool.id, "mem": mem, "cores": cores, "gpus": gpus,}
 
-      # print(test)
-      candidate_destinations_list = []
+      # current destination info
+      dest_info = []
       for dest in candidate_destinations:
-        dest_dict = dest.to_dict()
-        dest_dict["queued_job_count"] = app.model.context.query(model.Job).filter(model.Job.state == "queued", model.Job.destination_id == dest.dest_name).count()
-        candidate_destinations_list.append(dest_dict)
+        dest_dict = {"id": dest.id}
+        dest_dict.update(dest.context)
+        dest_dict["queued_job_count"] = 5 #model.Query(model.Job).filter(model.Job.state == "queued", model.Job.destination_id == dest.dest_name).count()
+        dest_dict["running_job_count"] = 5 #model.Query(model.Job).filter(model.Job.state == "running", model.Job.destination_id == dest.dest_name).count()
+        dest_info.append(dest_dict)
 
-      print(candidate_destinations[0])
+      request_data["current_dest_info"] = dest_info
 
-      # candidate_destinations_list = [{"id": dest.id, "context": dest.context} for dest in candidate_destinations]
+      print("REQUEST:")
+      print(request_data)
 
-      print(candidate_destinations_list)
-
-      input_data = {
-        "destinations": candidate_destinations_list,
-        "objectstores": objectstore_dict,
-        # "selected_objectstore": selected_object_store
-        "dataset_attributes": dataset_attributes
-      }
+      # Define the URL of your FastAPI application
+      api_url = "http://localhost:8000/process_data"
 
       # Send a POST request to the API endpoint
-      response = requests.post(api_url, json=input_data)
+      response = requests.post(api_url, json=request_data)
+      print(response.json())
 
       # Check if the request was successful (status code 200)
       if response.status_code == 200:
@@ -74,6 +74,7 @@ tools:
   trinity:
     cores: 2
     mem: cores * 4
+    gpus: 0
     env: {}
     scheduling:
       require: []
