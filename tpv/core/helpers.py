@@ -128,6 +128,7 @@ def get_dataset_attributes(datasets):
         for i in datasets or {}
     }
 
+
 def get_queue_info(app):
     # query the Galaxy DB and return a dictionary of sums of cores/mem/gpus
     # for queued and running jobs. This requires 'tpv_mem', 'tpv_cores' and
@@ -157,7 +158,7 @@ def get_queue_info(app):
     db_queue_info = {}
     for row in results:
         destination_id, state, job_count, sum_cores, sum_mem, sum_gpus = row
-        if not destination_id in db_queue_info:
+        if destination_id not in db_queue_info:
             db_queue_info[destination_id] = {}
         db_queue_info[destination_id][state] = {
             "sum_cores": sum_cores,
