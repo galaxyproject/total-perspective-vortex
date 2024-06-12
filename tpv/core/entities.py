@@ -154,7 +154,7 @@ class TagSetManager(object):
                 tag for tag in a_tags.filter(tag_type=TagType.PREFER)
                 if list(b_tags.filter(tag_type=[TagType.ACCEPT, TagType.PREFER, TagType.REQUIRE], tag_value=tag.value))
             )
-        score = 1 if a_prefers_b(self.tags, other.tags) or a_prefers_b(other.tags, self.tags) else 0
+        score = 1 if a_prefers_b(self.tpv_dest_tags, other.tpv_tags) or a_prefers_b(other.tpv_tags, self.tpv_dest_tags) else 0
         return score
 
     def __eq__(self, other):
