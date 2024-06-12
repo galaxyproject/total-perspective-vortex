@@ -149,10 +149,13 @@ class TagSetManager(object):
         :param other:
         :return:
         """
-        return (sum(int(tag.tag_type) * int(o.tag_type) for tag in self.tags for o in other.tags
-                    if tag.name == o.name and tag.value == o.value)
-                # penalize tags that don't exist in the other
-                - sum(int(tag.tag_type) for tag in self.tags if not other.contains_tag(tag)))
+        def a_prefers_b(a_tags, b_tags):
+            return any(
+                tag for tag in a_tags.filter(tag_type=TagType.PREFER)
+                if list(b_tags.filter(tag_type=[TagType.ACCEPT, TagType.PREFER, TagType.REQUIRE], tag_value=tag.value))
+            )
+        score = 1 if a_prefers_b(self.tpv_dest_tags, other.tpv_tags) or a_prefers_b(other.tpv_tags, self.tpv_dest_tags) else 0
+        return score
 
     def __eq__(self, other):
         if not isinstance(other, TagSetManager):
