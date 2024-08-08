@@ -16,6 +16,7 @@ tools:
     rules:
       - if: |
           helpers.job_args_match(job, app, {'input_opts': {'db_selector': 'db'}})
+        id: limbo_rule
         scheduling:
           prefer:
             - pulsar

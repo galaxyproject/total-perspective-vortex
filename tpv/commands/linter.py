@@ -42,7 +42,7 @@ class TPVConfigLinter(object):
 
     def lint_destinations(self, loader):
         default_inherits = loader.global_settings.get('default_inherits')
-        for destination in loader.destinations.values():
+        for destination in loader.config.destinations.values():
             if not destination.runner and not destination.abstract:
                 self.errors.append(f"Destination '{destination.id}' does not define the runner parameter. "
                                    "The runner parameter is mandatory.")

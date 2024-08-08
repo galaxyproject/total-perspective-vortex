@@ -2,7 +2,7 @@ import functools
 import logging
 import re
 
-from .entities import Tool, TryNextDestinationOrFail, TryNextDestinationOrWait
+from .entities import Entity, Tool, TryNextDestinationOrFail, TryNextDestinationOrWait
 from .loader import TPVConfigLoader
 
 from galaxy.jobs import JobDestination
@@ -15,16 +15,13 @@ class EntityToDestinationMapper(object):
 
     def __init__(self, loader: TPVConfigLoader):
         self.loader = loader
-        self.entities = {
-            "tools": loader.tools,
-            "users": loader.users,
-            "roles": loader.roles
-        }
-        self.destinations = loader.destinations
-        self.default_inherits = loader.global_settings.get('default_inherits')
-        self.global_context = loader.global_settings.get('context')
+        self.config = loader.config
+        self.destinations = self.config.destinations
+        self.default_inherits = self.config.global_config.default_inherits
+        self.global_context = self.config.global_config.context
         self.lookup_tool_regex = functools.lru_cache(maxsize=None)(self.__compile_tool_regex)
-        self.inherit_matching_entities = functools.lru_cache(maxsize=None)(self.__inherit_matching_entities)
+        # self.inherit_matching_entities = functools.lru_cache(maxsize=None)(self.__inherit_matching_entities)
+        self.inherit_matching_entities = self.__inherit_matching_entities
 
     def __compile_tool_regex(self, key):
         try:
@@ -33,7 +30,7 @@ class EntityToDestinationMapper(object):
             log.error(f"Failed to compile regex: {key}")
             raise
 
-    def _find_entities_matching_id(self, entity_list, entity_name):
+    def _find_entities_matching_id(self, entity_list: dict[str, Entity], entity_name: str):
         default_inherits = self.__get_default_inherits(entity_list)
         if default_inherits:
             matches = [default_inherits]
@@ -49,12 +46,11 @@ class EntityToDestinationMapper(object):
                     matches.append(match)
         return matches
 
-    def __inherit_matching_entities(self, entity_type, entity_name):
-        entity_list = self.entities.get(entity_type)
+    def __inherit_matching_entities(self, entity_list: dict[str, Entity], entity_name: str):
         matches = self._find_entities_matching_id(entity_list, entity_name)
         return self.inherit_entities(matches)
 
-    def __get_default_inherits(self, entity_list):
+    def __get_default_inherits(self, entity_list: dict[str, Entity]):
         if self.default_inherits:
             default_match = entity_list.get(self.default_inherits)
             if default_match:
@@ -101,14 +97,14 @@ class EntityToDestinationMapper(object):
         )
 
     def _find_matching_entities(self, tool, user):
-        tool_entity = self.inherit_matching_entities("tools", tool.id)
+        tool_entity = self.inherit_matching_entities(self.config.tools, tool.id)
         if not tool_entity:
-            tool_entity = Tool.from_dict(self.loader, {'id': tool.id})
+            tool_entity = Tool(loader=self.loader, id=tool.id)
 
         entity_list = [tool_entity]
 
         if user:
-            role_entities = (self.inherit_matching_entities("roles", role.name)
+            role_entities = (self.inherit_matching_entities(self.config.roles, role.name)
                              for role in user.all_roles() if not role.deleted)
             # trim empty
             user_role_entities = (role for role in role_entities if role)
@@ -116,7 +112,7 @@ class EntityToDestinationMapper(object):
             if user_role_entity:
                 entity_list += [user_role_entity]
 
-            user_entity = self.inherit_matching_entities("users", user.email)
+            user_entity = self.inherit_matching_entities(self.config.users, user.email)
             if user_entity:
                 entity_list += [user_entity]
 

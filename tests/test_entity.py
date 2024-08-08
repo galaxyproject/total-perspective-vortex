@@ -2,8 +2,6 @@ import os
 import unittest
 from tpv.rules import gateway
 from tpv.core.entities import Destination
-from tpv.core.entities import Tag
-from tpv.core.entities import TagType
 from tpv.core.entities import Tool
 from tpv.core.loader import TPVConfigLoader
 from tpv.commands.test import mock_galaxy
@@ -42,16 +40,15 @@ class TestEntity(unittest.TestCase):
             assert rule.loader == original_loader
 
     def test_destination_to_dict(self):
-
         tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rule-argument-based.yml')
         loader = TPVConfigLoader.from_url_or_path(tpv_config)
 
         # create a destination
-        destination = loader.destinations["k8s_environment"]
+        destination = loader.config.destinations["k8s_environment"]
         # serialize the destination
-        serialized_destination = destination.to_dict()
+        serialized_destination = destination.dict()
         # deserialize the same destination
-        deserialized_destination = Destination.from_dict(loader, serialized_destination)
+        deserialized_destination = Destination(loader=loader, **serialized_destination)
         # make sure the deserialized destination is the same as the original
         self.assertEqual(deserialized_destination, destination)
 
@@ -60,24 +57,10 @@ class TestEntity(unittest.TestCase):
         loader = TPVConfigLoader.from_url_or_path(tpv_config)
 
         # create a tool
-        tool = loader.tools["limbo"]
+        tool = loader.config.tools["limbo"]
         # serialize the tool
-        serialized_destination = tool.to_dict()
+        serialized_tool = tool.dict()
         # deserialize the same tool
-        deserialized_destination = Tool.from_dict(loader, serialized_destination)
+        deserialized_tool = Tool(loader=loader, **serialized_tool)
         # make sure the deserialized tool is the same as the original
-        self.assertEqual(deserialized_destination, tool)
-
-    def test_tag_equivalence(self):
-        tag1 = Tag("tag_name", "tag_value", TagType.REQUIRE)
-        tag2 = Tag("tag_name2", "tag_value", TagType.REQUIRE)
-        tag3 = Tag("tag_name", "tag_value1", TagType.REQUIRE)
-        tag4 = Tag("tag_name", "tag_value1", TagType.PREFER)
-        same_as_tag1 = Tag("tag_name", "tag_value", TagType.REQUIRE)
-
-        self.assertEqual(tag1, tag1)
-        self.assertEqual(tag1, same_as_tag1)
-        self.assertNotEqual(tag1, tag2)
-        self.assertNotEqual(tag1, tag3)
-        self.assertNotEqual(tag1, tag4)
-        self.assertNotEqual(tag1, "hello")
+        self.assertEqual(deserialized_tool, tool)
