@@ -197,13 +197,13 @@ class Entity(BaseModel):
     abstract: Optional[bool] = False
     cores: Optional[Union[float, str]] = None
     mem: Optional[Union[float, str]] = None
-    gpus: Optional[Union[float, str]] = None
+    gpus: Optional[Union[int, str]] = None
     min_cores: Optional[Union[float, str]] = None
     min_mem: Optional[Union[float, str]] = None
-    min_gpus: Optional[Union[float, str]] = None
+    min_gpus: Optional[Union[int, str]] = None
     max_cores: Optional[Union[float, str]] = None
     max_mem: Optional[Union[float, str]] = None
-    max_gpus: Optional[Union[float, str]] = None
+    max_gpus: Optional[Union[int, str]] = None
     env: Optional[List[Dict[str, str]]] = None
     params: Optional[Dict[str, str]] = None
     resubmit: Optional[Dict[str, str]] = Field(default_factory=dict)
@@ -592,10 +592,10 @@ class Destination(EntityWithRules):
     runner: Optional[str] = None
     max_accepted_cores: Optional[float] = None
     max_accepted_mem: Optional[float] = None
-    max_accepted_gpus: Optional[float] = None
+    max_accepted_gpus: Optional[int] = None
     min_accepted_cores: Optional[float] = None
     min_accepted_mem: Optional[float] = None
-    min_accepted_gpus: Optional[float] = None
+    min_accepted_gpus: Optional[int] = None
     dest_name: Optional[str] = Field(alias="destination_name_override", default=None)
     # tpv_tags track what tags the entity being scheduled requested, while tpv_dest_tags track what the destination
     # supports. When serializing a Destination, we don't need tpv_tags, only tpv_dest_tags.
