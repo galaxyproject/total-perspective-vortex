@@ -109,7 +109,8 @@ class SchedulingTags(BaseModel):
 
         # Add tag to the specified category
         tag_field = tag_type.name.lower()
-        setattr(self, tag_field, getattr(self, tag_field, []) or [] + [tag_value])
+        current_tags = getattr(self, tag_field, []) or []
+        setattr(self, tag_field, current_tags + [tag_value])
 
     def inherit(self, other: "SchedulingTags") -> "SchedulingTags":
         # Create new lists of tags that combine self and other
