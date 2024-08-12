@@ -32,19 +32,20 @@ class TryNextDestinationOrWait(Exception):
 
 
 def default_field_copier(entity1, entity2, property_name):
+    # if property_name in entity1.model_fields_set
     return (
         getattr(
             entity1,
             property_name,
         )
-        if getattr(entity1, property_name, None) is None
+        if getattr(entity1, property_name, None) is not None
         else getattr(entity2, property_name, None)
     )
 
 
 def default_dict_copier(entity1, entity2, property_name):
     new_dict = copy.deepcopy(getattr(entity2, property_name)) or {}
-    new_dict.update(getattr(entity2, property_name) or {})
+    new_dict.update(copy.deepcopy(getattr(entity1, property_name)) or {})
     return new_dict
 
 
@@ -97,18 +98,18 @@ class SchedulingTags(BaseModel):
         return self
 
     def all_tags(self) -> Generator[str, None, None]:
-        return itertools.chain(self.require, self.prefer, self.accept, self.reject)
+        return itertools.chain(self.require or [], self.prefer or [], self.accept or [], self.reject or [])
 
     def add_tag_override(self, tag_type: TagType, tag_value: str):
         # Remove tag from all categories
         for field in TagType:
             field_name = field.name.lower()
-            if tag_value in getattr(self, field_name):
+            if tag_value in (getattr(self, field_name) or []):
                 getattr(self, field_name).remove(tag_value)
 
         # Add tag to the specified category
         tag_field = tag_type.name.lower()
-        setattr(self, tag_field, getattr(self, tag_field, []).append(tag_value))
+        setattr(self, tag_field, getattr(self, tag_field, []) + [tag_value])
 
     def inherit(self, other: "SchedulingTags") -> "SchedulingTags":
         # Create new lists of tags that combine self and other
@@ -119,15 +120,15 @@ class SchedulingTags(BaseModel):
             TagType.REQUIRE,
             TagType.REJECT,
         ]:
-            for tag in getattr(self, tag_type.name.lower(), []):
+            for tag in (getattr(self, tag_type.name.lower()) or []):
                 new_tags.add_tag_override(tag_type, tag)
         return new_tags
 
     def can_combine(self, other: "SchedulingTags") -> bool:
-        self_required = set(self.require)
-        other_required = set(other.require)
-        self_rejected = set(self.reject)
-        other_rejected = set(other.reject)
+        self_required = set(self.require or [])
+        other_required = set(other.require or [])
+        self_rejected = set(self.reject or [])
+        other_rejected = set(other.reject or [])
 
         if self_required.intersection(other_rejected) or self_rejected.intersection(
             other_required
@@ -148,18 +149,18 @@ class SchedulingTags(BaseModel):
             TagType.REQUIRE,
             TagType.REJECT,
         ]:
-            for tag in getattr(other, tag_type.name.lower()):
+            for tag in getattr(other, tag_type.name.lower()) or []:
                 new_tags.add_tag_override(tag_type, tag)
-            for tag in getattr(self, tag_type.name.lower()):
+            for tag in getattr(self, tag_type.name.lower()) or []:
                 new_tags.add_tag_override(tag_type, tag)
 
         return new_tags
 
     def match(self, other: "SchedulingTags") -> bool:
-        self_required = set(self.require)
-        other_required = set(other.require)
-        self_rejected = set(self.reject)
-        other_rejected = set(other.reject)
+        self_required = set(self.require or [])
+        other_required = set(other.require or [])
+        self_rejected = set(self.reject or [])
+        other_rejected = set(other.reject or [])
 
         return (
             self_required.issubset(other.all_tags())
@@ -171,8 +172,9 @@ class SchedulingTags(BaseModel):
     def score(self, other: "SchedulingTags") -> int:
         score = 0
         for tag_type in TagType:
-            self_tags = set(getattr(self, tag_type.name.lower()))
-            other_tags = set(getattr(other, tag_type.name.lower()))
+            tag_type_name = tag_type.name.lower()
+            self_tags = set(getattr(self, tag_type_name) or [])
+            other_tags = set(getattr(other, tag_type_name) or [])
 
             common_tags = self_tags & other_tags
             score += len(common_tags) * int(tag_type) * int(tag_type)
@@ -214,9 +216,10 @@ class Entity(BaseModel):
 
     def __init__(self, **data: Any):
         super().__init__(**data)
-        self.propagate_loader(self.loader)
+        self.propagate_parent_properties(id=self.id, loader=self.loader)
 
-    def propagate_loader(self, loader):
+    def propagate_parent_properties(self, id=None, loader=None):
+        self.id = id
         self.loader = loader
 
     def __deepcopy__(self, memo: dict):
@@ -298,13 +301,11 @@ class Entity(BaseModel):
     def override_single_property(
         entity, entity1, entity2, property_name, field_copier=default_field_copier
     ):
-        if (
-            property_name in entity1.model_fields_set
-            or property_name in entity2.model_fields_set
-        ):
-            setattr(
-                entity, property_name, field_copier(entity1, entity2, property_name)
-            )
+        # if (
+        #     property_name in entity1.model_fields_set
+        #     or property_name in entity2.model_fields_set
+        # ):
+        setattr(entity, property_name, field_copier(entity1, entity2, property_name))
 
     def override(self, entity: "Entity") -> "Entity":
         if entity.merge_order <= self.merge_order:
@@ -497,13 +498,13 @@ class Rule(Entity):
 
     def override(self, entity):
         new_entity = super().override(entity)
-        self.override_single_property(new_entity, self, entity, "match")
+        self.override_single_property(new_entity, self, entity, "if_condition")
         self.override_single_property(new_entity, self, entity, "execute")
         self.override_single_property(new_entity, self, entity, "fail")
         return new_entity
 
     def is_matching(self, context):
-        if self.loader.eval_code_block(self.match, context):
+        if self.loader.eval_code_block(self.if_condition, context):
             return True
         else:
             return False
@@ -526,8 +527,8 @@ class EntityWithRules(Entity):
     merge_order: ClassVar[int] = 1
     rules: Optional[Dict[str, Rule]] = Field(default_factory=dict)
 
-    def propagate_loader(self, loader):
-        super().propagate_loader(loader)
+    def propagate_parent_properties(self, id=None, loader=None):
+        super().propagate_parent_properties(id=id, loader=loader)
         for rule in self.rules.values():
             rule.loader = loader
 
@@ -606,10 +607,9 @@ class Destination(EntityWithRules):
     )
     handler_tags: Optional[List[str]] = Field(alias="tags", default_factory=list)
 
-    @model_validator(mode="after")
-    def assign_defaults(self):
+    def propagate_parent_properties(self, id=None, loader=None):
+        super().propagate_parent_properties(id=id, loader=loader)
         self.dest_name = self.dest_name or self.id
-        return self
 
     def override(self, entity: Entity):
         new_entity = super().override(entity)
@@ -728,16 +728,16 @@ class TPVConfig(BaseModel):
     destinations: Optional[Dict[str, Destination]] = Field(default_factory=dict)
 
     @model_validator(mode="after")
-    def propagate_loader(self):
+    def propagate_parent_properties(self):
         if self.loader:
-            for tool in self.tools.values():
-                tool.propagate_loader(self.loader)
-            for user in self.users.values():
-                user.propagate_loader(self.loader)
-            for role in self.roles.values():
-                role.propagate_loader(self.loader)
-            for destination in self.destinations.values():
-                destination.propagate_loader(self.loader)
+            for id, tool in self.tools.items():
+                tool.propagate_parent_properties(id=id, loader=self.loader)
+            for id, user in self.users.items():
+                user.propagate_parent_properties(id=id, loader=self.loader)
+            for id, role in self.roles.items():
+                role.propagate_parent_properties(id=id, loader=self.loader)
+            for id, destination in self.destinations.items():
+                destination.propagate_parent_properties(id=id, loader=self.loader)
         return self
 
 
