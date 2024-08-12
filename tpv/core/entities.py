@@ -719,7 +719,7 @@ class GlobalConfig(BaseModel):
 
 class TPVConfig(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
-    global_config: Optional[GlobalConfig] = Field(alias="global", default_factory=dict)
+    global_config: Optional[GlobalConfig] = Field(alias="global", default_factory=GlobalConfig)
     loader: SkipJsonSchema[Optional[TPVCodeBlockInterface]] = Field(
         exclude=True, default=None
     )
