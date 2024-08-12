@@ -191,11 +191,9 @@ class Entity(BaseModel):
         arbitrary_types_allowed = True
 
     merge_order: ClassVar[int] = 0
-    loader: SkipJsonSchema[Optional[TPVCodeBlockInterface]] = Field(
-        exclude=True, default=None
-    )
     id: Optional[str] = None
     abstract: Optional[bool] = False
+    inherits: Optional[str] = None
     cores: Optional[Union[int, float, str]] = None
     mem: Optional[Union[int, float, str]] = None
     gpus: Optional[Union[int, str]] = None
@@ -208,12 +206,14 @@ class Entity(BaseModel):
     env: Optional[List[Dict[str, str]]] = None
     params: Optional[Dict[str, str]] = None
     resubmit: Optional[Dict[str, str]] = Field(default_factory=dict)
+    rank: Optional[str] = None
+    context: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    loader: SkipJsonSchema[Optional[TPVCodeBlockInterface]] = Field(
+        exclude=True, default=None
+    )
     tpv_tags: Optional[SchedulingTags] = Field(
         alias="scheduling", default_factory=SchedulingTags
     )
-    rank: Optional[str] = None
-    inherits: Optional[str] = None
-    context: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
     def __init__(self, **data: Any):
         super().__init__(**data)
