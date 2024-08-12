@@ -109,7 +109,7 @@ class SchedulingTags(BaseModel):
 
         # Add tag to the specified category
         tag_field = tag_type.name.lower()
-        setattr(self, tag_field, getattr(self, tag_field, []) + [tag_value])
+        setattr(self, tag_field, getattr(self, tag_field, []) or [] + [tag_value])
 
     def inherit(self, other: "SchedulingTags") -> "SchedulingTags":
         # Create new lists of tags that combine self and other
@@ -498,9 +498,10 @@ class Rule(Entity):
 
     def override(self, entity):
         new_entity = super().override(entity)
-        self.override_single_property(new_entity, self, entity, "if_condition")
-        self.override_single_property(new_entity, self, entity, "execute")
-        self.override_single_property(new_entity, self, entity, "fail")
+        if isinstance(entity, Rule):
+            self.override_single_property(new_entity, self, entity, "if_condition")
+            self.override_single_property(new_entity, self, entity, "execute")
+            self.override_single_property(new_entity, self, entity, "fail")
         return new_entity
 
     def is_matching(self, context):
