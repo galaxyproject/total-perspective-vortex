@@ -23,6 +23,7 @@ class TPVConfigLoader(TPVCodeBlockInterface):
             self.__compile_code_block
         )
         self.config = TPVConfig(loader=self, **tpv_config)
+        self.process_entities(self.config)
 
     def compile_code_block(self, code, as_f_string=False, exec_only=False):
         # interface method, replaced with instance based lru cache in constructor
@@ -87,7 +88,7 @@ class TPVConfigLoader(TPVCodeBlockInterface):
     def validate_entities(self, entities: Dict[str, Entity]) -> dict:
         self.recompute_inheritance(entities)
 
-    def load_entities(self, tpv_config: TPVConfig) -> dict:
+    def process_entities(self, tpv_config: TPVConfig) -> dict:
         self.validate_entities(tpv_config.tools),
         self.validate_entities(tpv_config.users),
         self.validate_entities(tpv_config.roles),
