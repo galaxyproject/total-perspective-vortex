@@ -28,8 +28,8 @@ class TPVConfigLinter(object):
         self.print_errors_and_warnings()
 
     def lint_tools(self, loader):
-        default_inherits = loader.config.global_config.get('default_inherits')
-        for tool_regex, tool in loader.tools.items():
+        default_inherits = loader.config.global_config.default_inherits
+        for tool_regex, tool in loader.config.tools.items():
             try:
                 re.compile(tool_regex)
             except re.error:
@@ -41,7 +41,7 @@ class TPVConfigLinter(object):
                     "will be excluded from scheduling decisions.")
 
     def lint_destinations(self, loader):
-        default_inherits = loader.config.global_config.get('default_inherits')
+        default_inherits = loader.config.global_config.default_inherits
         for destination in loader.config.destinations.values():
             if not destination.runner and not destination.abstract:
                 self.errors.append(f"Destination '{destination.id}' does not define the runner parameter. "
