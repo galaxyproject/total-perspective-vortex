@@ -195,8 +195,8 @@ class Entity(BaseModel):
     )
     id: Optional[str] = None
     abstract: Optional[bool] = False
-    cores: Optional[Union[float, str]] = None
-    mem: Optional[Union[float, str]] = None
+    cores: Optional[Union[int, float, str]] = None
+    mem: Optional[Union[int, float, str]] = None
     gpus: Optional[Union[int, str]] = None
     min_cores: Optional[Union[float, str]] = None
     min_mem: Optional[Union[float, str]] = None
