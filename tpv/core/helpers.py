@@ -5,6 +5,7 @@ except ImportError:
     # If Galaxy is < 23.1 you need to have `packaging` in <= 21.3
     from packaging.version import parse as parse_version
 
+from .entities import SchedulingTags
 import random
 from functools import reduce
 from galaxy import model
@@ -90,10 +91,8 @@ def concurrent_job_count_for_tool(app, tool, user=None):  # requires galaxy vers
 def tag_values_match(entity, match_tag_values=[], exclude_tag_values=[]):
     # Return true if an entity has require/prefer/accept tags in the match_tags_values list
     # and no require/prefer/accept tags in the exclude_tag_values list
-    return (
-        all([any(entity.tpv_tags.filter(tag_value=tag_value)) for tag_value in match_tag_values])
-        and not any([any(entity.tpv_tags.filter(tag_value=tag_value)) for tag_value in exclude_tag_values])
-    )
+    tags = SchedulingTags(require=match_tag_values, reject=exclude_tag_values)
+    return entity.tpv_tags.match(tags)
 
 
 def tool_version_eq(tool, version):
