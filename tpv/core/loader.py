@@ -128,4 +128,8 @@ class TPVConfigLoader(TPVCodeBlockInterface):
     @staticmethod
     def from_url_or_path(url_or_path: str):
         tpv_config = util.load_yaml_from_url_or_path(url_or_path)
-        return TPVConfigLoader(tpv_config)
+        try:
+            return TPVConfigLoader(tpv_config)
+        except Exception as e:
+            log.exception(f"Error loading TPV config: {url_or_path}")
+            raise e
