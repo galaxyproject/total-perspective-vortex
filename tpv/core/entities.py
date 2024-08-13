@@ -204,7 +204,7 @@ class Entity(BaseModel):
     max_mem: Optional[Union[float, str]] = None
     max_gpus: Optional[Union[int, str]] = None
     env: Optional[List[Dict[str, str]]] = None
-    params: Optional[Dict[str, str]] = None
+    params: Optional[Dict[str, Any]] = None
     resubmit: Optional[Dict[str, str]] = Field(default_factory=dict)
     rank: Optional[str] = None
     context: Optional[Dict[str, Any]] = Field(default_factory=dict)
@@ -232,7 +232,7 @@ class Entity(BaseModel):
     @staticmethod
     def convert_env(env):
         if isinstance(env, dict):
-            env = [dict(name=k, value=v) for (k, v) in env.items()]
+            env = [dict(name=k, value=str(v)) for (k, v) in env.items()]
         return env
 
     @model_validator(mode="before")
