@@ -59,7 +59,7 @@ users:
           from galaxy.jobs.rule_helper import RuleHelper
           from tpv.core.entities import TagType
 
-          if 'highmem' in entity.tpv_tags.all_tags():
+          if entity.tpv_tags.filter(tag_value='highmem'):
             rule_helper = RuleHelper(app)
             # Find all destinations that support highmem
             destinations = [d.dest_name for d in mapper.destinations.values()

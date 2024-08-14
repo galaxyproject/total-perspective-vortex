@@ -2,17 +2,18 @@ import copy
 import itertools
 import logging
 from collections import defaultdict
+from dataclasses import dataclass
 from enum import IntEnum
-from typing import Any, ClassVar, Dict, Generator, List, Optional, Union
+from typing import Any, ClassVar, Dict, Iterable, List, Optional, Union
 
 from galaxy import util as galaxy_util
 from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    ValidationInfo,
     field_validator,
     model_validator,
-    ValidationInfo,
 )
 from pydantic.json_schema import SkipJsonSchema
 
@@ -56,6 +57,12 @@ class TagType(IntEnum):
     REJECT = -1
 
 
+@dataclass
+class Tag:
+    value: str
+    tag_type: TagType
+
+
 class IncompatibleTagsException(Exception):
     def __init__(self, first_set: "SchedulingTags", second_set: "SchedulingTags"):
         super().__init__(
@@ -97,8 +104,32 @@ class SchedulingTags(BaseModel):
 
         return self
 
-    def all_tags(self) -> Generator[str, None, None]:
-        return itertools.chain(self.require or [], self.prefer or [], self.accept or [], self.reject or [])
+    @property
+    def tags(self) -> Iterable[Tag]:
+        return itertools.chain(
+            (Tag(value=tag, tag_type=TagType.REQUIRE) for tag in self.require or []),
+            (Tag(value=tag, tag_type=TagType.PREFER) for tag in self.prefer or []),
+            (Tag(value=tag, tag_type=TagType.ACCEPT) for tag in self.accept or []),
+            (Tag(value=tag, tag_type=TagType.REJECT) for tag in self.reject or []),
+        )
+
+    def all_tag_values(self) -> Iterable[str]:
+        return itertools.chain(
+            self.require or [], self.prefer or [], self.accept or [], self.reject or []
+        )
+
+    def filter(
+        self, tag_type: TagType | list[TagType] = None, tag_value: str = None
+    ) -> list[Tag]:
+        filtered = self.tags
+        if tag_type:
+            if isinstance(tag_type, TagType):
+                filtered = (tag for tag in filtered if tag.tag_type == tag_type)
+            else:
+                filtered = (tag for tag in filtered if tag.tag_type in tag_type)
+        if tag_value:
+            filtered = (tag for tag in filtered if tag.value == tag_value)
+        return filtered
 
     def add_tag_override(self, tag_type: TagType, tag_value: str):
         # Remove tag from all categories
@@ -121,7 +152,7 @@ class SchedulingTags(BaseModel):
             TagType.REQUIRE,
             TagType.REJECT,
         ]:
-            for tag in (getattr(self, tag_type.name.lower()) or []):
+            for tag in getattr(self, tag_type.name.lower()) or []:
                 new_tags.add_tag_override(tag_type, tag)
         return new_tags
 
@@ -164,26 +195,27 @@ class SchedulingTags(BaseModel):
         other_rejected = set(other.reject or [])
 
         return (
-            self_required.issubset(other.all_tags())
-            and other_required.issubset(self.all_tags())
-            and not self_rejected.intersection(other.all_tags())
-            and not other_rejected.intersection(self.all_tags())
+            self_required.issubset(other.all_tag_values())
+            and other_required.issubset(self.all_tag_values())
+            and not self_rejected.intersection(other.all_tag_values())
+            and not other_rejected.intersection(self.all_tag_values())
         )
 
     def score(self, other: "SchedulingTags") -> int:
-        score = 0
-        for tag_type in TagType:
-            tag_type_name = tag_type.name.lower()
-            self_tags = set(getattr(self, tag_type_name) or [])
-            other_tags = set(getattr(other, tag_type_name) or [])
-
-            common_tags = self_tags & other_tags
-            score += len(common_tags) * int(tag_type) * int(tag_type)
-
-            unique_self_tags = self_tags - other_tags
-            score -= len(unique_self_tags) * int(tag_type)
-
-        return score
+        return (
+            sum(
+                int(tag.tag_type) * int(o.tag_type)
+                for tag in self.filter()
+                for o in other.filter()
+                if tag.value == o.value
+            )
+            # penalize tags that don't exist in the other
+            - sum(
+                int(tag.tag_type)
+                for tag in self.tags
+                if tag not in other.tags
+            )
+        )
 
 
 class Entity(BaseModel):
@@ -720,7 +752,9 @@ class GlobalConfig(BaseModel):
 
 class TPVConfig(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
-    global_config: Optional[GlobalConfig] = Field(alias="global", default_factory=GlobalConfig)
+    global_config: Optional[GlobalConfig] = Field(
+        alias="global", default_factory=GlobalConfig
+    )
     loader: SkipJsonSchema[Optional[TPVCodeBlockInterface]] = Field(
         exclude=True, default=None
     )
