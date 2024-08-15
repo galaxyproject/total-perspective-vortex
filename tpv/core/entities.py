@@ -4,20 +4,18 @@ import logging
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import Any, ClassVar, Dict, Iterable, List, Optional, Union
+from typing import Annotated, Any, ClassVar, Dict, Iterable, List, Optional
 
 from galaxy import util as galaxy_util
 from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
-    ValidationInfo,
-    field_validator,
     model_validator,
 )
 from pydantic.json_schema import SkipJsonSchema
 
-from .evaluator import TPVCodeBlockInterface
+from .evaluator import TPVCodeEvaluator
 
 log = logging.getLogger(__name__)
 
@@ -30,6 +28,11 @@ class TryNextDestinationOrFail(Exception):
 class TryNextDestinationOrWait(Exception):
     # Try next destination, raise JobNotReadyException if destination options exhausted
     pass
+
+
+@dataclass
+class TPVFieldMetadata:
+    complex_property: bool = False
 
 
 def default_field_copier(entity1, entity2, property_name):
@@ -226,21 +229,27 @@ class Entity(BaseModel):
     id: Optional[str] = None
     abstract: Optional[bool] = False
     inherits: Optional[str] = None
-    cores: Optional[Union[int, float, str]] = None
-    mem: Optional[Union[int, float, str]] = None
-    gpus: Optional[Union[int, str]] = None
-    min_cores: Optional[Union[int, float, str]] = None
-    min_mem: Optional[Union[int, float, str]] = None
-    min_gpus: Optional[Union[int, str]] = None
-    max_cores: Optional[Union[int, float, str]] = None
-    max_mem: Optional[Union[int, float, str]] = None
-    max_gpus: Optional[Union[int, str]] = None
-    env: Optional[List[Dict[str, str]]] = None
-    params: Optional[Dict[str, Any]] = None
-    resubmit: Optional[Dict[str, str]] = Field(default_factory=dict)
-    rank: Optional[str] = None
+    cores: Annotated[Optional[int | float | str], TPVFieldMetadata()] = None
+    mem: Annotated[Optional[int | float | str], TPVFieldMetadata()] = None
+    gpus: Annotated[Optional[int | str], TPVFieldMetadata()] = None
+    min_cores: Annotated[Optional[int | float | str], TPVFieldMetadata()] = None
+    min_mem: Annotated[Optional[int | float | str], TPVFieldMetadata()] = None
+    min_gpus: Annotated[Optional[int | str], TPVFieldMetadata()] = None
+    max_cores: Annotated[Optional[int | float | str], TPVFieldMetadata()] = None
+    max_mem: Annotated[Optional[int | float | str], TPVFieldMetadata()] = None
+    max_gpus: Annotated[Optional[int | str], TPVFieldMetadata()] = None
+    env: Annotated[
+        Optional[List[Dict[str, str]]], TPVFieldMetadata(complex_property=True)
+    ] = None
+    params: Annotated[
+        Optional[Dict[str, Any]], TPVFieldMetadata(complex_property=True)
+    ] = None
+    resubmit: Annotated[
+        Optional[Dict[str, str]], TPVFieldMetadata(complex_property=True)
+    ] = Field(default_factory=dict)
+    rank: Annotated[Optional[str], TPVFieldMetadata()] = None
     context: Optional[Dict[str, Any]] = Field(default_factory=dict)
-    loader: SkipJsonSchema[Optional[TPVCodeBlockInterface]] = Field(
+    evaluator: SkipJsonSchema[Optional[TPVCodeEvaluator]] = Field(
         exclude=True, default=None
     )
     tpv_tags: Optional[SchedulingTags] = Field(
@@ -249,16 +258,31 @@ class Entity(BaseModel):
 
     def __init__(self, **data: Any):
         super().__init__(**data)
-        self.propagate_parent_properties(id=self.id, loader=self.loader)
+        self.propagate_parent_properties(id=self.id, evaluator=self.evaluator)
 
-    def propagate_parent_properties(self, id=None, loader=None):
+    def propagate_parent_properties(self, id=None, evaluator=None):
         self.id = id
-        self.loader = loader
+        self.evaluator = evaluator
+        if evaluator:
+            self.precompile_properties(evaluator)
+
+    def precompile_properties(self, evaluator: TPVCodeEvaluator):
+        # compile properties and check for errors
+        if evaluator:
+            for name, value in self:
+                field = self.model_fields[name]
+                if field.metadata and field.metadata[0]:
+                    prop = field.metadata[0]
+                    if isinstance(prop, TPVFieldMetadata):
+                        if prop.complex_property:
+                            evaluator.compile_complex_property(value)
+                        else:
+                            evaluator.compile_code_block(value)
 
     def __deepcopy__(self, memo: dict):
-        # make sure we don't deepcopy the loader: https://github.com/galaxyproject/total-perspective-vortex/issues/53
+        # make sure we don't deepcopy the evaluator: https://github.com/galaxyproject/total-perspective-vortex/issues/53
         # xref: https://stackoverflow.com/a/68746763/10971151
-        memo[id(self.loader)] = self.loader
+        memo[id(self.evaluator)] = self.evaluator
         return super().__deepcopy__(memo)
 
     @staticmethod
@@ -273,49 +297,7 @@ class Entity(BaseModel):
         if values:
             values["abstract"] = galaxy_util.asbool(values.get("abstract", False))
             values["env"] = Entity.convert_env(values.get("env"))
-            # loader = values.get("loader")
-            # compile properties and check for errors
-            # if loader:
-            #     for f in cls.model_fields:
-            #         field = cls.model_fields[f]
-            #         if f in values and field.metadata and field.metadata[0]:
-            #             metadata = field.metadata[0]
-            #             if metadata.complex_property:
-            #                 self.compile_complex_property(loader, values[f])
-            #             else:
-            #                 self.compile_code_block(loader, values[f])
         return values
-
-    def process_complex_property(self, prop, context: Dict[str, Any], func):
-        if isinstance(prop, str):
-            return func(prop, context)
-        elif isinstance(prop, dict):
-            evaluated_props = {
-                key: self.process_complex_property(childprop, context, func)
-                for key, childprop in prop.items()
-            }
-            return evaluated_props
-        elif isinstance(prop, list):
-            evaluated_props = [
-                self.process_complex_property(childprop, context, func)
-                for childprop in prop
-            ]
-            return evaluated_props
-        else:
-            return prop
-
-    @classmethod
-    def compile_complex_property(cls, loader, prop):
-        return cls.process_complex_property(
-            prop, None, lambda p, c: loader.compile_code_block(p, as_f_string=True)
-        )
-
-    def evaluate_complex_property(self, prop, context: Dict[str, Any]):
-        return self.process_complex_property(
-            prop,
-            context,
-            lambda p, c: self.loader.eval_code_block(p, c, as_f_string=True),
-        )
 
     @staticmethod
     def merge_env_list(original, replace):
@@ -419,25 +401,29 @@ class Entity(BaseModel):
         new_entity = copy.deepcopy(self)
         context.update(self.context or {})
         if self.min_gpus is not None:
-            new_entity.min_gpus = self.loader.eval_code_block(self.min_gpus, context)
+            new_entity.min_gpus = self.evaluator.eval_code_block(self.min_gpus, context)
             context["min_gpus"] = new_entity.min_gpus
         if self.min_cores is not None:
-            new_entity.min_cores = self.loader.eval_code_block(self.min_cores, context)
+            new_entity.min_cores = self.evaluator.eval_code_block(
+                self.min_cores, context
+            )
             context["min_cores"] = new_entity.min_cores
         if self.min_mem is not None:
-            new_entity.min_mem = self.loader.eval_code_block(self.min_mem, context)
+            new_entity.min_mem = self.evaluator.eval_code_block(self.min_mem, context)
             context["min_mem"] = new_entity.min_mem
         if self.max_gpus is not None:
-            new_entity.max_gpus = self.loader.eval_code_block(self.max_gpus, context)
+            new_entity.max_gpus = self.evaluator.eval_code_block(self.max_gpus, context)
             context["max_gpus"] = new_entity.max_gpus
         if self.max_cores is not None:
-            new_entity.max_cores = self.loader.eval_code_block(self.max_cores, context)
+            new_entity.max_cores = self.evaluator.eval_code_block(
+                self.max_cores, context
+            )
             context["max_cores"] = new_entity.max_cores
         if self.max_mem is not None:
-            new_entity.max_mem = self.loader.eval_code_block(self.max_mem, context)
+            new_entity.max_mem = self.evaluator.eval_code_block(self.max_mem, context)
             context["max_mem"] = new_entity.max_mem
         if self.gpus is not None:
-            new_entity.gpus = self.loader.eval_code_block(self.gpus, context)
+            new_entity.gpus = self.evaluator.eval_code_block(self.gpus, context)
             # clamp gpus
             new_entity.gpus = max(new_entity.min_gpus or 0, new_entity.gpus or 0)
             new_entity.gpus = (
@@ -447,7 +433,7 @@ class Entity(BaseModel):
             )
             context["gpus"] = new_entity.gpus
         if self.cores is not None:
-            new_entity.cores = self.loader.eval_code_block(self.cores, context)
+            new_entity.cores = self.evaluator.eval_code_block(self.cores, context)
             # clamp cores
             new_entity.cores = max(new_entity.min_cores or 0, new_entity.cores or 0)
             new_entity.cores = (
@@ -457,7 +443,7 @@ class Entity(BaseModel):
             )
             context["cores"] = new_entity.cores
         if self.mem is not None:
-            new_entity.mem = self.loader.eval_code_block(self.mem, context)
+            new_entity.mem = self.evaluator.eval_code_block(self.mem, context)
             # clamp mem
             new_entity.mem = max(new_entity.min_mem or 0, new_entity.mem or 0)
             new_entity.mem = (
@@ -478,13 +464,17 @@ class Entity(BaseModel):
         """
         new_entity = self.evaluate_resources(context)
         if self.env:
-            new_entity.env = self.evaluate_complex_property(self.env, context)
+            new_entity.env = self.evaluator.evaluate_complex_property(self.env, context)
             context["env"] = new_entity.env
         if self.params:
-            new_entity.params = self.evaluate_complex_property(self.params, context)
+            new_entity.params = self.evaluator.evaluate_complex_property(
+                self.params, context
+            )
             context["params"] = new_entity.params
         if self.resubmit:
-            new_entity.resubmit = self.evaluate_complex_property(self.resubmit, context)
+            new_entity.resubmit = self.evaluator.evaluate_complex_property(
+                self.resubmit, context
+            )
             context["resubmit"] = new_entity.resubmit
         return new_entity
 
@@ -497,7 +487,7 @@ class Entity(BaseModel):
                 " function"
             )
             context["candidate_destinations"] = destinations
-            return self.loader.eval_code_block(self.rank, context)
+            return self.evaluator.eval_code_block(self.rank, context)
         else:
             # Sort destinations by priority
             log.debug(
@@ -538,7 +528,7 @@ class Rule(Entity):
         return new_entity
 
     def is_matching(self, context):
-        if self.loader.eval_code_block(self.if_condition, context):
+        if self.evaluator.eval_code_block(self.if_condition, context):
             return True
         else:
             return False
@@ -548,10 +538,10 @@ class Rule(Entity):
             from galaxy.jobs.mapper import JobMappingException
 
             raise JobMappingException(
-                self.loader.eval_code_block(self.fail, context, as_f_string=True)
+                self.evaluator.eval_code_block(self.fail, context, as_f_string=True)
             )
         if self.execute:
-            self.loader.eval_code_block(self.execute, context, exec_only=True)
+            self.evaluator.eval_code_block(self.execute, context, exec_only=True)
             # return any changes made to the entity
             return context["entity"]
         return self
@@ -561,16 +551,10 @@ class EntityWithRules(Entity):
     merge_order: ClassVar[int] = 1
     rules: Optional[Dict[str, Rule]] = Field(default_factory=dict)
 
-    def propagate_parent_properties(self, id=None, loader=None):
-        super().propagate_parent_properties(id=id, loader=loader)
+    def propagate_parent_properties(self, id=None, evaluator=None):
+        super().propagate_parent_properties(id=id, evaluator=evaluator)
         for rule in self.rules.values():
-            rule.loader = loader
-
-    @field_validator("rules", mode="after")
-    def inject_loader(cls, v: Dict[str, Entity], info: ValidationInfo):
-        for element in v.values():
-            element.loader = info.data["loader"]
-        return v
+            rule.evaluator = evaluator
 
     @model_validator(mode="before")
     @classmethod
@@ -639,10 +623,12 @@ class Destination(EntityWithRules):
     tpv_dest_tags: Optional[SchedulingTags] = Field(
         alias="scheduling", default_factory=SchedulingTags
     )
-    handler_tags: Optional[List[str]] = Field(alias="tags", default_factory=list)
+    handler_tags: Annotated[
+        Optional[List[str]], TPVFieldMetadata(complex_property=True)
+    ] = Field(alias="tags", default_factory=list)
 
-    def propagate_parent_properties(self, id=None, loader=None):
-        super().propagate_parent_properties(id=id, loader=loader)
+    def propagate_parent_properties(self, id=None, evaluator=None):
+        super().propagate_parent_properties(id=id, evaluator=evaluator)
         self.dest_name = self.dest_name or self.id
 
     def override(self, entity: Entity):
@@ -661,12 +647,12 @@ class Destination(EntityWithRules):
     def evaluate(self, context: Dict[str, Any]):
         new_entity = super(Destination, self).evaluate(context)
         if self.dest_name is not None:
-            new_entity.dest_name = self.loader.eval_code_block(
+            new_entity.dest_name = self.evaluator.eval_code_block(
                 self.dest_name, context, as_f_string=True
             )
             context["dest_name"] = new_entity.dest_name
         if self.handler_tags is not None:
-            new_entity.handler_tags = self.evaluate_complex_property(
+            new_entity.handler_tags = self.evaluator.evaluate_complex_property(
                 self.handler_tags, context
             )
             context["handler_tags"] = new_entity.handler_tags
@@ -755,7 +741,7 @@ class TPVConfig(BaseModel):
     global_config: Optional[GlobalConfig] = Field(
         alias="global", default_factory=GlobalConfig
     )
-    loader: SkipJsonSchema[Optional[TPVCodeBlockInterface]] = Field(
+    evaluator: SkipJsonSchema[Optional[TPVCodeEvaluator]] = Field(
         exclude=True, default=None
     )
     tools: Optional[Dict[str, Tool]] = Field(default_factory=dict)
@@ -765,19 +751,13 @@ class TPVConfig(BaseModel):
 
     @model_validator(mode="after")
     def propagate_parent_properties(self):
-        if self.loader:
+        if self.evaluator:
             for id, tool in self.tools.items():
-                tool.propagate_parent_properties(id=id, loader=self.loader)
+                tool.propagate_parent_properties(id=id, evaluator=self.evaluator)
             for id, user in self.users.items():
-                user.propagate_parent_properties(id=id, loader=self.loader)
+                user.propagate_parent_properties(id=id, evaluator=self.evaluator)
             for id, role in self.roles.items():
-                role.propagate_parent_properties(id=id, loader=self.loader)
+                role.propagate_parent_properties(id=id, evaluator=self.evaluator)
             for id, destination in self.destinations.items():
-                destination.propagate_parent_properties(id=id, loader=self.loader)
+                destination.propagate_parent_properties(id=id, evaluator=self.evaluator)
         return self
-
-
-# from tpv.core import schema
-# import yaml
-# data = yaml.safe_load(open("/Users/nuwan/work/total-perspective-vortex/tests/fixtures/scenario.yml"))
-# config = schema.TPVConfig(**data)

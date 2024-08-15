@@ -7,7 +7,7 @@ from typing import Dict
 
 from . import helpers, util
 from .entities import Entity, GlobalConfig, TPVConfig
-from .evaluator import TPVCodeBlockInterface
+from .evaluator import TPVCodeEvaluator
 
 log = logging.getLogger(__name__)
 
@@ -16,13 +16,13 @@ class InvalidParentException(Exception):
     pass
 
 
-class TPVConfigLoader(TPVCodeBlockInterface):
+class TPVConfigLoader(TPVCodeEvaluator):
 
     def __init__(self, tpv_config: TPVConfig):
         self.compile_code_block = functools.lru_cache(maxsize=None)(
             self.__compile_code_block
         )
-        self.config = TPVConfig(loader=self, **tpv_config)
+        self.config = TPVConfig(evaluator=self, **tpv_config)
         self.process_entities(self.config)
 
     def compile_code_block(self, code, as_f_string=False, exec_only=False):

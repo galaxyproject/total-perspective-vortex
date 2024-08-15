@@ -35,9 +35,9 @@ class TestEntity(unittest.TestCase):
         }
         # make sure we are still referring to the same loader after evaluation
         evaluated_entity = gateway.ACTIVE_DESTINATION_MAPPER.match_combine_evaluate_entities(context, tool, user)
-        assert evaluated_entity.loader == original_loader
+        assert evaluated_entity.evaluator == original_loader
         for rule in evaluated_entity.rules:
-            assert rule.loader == original_loader
+            assert rule.evaluator == original_loader
 
     def test_destination_to_dict(self):
         tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rule-argument-based.yml')
@@ -48,7 +48,7 @@ class TestEntity(unittest.TestCase):
         # serialize the destination
         serialized_destination = destination.dict()
         # deserialize the same destination
-        deserialized_destination = Destination(loader=loader, **serialized_destination)
+        deserialized_destination = Destination(evaluator=loader, **serialized_destination)
         # make sure the deserialized destination is the same as the original
         self.assertEqual(deserialized_destination, destination)
 
@@ -61,6 +61,6 @@ class TestEntity(unittest.TestCase):
         # serialize the tool
         serialized_tool = tool.dict()
         # deserialize the same tool
-        deserialized_tool = Tool(loader=loader, **serialized_tool)
+        deserialized_tool = Tool(evaluator=loader, **serialized_tool)
         # make sure the deserialized tool is the same as the original
         self.assertEqual(deserialized_tool, tool)
