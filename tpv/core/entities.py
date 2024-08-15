@@ -520,7 +520,7 @@ class Entity(BaseModel):
 class Rule(Entity):
     rule_counter: ClassVar[int] = 0
     id: Optional[str] = Field(default_factory=lambda: Rule.set_default_id())
-    if_condition: str = Field(alias="if")
+    if_condition: str | bool = Field(alias="if")
     execute: Optional[str] = None
     fail: Optional[str] = None
 
