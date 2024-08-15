@@ -213,7 +213,7 @@ class SchedulingTags(BaseModel):
             - sum(
                 int(tag.tag_type)
                 for tag in self.tags
-                if tag not in other.tags
+                if tag.value not in other.all_tag_values()
             )
         )
 
