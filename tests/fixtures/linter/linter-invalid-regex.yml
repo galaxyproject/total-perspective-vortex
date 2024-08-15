@@ -6,7 +6,7 @@ tools:
     cores: 2
     params:
       native_spec: "--mem {mem} --cores {cores} --gpus {gpus}"
-  bwa[0-9]++:
+  bwa[0-9]++\:
     gpus: 2
 
 destinations:
