@@ -5,6 +5,7 @@ tools:
   default:
     cores: 2
     mem: 8
+    gpus: 1
     env: {}
     scheduling:
       require: []
@@ -13,18 +14,14 @@ tools:
       accept:
       reject:
         - pulsar
+    params:
+      native_spec: "--mem {mem} --cores {cores}"
     rules: []
-    rank: |
-      helpers.weighted_rand oops syntax! om_sampling(candidate_destinations)
 
-  bwa:
-    scheduling:
-      require:
-        - pulsar
 users:
   default:
     max_cores: 3
-    max_mem: 8
+    max_mem: 4
     env: {}
     scheduling:
       require: []
@@ -34,17 +31,11 @@ users:
       reject:
         - pulsar
     rules: []
-  fairycake@vortex.org:
+  improbable@vortex.org:
     scheduling:
       require:
         - pulsar
-  arthur@vortex.org:
-    scheduling:
-      require:
-        - earth
-  .*@vortex.org:
-    scheduling:
-      require:
+      reject:
         - pulsar
 
 destinations:
@@ -55,11 +46,5 @@ destinations:
     scheduling:
       prefer:
         - general
-  k8s_environment:
-    runner: k8s
-    max_accepted_cores: 16
-    max_accepted_mem: 64
-    max_accepted_gpus: 2
-    scheduling:
-      prefer:
+      accept:
         - pulsar

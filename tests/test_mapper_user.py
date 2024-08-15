@@ -8,10 +8,10 @@ from tpv.commands.test import mock_galaxy
 class TestMapperUser(unittest.TestCase):
 
     @staticmethod
-    def _map_to_destination(tool, user):
+    def _map_to_destination(tool, user, tpv_config_path=None):
         galaxy_app = mock_galaxy.App(job_conf=os.path.join(os.path.dirname(__file__), 'fixtures/job_conf.yml'))
         job = mock_galaxy.Job()
-        tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-user.yml')
+        tpv_config = tpv_config_path or os.path.join(os.path.dirname(__file__), 'fixtures/mapping-user.yml')
         gateway.ACTIVE_DESTINATION_MAPPER = None
         return gateway.map_tool_to_destination(galaxy_app, job, tool, user, tpv_config_files=[tpv_config])
 
@@ -40,8 +40,9 @@ class TestMapperUser(unittest.TestCase):
         tool = mock_galaxy.Tool('bwa')
         user = mock_galaxy.User('infinitely', 'improbable@vortex.org')
 
-        with self.assertRaises(IncompatibleTagsException):
-            self._map_to_destination(tool, user)
+        config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-user-invalid-tags.yml')
+        with self.assertRaisesRegex(Exception, r"Duplicate tags found: 'pulsar' in \['require', 'reject'\]"):
+            self._map_to_destination(tool, user, tpv_config_path=config)
 
     def test_map_user_by_regex(self):
         tool = mock_galaxy.Tool('bwa')
