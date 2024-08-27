@@ -20,8 +20,7 @@ class EntityToDestinationMapper(object):
         self.default_inherits = self.config.global_config.default_inherits
         self.global_context = self.config.global_config.context
         self.lookup_tool_regex = functools.lru_cache(maxsize=None)(self.__compile_tool_regex)
-        # self.inherit_matching_entities = functools.lru_cache(maxsize=None)(self.__inherit_matching_entities)
-        self.inherit_matching_entities = self.__inherit_matching_entities
+        self.inherit_matching_entities = functools.lru_cache(maxsize=None)(self.__inherit_matching_entities)
 
     def __compile_tool_regex(self, key):
         try:
@@ -46,7 +45,8 @@ class EntityToDestinationMapper(object):
                     matches.append(match)
         return matches
 
-    def __inherit_matching_entities(self, entity_list: dict[str, Entity], entity_name: str):
+    def __inherit_matching_entities(self, entity_type: str, entity_name: str):
+        entity_list = getattr(self.config, entity_type)
         matches = self._find_entities_matching_id(entity_list, entity_name)
         return self.inherit_entities(matches)
 
@@ -97,14 +97,14 @@ class EntityToDestinationMapper(object):
         )
 
     def _find_matching_entities(self, tool, user):
-        tool_entity = self.inherit_matching_entities(self.config.tools, tool.id)
+        tool_entity = self.inherit_matching_entities("tools", tool.id)
         if not tool_entity:
             tool_entity = Tool(loader=self.loader, id=tool.id)
 
         entity_list = [tool_entity]
 
         if user:
-            role_entities = (self.inherit_matching_entities(self.config.roles, role.name)
+            role_entities = (self.inherit_matching_entities("roles", role.name)
                              for role in user.all_roles() if not role.deleted)
             # trim empty
             user_role_entities = (role for role in role_entities if role)
@@ -112,7 +112,7 @@ class EntityToDestinationMapper(object):
             if user_role_entity:
                 entity_list += [user_role_entity]
 
-            user_entity = self.inherit_matching_entities(self.config.users, user.email)
+            user_entity = self.inherit_matching_entities("users", user.email)
             if user_entity:
                 entity_list += [user_entity]
 
