@@ -60,7 +60,7 @@ class TagType(IntEnum):
     REJECT = -1
 
 
-@dataclass
+@dataclass(frozen=True)
 class Tag:
     value: str
     tag_type: TagType
@@ -316,10 +316,6 @@ class Entity(BaseModel):
     def override_single_property(
         entity, entity1, entity2, property_name, field_copier=default_field_copier
     ):
-        # if (
-        #     property_name in entity1.model_fields_set
-        #     or property_name in entity2.model_fields_set
-        # ):
         setattr(entity, property_name, field_copier(entity1, entity2, property_name))
 
     def override(self, entity: "Entity") -> "Entity":

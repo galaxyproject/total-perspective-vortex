@@ -2,6 +2,8 @@ import os
 import unittest
 from tpv.rules import gateway
 from tpv.core.entities import Destination
+from tpv.core.entities import Tag
+from tpv.core.entities import TagType
 from tpv.core.entities import Tool
 from tpv.core.loader import TPVConfigLoader
 from tpv.commands.test import mock_galaxy
@@ -64,3 +66,16 @@ class TestEntity(unittest.TestCase):
         deserialized_tool = Tool(evaluator=loader, **serialized_tool)
         # make sure the deserialized tool is the same as the original
         self.assertEqual(deserialized_tool, tool)
+
+    def test_tag_equivalence(self):
+        tag1 = Tag(value="tag_value", tag_type=TagType.REQUIRE)
+        tag2 = Tag(value="tag_value", tag_type=TagType.REQUIRE)
+        tag3 = Tag(value="tag_value1", tag_type=TagType.REQUIRE)
+        tag4 = Tag(value="tag_value1", tag_type=TagType.PREFER)
+        same_as_tag1 = Tag(value="tag_value", tag_type=TagType.REQUIRE)
+
+        self.assertEqual(tag1, tag1)
+        self.assertEqual(tag1, same_as_tag1)
+        self.assertNotEqual(tag1, tag3)
+        self.assertNotEqual(tag1, tag4)
+        self.assertNotEqual(tag1, "hello")

@@ -174,7 +174,7 @@ destinations:
       SPECIAL_FLAG: "first"
     params:
       memory_requests: "{mem}"
-      k8s_walltime_limit: "10"
+      k8s_walltime_limit: 10
     rules:
       - if: input_size > 10
         execute: |
