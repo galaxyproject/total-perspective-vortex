@@ -120,14 +120,15 @@ def configure_logging(verbosity_count):
     # or basicConfig persists
     for handler in logging.root.handlers[:]:
         logging.root.removeHandler(handler)
+    level = max(4 - verbosity_count, 1) * 10
     # set global logging level
     logging.basicConfig(
         stream=sys.stdout,
-        level=logging.DEBUG if verbosity_count > 3 else logging.ERROR,
+        level=level,
         format='%(levelname)-5s: %(name)s: %(message)s')
     # Set client log level
     if verbosity_count:
-        log.setLevel(max(4 - verbosity_count, 1) * 10)
+        log.setLevel(level)
     else:
         log.setLevel(logging.INFO)
 

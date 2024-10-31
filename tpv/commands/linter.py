@@ -34,6 +34,10 @@ class TPVConfigLinter(object):
                     f"The tool named: {default_inherits} is marked globally as the tool to inherit from "
                     "by default. You may want to mark it as abstract if it is not an actual tool and it "
                     "will be excluded from scheduling decisions.")
+            if tool.cores and not tool.mem:
+                self.warnings.append(
+                    f"The tool named: {tool_regex} sets `cores` but not `mem`. This can lead to "
+                    "unexpected memory usage since memory is typically a multiplier of cores.")
         for destination in loader.destinations.values():
             if not destination.runner and not destination.abstract:
                 self.errors.append(f"Destination '{destination.id}' does not define the runner parameter. "
