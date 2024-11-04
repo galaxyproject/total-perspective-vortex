@@ -88,6 +88,13 @@ class TPVConfigLoader(object):
 
         return (False, None)
 
+    def store_noqa_codes(self, entity_list: dict, entity_id: str, noqa_dict: dict):
+        if hasattr(entity_list, "ca"):
+            entity_comments = entity_list.ca.items.get(entity_id)
+            noqa, noqa_codes = self.get_noqa_codes(entity_comments)
+            if noqa:
+                noqa_dict[entity_id] = noqa_codes
+
     def validate_entities(self, entity_class: type, entity_list: dict, noqa_dict: dict) -> dict:
         # This code relies on dict ordering guarantees provided since python 3.6
         validated = {}
@@ -100,10 +107,7 @@ class TPVConfigLoader(object):
             except Exception:
                 log.exception(f"Could not load entity of type: {entity_class} with data: {entity_dict}")
                 raise
-            entity_comments = entity_list.ca.items.get(entity_id)
-            noqa, noqa_codes = self.get_noqa_codes(entity_comments)
-            if noqa:
-                noqa_dict[entity_id] = noqa_codes
+            self.store_noqa_codes(entity_list, entity_id, noqa_dict)
         self.recompute_inheritance(validated)
         return validated
 
