@@ -69,7 +69,7 @@ class TPVConfigLinter(object):
                     f"max_accepted_cores/mem/gpus. This is probably an error. If you're migrating from an older "
                     f"version of TPV, the destination properties for cores/mem/gpus have been superseded by the "
                     f"max_accepted_cores/mem/gpus property. Simply renaming them will give you the same functionality.")
-            if default_inherits == destination.id:
+            if default_inherits == destination.id and not destination.abstract:
                 self.add_warning(
                     destination,
                     "T101",
