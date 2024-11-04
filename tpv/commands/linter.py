@@ -44,7 +44,7 @@ class TPVConfigLinter(object):
                 re.compile(tool_regex)
             except re.error:
                 self.errors.append(f"Failed to compile regex: {tool_regex}")
-            if default_inherits == tool.id:
+            if default_inherits == tool.id and not tool.abstract:
                 self.add_warning(
                     tool,
                     "T101",

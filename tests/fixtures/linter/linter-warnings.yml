@@ -1,0 +1,29 @@
+global:
+  default_inherits: default
+
+tools:
+  default:
+    abstract: true
+    cores: 2
+    mem: 4
+    params:
+      native_spec: "--mem {mem} --cores {cores} --gpus {gpus}"
+  mem-no-cores-1:
+    mem: 16
+  cores-no-mem-1:
+    cores: 8
+  cores-no-mem-2:
+    # noqa: T102
+    cores: 8
+  cores-no-mem-3:
+    # noqa
+    cores: 8
+
+destinations:
+  local:
+    runner: local
+    max_accepted_cores: 4
+    max_accepted_mem: 16
+    scheduling:
+      prefer:
+        - general
