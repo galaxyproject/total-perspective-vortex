@@ -164,6 +164,6 @@ class TPVConfigLoader(object):
         return False
 
     @staticmethod
-    def from_url_or_path(url_or_path: str, round_trip: bool = False):
-        tpv_config = util.load_yaml_from_url_or_path(url_or_path, round_trip=round_trip)
+    def from_url_or_path(url_or_path: str):
+        tpv_config = util.load_yaml_from_url_or_path(url_or_path)
         return TPVConfigLoader(tpv_config)

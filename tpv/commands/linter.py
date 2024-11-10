@@ -26,7 +26,7 @@ class TPVConfigLinter(object):
 
     def load_config(self):
         try:
-            self.loader = TPVConfigLoader.from_url_or_path(self.url_or_path, round_trip=True)
+            self.loader = TPVConfigLoader.from_url_or_path(self.url_or_path)
         except Exception as e:
             log.error(f"Linting failed due to syntax errors in yaml file: {e}")
             raise TPVLintError("Linting failed due to syntax errors in yaml file: ") from e
