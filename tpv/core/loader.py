@@ -76,7 +76,7 @@ class TPVConfigLoader(object):
 
     def get_noqa_codes(self, entity_comments: list) -> (bool, set[str] | None):
         comments = []
-        if entity_comments and len(entity_comments) == 4:
+        if entity_comments and len(entity_comments) == 4 and entity_comments[3]:
             comments.extend([x.value.strip() for x in entity_comments[3]])
 
         for comment in comments:
