@@ -109,6 +109,23 @@ class TPVShellTestCase(unittest.TestCase):
             "working_dest" not in output,
             f"Did not expect destination: `working_dest` to be in the output, but found: {output}")
 
+    def test_lint_warnings(self):
+        tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/linter/linter-warnings.yml')
+        output = self.call_shell_command("tpv", "-vv", "lint", tpv_config)
+        self.assertTrue(
+            "T102: The tool named: cores-no-mem-1 sets `cores`" in output,
+            f"Expected T102 warning for cores-no-mem-1 but output was: {output}")
+        self.assertFalse(
+            "T102: The tool named: cores-no-mem-2 sets `cores`" in output,
+            f"T102 warning for cores-no-mem-2 should be suppressed by noqa but output was: {output}")
+        self.assertFalse(
+            "T102: The tool named: cores-no-mem-3 sets `cores`" in output,
+            f"T102 warning for cores-no-mem-3 should be suppressed by noqa but output was: {output}")
+        output = self.call_shell_command("tpv", "-vv", "lint", "--ignore=T102", tpv_config)
+        self.assertFalse(
+            "T102: The tool named:" in output,
+            f"T102 warnings should be suppressed by --ignore but output was: {output}")
+
     def test_warn_if_default_inherits_not_marked_abstract(self):
         tpv_config = os.path.join(os.path.dirname(__file__),
                                   'fixtures/linter/linter-default-inherits-marked-abstract.yml')

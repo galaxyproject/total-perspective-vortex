@@ -11,6 +11,7 @@ tools:
     rank: |
       helpers.weighted_random_sampling(candidate_destinations)
   toolshed.g2.bx.psu.edu/repos/iuc/mothur_shhh_seqs/mothur_shhh_seqs/.*:
+    # This is a comment
     inherits: wig_to_bigWig
     cores: 2
     mem: 20

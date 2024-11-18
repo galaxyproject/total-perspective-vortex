@@ -26,7 +26,10 @@ def repr_none(dumper: RoundTripRepresenter, data):
 
 def tpv_lint_config_file(args):
     try:
-        tpv_linter = TPVConfigLinter.from_url_or_path(args.config)
+        ignore = []
+        if args.ignore is not None:
+            ignore = [x.strip() for x in args.ignore.split(",")]
+        tpv_linter = TPVConfigLinter.from_url_or_path(args.config, ignore)
         tpv_linter.lint()
         log.info("lint successful.")
         return 0
@@ -75,6 +78,9 @@ def create_parser():
         help='loads a TPV configuration file and checks it for syntax errors',
         description="The linter will check yaml syntax and compile python code blocks")
     lint_parser.add_argument(
+        '--ignore', type=str,
+        help="Comma-separated list of lint error and warning codes to ignore")
+    lint_parser.add_argument(
         'config', type=str,
         help="Path to the TPV config file to lint. Can be a local path or http url.")
     lint_parser.set_defaults(func=tpv_lint_config_file)
@@ -120,14 +126,15 @@ def configure_logging(verbosity_count):
     # or basicConfig persists
     for handler in logging.root.handlers[:]:
         logging.root.removeHandler(handler)
+    level = max(4 - verbosity_count, 1) * 10
     # set global logging level
     logging.basicConfig(
         stream=sys.stdout,
-        level=logging.DEBUG if verbosity_count > 3 else logging.ERROR,
+        level=level,
         format='%(levelname)-5s: %(name)s: %(message)s')
     # Set client log level
     if verbosity_count:
-        log.setLevel(max(4 - verbosity_count, 1) * 10)
+        log.setLevel(level)
     else:
         log.setLevel(logging.INFO)
 
