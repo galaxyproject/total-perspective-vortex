@@ -328,53 +328,25 @@ class TPVShellTestCase(unittest.TestCase):
                         f"Expected 'bwameth_is_great' in destination\n{output}")
 
     def test_dry_run_with_a_role(self):
-        job_config = os.path.join(
-            os.path.dirname(__file__), "fixtures/job_conf_dry_run.yml"
-        )
-        tpv_config = os.path.join(
-            os.path.dirname(__file__), "fixtures/mapping-rules.yml"
-        )
+        job_config = os.path.join(os.path.dirname(__file__), 'fixtures/job_conf_dry_run.yml')
+        tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rules.yml')
         output = self.call_shell_command(
-            "tpv",
-            "dry-run",
-            "--job-conf",
-            job_config,
-            "--user",
-            "slartibartfast@glacier.org",
-            "--tool",
-            "toolshed.g2.bx.psu.edu/repos/iuc/towel/towel_coverage/42",
-            "--roles",
-            "training",
-            "--input-size",
-            "100",
-            tpv_config,
+            "tpv", "dry-run", "--job-conf", job_config, "--user", "slartibartfast@glacier.org",
+            "--tool", "toolshed.g2.bx.psu.edu/repos/iuc/towel/towel_coverage/42",
+            "--roles", "training", "--input-size", "100", tpv_config,
         )
         self.assertTrue(
             "id: training" in output,
             f"Expected 'id: training' destination\n{output}",
         )
 
-    def test_dry_run_when_history_got_a_tag(self):
-        job_config = os.path.join(
-            os.path.dirname(__file__), "fixtures/job_conf_dry_run.yml"
-        )
-        tpv_config = os.path.join(
-            os.path.dirname(__file__), "fixtures/mapping-rules.yml"
-        )
+    def test_dry_run_with_history_tag(self):
+        job_config = os.path.join(os.path.dirname(__file__), 'fixtures/job_conf_dry_run.yml')
+        tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rules.yml')
         output = self.call_shell_command(
-            "tpv",
-            "dry-run",
-            "--job-conf",
-            job_config,
-            "--user",
-            "slartibartfast@glacier.org",
-            "--history-tags",
-            "magrathea",
-            "--input-size",
-            "100",
-            "--tool",
-            "toolshed.g2.bx.psu.edu/repos/iuc/towel/towel_qc/42",
-            tpv_config,
+            "tpv", "dry-run", "--job-conf", job_config, "--user", "slartibartfast@glacier.org",
+            "--history-tags", "magrathea", "--input-size", "100",
+            "--tool", "toolshed.g2.bx.psu.edu/repos/iuc/towel/towel_qc/42", tpv_config,
         )
         self.assertTrue(
             "id: magrathea" in output,
