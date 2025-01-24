@@ -62,8 +62,7 @@ users:
     rules:
       - id: magrathea_history_tag_rule
         if: |
-            map_to_magrathea = 'magrathea' in [hta.user_tname for hta in job.history.tags]
-            map_to_magrathea
+            'magrathea' in [hta.user_tname for hta in job.history.tags]
         scheduling:
           require:
             - commercial-council-of-magrathea
