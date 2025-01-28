@@ -56,7 +56,7 @@ def tpv_format_config_file(args):
 
 def tpv_dry_run_config_files(args):
     dry_runner = TPVDryRunner.from_params(user=args.user, tool=args.tool, job_conf=args.job_conf, tpv_confs=args.config,
-                                          input_size=args.input_size)
+                                          roles=args.roles, history_tags=args.history_tags, input_size=args.input_size)
     destination = dry_runner.run()
     yaml = YAML(typ='unsafe', pure=True)
     yaml.dump(destination, sys.stdout)
@@ -112,6 +112,15 @@ def create_parser():
     dry_run_parser.add_argument(
         '--user', type=str,
         help="Test mapping for Galaxy user with username or email")
+    dry_run_parser.add_argument(
+        '--roles', type=str, nargs='+',
+        help="Add one or more Galaxy roles for user")
+    dry_run_parser.add_argument(
+        "--history-tags",
+        type=str,
+        nargs="+",
+        help="Add one or more history tag names to user's history",
+    )
     dry_run_parser.add_argument(
         'config',
         nargs='*',
