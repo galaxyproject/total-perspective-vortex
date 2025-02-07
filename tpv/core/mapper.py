@@ -86,8 +86,9 @@ class EntityToDestinationMapper(object):
     def match_and_rank_destinations(self, entity, destinations, context):
         # At this point, the resource requirements (cores, mem, gpus) are unevaluated.
         # So temporarily evaluate them so we can match up with a destination.
+        evaluated_entity = entity.evaluate_resources(context)
         matches = [dest for dest in self.__apply_default_destination_inheritance(destinations)
-                   if dest.matches(entity.evaluate_resources(context), context)]
+                   if dest.matches(evaluated_entity, context)]
         return self.rank(entity, matches, context)
 
     def to_galaxy_destination(self, destination):

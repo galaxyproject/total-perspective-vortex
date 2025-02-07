@@ -114,3 +114,16 @@ class TestMapperInheritance(unittest.TestCase):
         self.assertTrue('ABC' in [e.get('name') for e in destination.env])
         self.assertEqual('extra-args', destination.params.get('docker_extra'))
         self.assertEqual('k8s', destination.runner)
+
+    def test_override_default_inherits(self):
+        user = mock_galaxy.User('majikthise', 'majikthise@vortex.org')
+        tool = mock_galaxy.Tool('hisat')
+        tpv_config_files = [
+            os.path.join(os.path.dirname(__file__), 'fixtures/mapping-inheritance.yml'),
+            os.path.join(os.path.dirname(__file__), 'fixtures/mapping-inheritance-override-default-inherits.yml'),
+        ]
+        destination = self._map_to_destination(tool, user, datasets=[], tpv_config_files=tpv_config_files)
+        self.assertEqual('roundup', destination.id)
+        self.assertEqual('--nodes=1 --ntasks=4 --mem=16384 --time=36:00:00 --partition=multi', destination.params.get('native_spec'))
+        # Job slots should not be in env since default inheritance was overridden
+        self.assertTrue('TEST_JOB_SLOTS' not in [e['name'] for e in destination.env])

@@ -1,0 +1,34 @@
+global:
+  default_inherits: _default
+
+tools:
+  _default:
+    abstract: true
+    cores: 1
+    mem: cores * 2.7
+    context:
+      roundup_large_partition: multi
+      time: "36:00:00"
+  hisat:
+    cores: 4
+    scheduling:
+      require:
+        - hisat
+
+destinations:
+  _roundup_common:
+    abstract: true
+    runner: slurm
+    params:
+      tmp_dir: true
+  roundup:
+    inherits: _roundup_common
+    min_accepted_cores: 2
+    min_accepted_mem: 8
+    max_accepted_cores: 16
+    max_accepted_mem: 64
+    params:
+      native_spec: "--nodes=1 --ntasks={cores} --mem={round(mem*1024)} --time={time} --partition={roundup_large_partition}"
+    scheduling:
+      prefer:
+        - hisat

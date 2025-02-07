@@ -28,7 +28,7 @@ def setup_destination_mapper(app, tpv_config_files):
     mapper = load_destination_mapper(tpv_config_files)
 
     def reload_destination_mapper(path=None):
-        # reload all config files when one file changes to preserve order of loading the files
+        # reload all config files when one file changes to preserve the order of loading files
         global ACTIVE_DESTINATION_MAPPER
         ACTIVE_DESTINATION_MAPPER = load_destination_mapper(tpv_config_files, reload=True)
 
