@@ -46,8 +46,16 @@ def setup_destination_mapper(app, tpv_config_files: Union[List[str], str]):
     return mapper
 
 
-def map_tool_to_destination(app, job, tool, user, tpv_config_files: Union[List[str], str], job_wrapper=None, resource_params=None,
-                            workflow_invocation_uuid=None):
+def map_tool_to_destination(
+    app,
+    job,
+    tool,
+    user,
+    tpv_config_files: Union[List[str], str],
+    job_wrapper=None,
+    resource_params=None,
+    workflow_invocation_uuid=None,
+):
     global ACTIVE_DESTINATION_MAPPER
     if not ACTIVE_DESTINATION_MAPPER:
         ACTIVE_DESTINATION_MAPPER = setup_destination_mapper(app, tpv_config_files)
