@@ -1,5 +1,5 @@
 wheel
-parametrized
+pytest-parametrized
 galaxy-util
 galaxy-schema
 galaxy-objectstore
