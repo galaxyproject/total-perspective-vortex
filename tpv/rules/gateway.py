@@ -10,7 +10,7 @@ from tpv.core.mapper import EntityToDestinationMapper
 log = logging.getLogger(__name__)
 
 
-ACTIVE_DESTINATION_MAPPER = None
+ACTIVE_DESTINATION_MAPPERS = {}
 CONFIG_WATCHERS = {}
 
 
@@ -32,11 +32,14 @@ def setup_destination_mapper(app, tpv_config_files: Union[List[str], str]):
 
     def reload_destination_mapper(path=None):
         # reload all config files when one file changes to preserve order of loading the files
-        global ACTIVE_DESTINATION_MAPPER
-        ACTIVE_DESTINATION_MAPPER = load_destination_mapper(tpv_config_files, reload=True)
+        global ACTIVE_DESTINATION_MAPPERS
+        for tpv_config_files_str in ACTIVE_DESTINATION_MAPPERS:
+            tpv_config_files = tpv_config_files_str.split(",")
+            if path in tpv_config_files:
+                ACTIVE_DESTINATION_MAPPERS[tpv_config_files_str] = load_destination_mapper(tpv_config_files, reload=True)
 
     for tpv_config_file in tpv_config_files:
-        if os.path.isfile(tpv_config_file):
+        if os.path.isfile(tpv_config_file) and tpv_config_file not in CONFIG_WATCHERS:
             log.info(f"Watching for changes in file: {tpv_config_file}")
             CONFIG_WATCHERS[tpv_config_file] = (
                     CONFIG_WATCHERS.get(tpv_config_file) or
@@ -56,8 +59,10 @@ def map_tool_to_destination(
     resource_params=None,
     workflow_invocation_uuid=None,
 ):
-    global ACTIVE_DESTINATION_MAPPER
-    if not ACTIVE_DESTINATION_MAPPER:
-        ACTIVE_DESTINATION_MAPPER = setup_destination_mapper(app, tpv_config_files)
-    return ACTIVE_DESTINATION_MAPPER.map_to_destination(app, tool, user, job, job_wrapper, resource_params,
+    global ACTIVE_DESTINATION_MAPPERS
+    if not ','.join(tpv_config_files) in ACTIVE_DESTINATION_MAPPERS:
+        ACTIVE_DESTINATION_MAPPERS[','.join(tpv_config_files)] = setup_destination_mapper(app, tpv_config_files)
+
+    destination_mapper = ACTIVE_DESTINATION_MAPPERS[','.join(tpv_config_files)]
+    return destination_mapper.map_to_destination(app, tool, user, job, job_wrapper, resource_params,
                                                         workflow_invocation_uuid)
