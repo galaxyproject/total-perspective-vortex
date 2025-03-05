@@ -2,6 +2,7 @@ import logging
 import os
 from typing import List, Union
 
+from galaxy.util import listify
 from galaxy.util.watcher import get_watcher
 from tpv.core.loader import TPVConfigLoader
 from tpv.core.mapper import EntityToDestinationMapper
@@ -14,8 +15,7 @@ CONFIG_WATCHERS = {}
 
 
 def load_destination_mapper(tpv_config_files: Union[List[str], str], reload=False):
-    if isinstance(tpv_config_files, str):
-        tpv_config_files = tpv_config_files.split(",")
+    tpv_config_files = listify(tpv_config_files)
     log.info(f"{'re' if reload else ''}loading tpv rules from: {tpv_config_files}")
     loader = None
     for tpv_config_file in tpv_config_files:
