@@ -219,12 +219,11 @@ class TestScenarios(unittest.TestCase):
             match_querystring=False,
         )
 
-        def create_job(app, destination):
+        def create_job(app, user, destination):
             sa_session = app.model.context
 
-            u = app.model.User(email="highmemuser@unimelb.edu.au", password="password")
             j = app.model.Job()
-            j.user = u
+            j.user = user
             j.tool_id = "trinity"
             j.state = "running"
             j.destination_id = destination
@@ -235,10 +234,11 @@ class TestScenarios(unittest.TestCase):
         app = mock_galaxy.App(
             job_conf=os.path.join(os.path.dirname(__file__), 'fixtures/job_conf_scenario_usegalaxy_au.yml'),
             create_model=True)
-        create_job(app, "highmem_pulsar_1")
-        create_job(app, "highmem_pulsar_2")
-        create_job(app, "highmem_pulsar_1")
-        create_job(app, "highmem_pulsar_2")
+        galaxy_user = app.model.User(email="highmemuser@unimelb.edu.au", password="password")
+        create_job(app, galaxy_user, "highmem_pulsar_1")
+        create_job(app, galaxy_user, "highmem_pulsar_2")
+        create_job(app, galaxy_user, "highmem_pulsar_1")
+        create_job(app, galaxy_user, "highmem_pulsar_2")
 
         tool = mock_galaxy.Tool('trinity')
         user = mock_galaxy.User('highmemuser', 'highmemuser@unimelb.edu.au', roles=["ga_admins"])
@@ -249,7 +249,7 @@ class TestScenarios(unittest.TestCase):
         self.assertEqual(destination.id, "highmem_pulsar_1")
 
         # exceed the limit
-        create_job(app, "highmem_pulsar_1")
+        create_job(app, galaxy_user, "highmem_pulsar_1")
 
         with self.assertRaisesRegex(
                 JobMappingException, "You cannot have more than 4 high-mem jobs running concurrently"):
