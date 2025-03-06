@@ -51,7 +51,7 @@ class TestMapperBasic(unittest.TestCase):
     def test_map_tool_with_invalid_regex(self):
         tool = mock_galaxy.Tool('sometool')
         config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-invalid-regex.yml')
-        with self.assertRaisesRegex(re.error, "bad escape"):
+        with self.assertRaisesRegex(re.error, "unterminated character set"):
             self._map_to_destination(tool, tpv_config_path=config)
 
     def test_map_abstract_tool_should_fail(self):
