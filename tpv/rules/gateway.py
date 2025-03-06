@@ -1,6 +1,8 @@
 import logging
 import os
+from typing import List, Union
 
+from galaxy.util import listify
 from galaxy.util.watcher import get_watcher
 from tpv.core.loader import TPVConfigLoader
 from tpv.core.mapper import EntityToDestinationMapper
@@ -12,7 +14,8 @@ ACTIVE_DESTINATION_MAPPER = None
 CONFIG_WATCHERS = {}
 
 
-def load_destination_mapper(tpv_config_files, reload=False):
+def load_destination_mapper(tpv_config_files: Union[List[str], str], reload=False):
+    tpv_config_files = listify(tpv_config_files)
     log.info(f"{'re' if reload else ''}loading tpv rules from: {tpv_config_files}")
     loader = None
     for tpv_config_file in tpv_config_files:
@@ -24,7 +27,7 @@ def load_destination_mapper(tpv_config_files, reload=False):
     return EntityToDestinationMapper(loader)
 
 
-def setup_destination_mapper(app, tpv_config_files):
+def setup_destination_mapper(app, tpv_config_files: Union[List[str], str]):
     mapper = load_destination_mapper(tpv_config_files)
 
     def reload_destination_mapper(path=None):
@@ -43,8 +46,16 @@ def setup_destination_mapper(app, tpv_config_files):
     return mapper
 
 
-def map_tool_to_destination(app, job, tool, user, tpv_config_files, job_wrapper=None, resource_params=None,
-                            workflow_invocation_uuid=None):
+def map_tool_to_destination(
+    app,
+    job,
+    tool,
+    user,
+    tpv_config_files: Union[List[str], str],
+    job_wrapper=None,
+    resource_params=None,
+    workflow_invocation_uuid=None,
+):
     global ACTIVE_DESTINATION_MAPPER
     if not ACTIVE_DESTINATION_MAPPER:
         ACTIVE_DESTINATION_MAPPER = setup_destination_mapper(app, tpv_config_files)
