@@ -17,7 +17,7 @@ class TestMapperInheritance(unittest.TestCase):
                                                      'fixtures/mapping-inheritance.yml')
         if not tpv_config_files:
             tpv_config_files = [tpv_config]
-        gateway.ACTIVE_DESTINATION_MAPPER = None
+        gateway.ACTIVE_DESTINATION_MAPPERS = {}
         return gateway.map_tool_to_destination(galaxy_app, job, tool, user, tpv_config_files=tpv_config_files)
 
     def test_map_inherit_twice(self):

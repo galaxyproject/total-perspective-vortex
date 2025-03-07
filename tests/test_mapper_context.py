@@ -14,7 +14,7 @@ class TestMapperContext(unittest.TestCase):
             job.add_input_dataset(d)
         tpv_config = tpv_config_path or os.path.join(os.path.dirname(__file__),
                                                      'fixtures/mapping-context.yml')
-        gateway.ACTIVE_DESTINATION_MAPPER = None
+        gateway.ACTIVE_DESTINATION_MAPPERS = {}
         return gateway.map_tool_to_destination(galaxy_app, job, tool, user, tpv_config_files=[tpv_config])
 
     def test_map_context_default_overrides_global(self):

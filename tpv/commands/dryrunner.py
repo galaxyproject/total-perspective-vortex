@@ -16,7 +16,7 @@ class TPVDryRunner():
                 'tpv_dispatcher').params['tpv_config_files']
 
     def run(self):
-        gateway.ACTIVE_DESTINATION_MAPPER = None
+        gateway.ACTIVE_DESTINATION_MAPPERS = {}
         return gateway.map_tool_to_destination(self.galaxy_app, self.job, self.tool, self.user,
                                                tpv_config_files=self.tpv_config_files)
 

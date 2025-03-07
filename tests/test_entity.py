@@ -12,10 +12,9 @@ from tpv.commands.test import mock_galaxy
 class TestEntity(unittest.TestCase):
 
     @staticmethod
-    def _map_to_destination(app, job, tool, user):
+    def _map_to_destination(app, job, tool, user, referrer="tpv_dispatcher"):
         tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rule-argument-based.yml')
-        gateway.ACTIVE_DESTINATION_MAPPER = None
-        return gateway.map_tool_to_destination(app, job, tool, user, tpv_config_files=[tpv_config])
+        return gateway.map_tool_to_destination(app, job, tool, user, tpv_config_files=[tpv_config], referrer=referrer)
 
     # issue: https://github.com/galaxyproject/total-perspective-vortex/issues/53
     def test_all_entities_refer_to_same_loader(self):
@@ -25,21 +24,35 @@ class TestEntity(unittest.TestCase):
         tool = mock_galaxy.Tool('bwa')
         user = mock_galaxy.User('ford', 'prefect@vortex.org')
 
-        # just map something so the ACTIVE_DESTINATION_MAPPER is populated
+        # just map something so the ACTIVE_DESTINATION_MAPPERS is populated
         self._map_to_destination(app, job, tool, user)
 
         # get the original loader
-        original_loader = gateway.ACTIVE_DESTINATION_MAPPER.loader
+        original_loader = gateway.ACTIVE_DESTINATION_MAPPERS["tpv_dispatcher"].loader
 
         context = {
             'app': app,
             'job': job
         }
         # make sure we are still referring to the same loader after evaluation
-        evaluated_entity = gateway.ACTIVE_DESTINATION_MAPPER.match_combine_evaluate_entities(context, tool, user)
+        evaluated_entity = gateway.ACTIVE_DESTINATION_MAPPERS["tpv_dispatcher"].match_combine_evaluate_entities(context, tool, user)
         assert evaluated_entity.loader == original_loader
         for rule in evaluated_entity.rules:
             assert rule.loader == original_loader
+
+    def test_each_referrer_has_unique_mapper(self):
+        app = mock_galaxy.App(job_conf=os.path.join(os.path.dirname(__file__), 'fixtures/job_conf.yml'))
+        job = mock_galaxy.Job()
+
+        tool = mock_galaxy.Tool('bwa')
+        user = mock_galaxy.User('ford', 'prefect@vortex.org')
+
+        # just map something so the ACTIVE_DESTINATION_MAPPERS is populated
+        self._map_to_destination(app, job, tool, user, referrer="tpv_dispatcher1")
+        self._map_to_destination(app, job, tool, user, referrer="tpv_dispatcher2")
+
+        # make sure loaders are unique
+        assert gateway.ACTIVE_DESTINATION_MAPPERS["tpv_dispatcher1"].loader != gateway.ACTIVE_DESTINATION_MAPPERS["tpv_dispatcher2"].loader
 
     def test_destination_to_dict(self):
 

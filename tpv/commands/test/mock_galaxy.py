@@ -70,6 +70,7 @@ class App:
             track_jobs_in_database=True,
             server_name="main",
             is_set=lambda x: True,
+            watch_job_rules='auto'
         )
         self.job_metrics = JobMetrics()
         if create_model:
