@@ -13,7 +13,7 @@ class TestMapperMergeMultipleConfigs(unittest.TestCase):
         job = mock_galaxy.Job()
         for d in datasets:
             job.add_input_dataset(d)
-        gateway.ACTIVE_DESTINATION_MAPPER = None
+        gateway.ACTIVE_DESTINATION_MAPPERS = {}
         return gateway.map_tool_to_destination(galaxy_app, job, tool, user, tpv_config_files=tpv_config_paths)
 
     def test_merge_remote_and_local(self):

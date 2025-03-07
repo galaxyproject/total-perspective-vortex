@@ -14,7 +14,7 @@ class TestEntity(unittest.TestCase):
     @staticmethod
     def _map_to_destination(app, job, tool, user):
         tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rule-argument-based.yml')
-        gateway.ACTIVE_DESTINATION_MAPPER = None
+        gateway.ACTIVE_DESTINATION_MAPPERS = {}
         return gateway.map_tool_to_destination(app, job, tool, user, tpv_config_files=[tpv_config])
 
     # issue: https://github.com/galaxyproject/total-perspective-vortex/issues/53
@@ -25,18 +25,18 @@ class TestEntity(unittest.TestCase):
         tool = mock_galaxy.Tool('bwa')
         user = mock_galaxy.User('ford', 'prefect@vortex.org')
 
-        # just map something so the ACTIVE_DESTINATION_MAPPER is populated
+        # just map something so the ACTIVE_DESTINATION_MAPPERS is populated
         self._map_to_destination(app, job, tool, user)
 
         # get the original loader
-        original_loader = gateway.ACTIVE_DESTINATION_MAPPER.loader
+        original_loader = gateway.ACTIVE_DESTINATION_MAPPERS["tpv_dispatcher"].loader
 
         context = {
             'app': app,
             'job': job
         }
         # make sure we are still referring to the same loader after evaluation
-        evaluated_entity = gateway.ACTIVE_DESTINATION_MAPPER.match_combine_evaluate_entities(context, tool, user)
+        evaluated_entity = gateway.ACTIVE_DESTINATION_MAPPERS["tpv_dispatcher"].match_combine_evaluate_entities(context, tool, user)
         assert evaluated_entity.loader == original_loader
         for rule in evaluated_entity.rules:
             assert rule.loader == original_loader

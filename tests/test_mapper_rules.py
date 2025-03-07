@@ -20,7 +20,7 @@ class TestMapperRules(unittest.TestCase):
         if param_values:
             job.param_values = param_values
         tpv_configs = tpv_config_files or [os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rules.yml')]
-        gateway.ACTIVE_DESTINATION_MAPPER = None
+        gateway.ACTIVE_DESTINATION_MAPPERS = {}
         return gateway.map_tool_to_destination(galaxy_app, job, tool, user, tpv_config_files=tpv_configs)
 
     def test_map_rule_size_small(self):
