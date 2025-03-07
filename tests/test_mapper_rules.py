@@ -2,9 +2,14 @@ import os
 import time
 import tempfile
 import shutil
+import sys
 import unittest
+
+import pytest
+
 from tpv.rules import gateway
 from tpv.commands.test import mock_galaxy
+
 from galaxy.jobs.mapper import JobMappingException
 from galaxy.jobs.mapper import JobNotReadyException
 
@@ -68,6 +73,7 @@ class TestMapperRules(unittest.TestCase):
         self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_JOB_SLOTS_USER'], ['4'])
         self.assertEqual(destination.params['native_spec_user'], '--mem 16 --cores 4')
 
+    @pytest.mark.skipif(sys.platform == "darwin", reason="Watchdog not notifying correctly on Darwin")
     def test_rules_automatically_reload_on_update(self):
         with tempfile.NamedTemporaryFile('w+t') as tmp_file:
             rule_file = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rules.yml')
@@ -91,6 +97,7 @@ class TestMapperRules(unittest.TestCase):
             destination = self._map_to_destination(tool, user, datasets, tpv_config_files=[tmp_file.name], reset_mappers=False)
             self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_JOB_SLOTS_USER'], ['8'])
 
+    @pytest.mark.skipif(sys.platform == "darwin", reason="Watchdog not notifying correctly on Darwin")
     def test_multiple_files_automatically_reload_on_update(self):
         with tempfile.NamedTemporaryFile('w+t') as tmp_file1, tempfile.NamedTemporaryFile('w+t') as tmp_file2:
             rule_file = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rules.yml')
@@ -120,6 +127,7 @@ class TestMapperRules(unittest.TestCase):
                 tmp_file1.name, tmp_file2.name], reset_mappers=False)
             self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_JOB_SLOTS_USER'], ['10'])
 
+    @pytest.mark.skipif(sys.platform == "darwin", reason="Watchdog not notifying correctly on Darwin")
     def test_rules_automatically_reload_when_multi_referrer(self):
         with tempfile.NamedTemporaryFile('w+t') as tmp_file:
             rule_file = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rules.yml')
