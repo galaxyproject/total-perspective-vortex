@@ -12,7 +12,7 @@ class TestMapperRole(unittest.TestCase):
         galaxy_app = mock_galaxy.App(job_conf=os.path.join(os.path.dirname(__file__), 'fixtures/job_conf.yml'))
         job = mock_galaxy.Job()
         tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-role.yml')
-        gateway.ACTIVE_DESTINATION_MAPPER = None
+        gateway.ACTIVE_DESTINATION_MAPPERS = {}
         return gateway.map_tool_to_destination(galaxy_app, job, tool, user, tpv_config_files=[tpv_config])
 
     def test_map_default_role(self):
