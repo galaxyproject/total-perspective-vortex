@@ -73,7 +73,6 @@ class TestMapperRules(unittest.TestCase):
         self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_JOB_SLOTS_USER'], ['4'])
         self.assertEqual(destination.params['native_spec_user'], '--mem 16 --cores 4')
 
-    @pytest.mark.skipif(sys.platform == "darwin", reason="Watchdog not notifying correctly on Darwin")
     def test_rules_automatically_reload_on_update(self):
         with tempfile.NamedTemporaryFile('w+t') as tmp_file:
             rule_file = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rules.yml')

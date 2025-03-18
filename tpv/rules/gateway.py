@@ -41,10 +41,14 @@ def setup_destination_mapper(app, referrer, tpv_config_files: Union[List[str], s
         if os.path.isfile(tpv_config_file):
             log.info(f"Watching for changes in file: {tpv_config_file} via referrer: {referrer}")
             entry_name = f"{referrer}{tpv_config_file}"
-            CONFIG_WATCHERS[entry_name] = (
-                    CONFIG_WATCHERS.get(entry_name) or
-                    get_watcher(app.config, 'watch_job_rules', monitor_what_str='job rules'))
-            CONFIG_WATCHERS[entry_name].watch_file(tpv_config_file, callback=reload_destination_mapper)
+            CONFIG_WATCHERS[entry_name] = CONFIG_WATCHERS.get(
+                entry_name
+            ) or get_watcher(
+                app.config, "watch_job_rules", monitor_what_str="job rules"
+            )
+            CONFIG_WATCHERS[entry_name].watch_file(
+                os.path.realpath(tpv_config_file), callback=reload_destination_mapper
+            )
             CONFIG_WATCHERS[entry_name].start()
     return mapper
 
