@@ -1,4 +1,5 @@
 import pytest
+from tpv.rules import gateway
 
 
 def pytest_addoption(parser):
@@ -19,3 +20,11 @@ def pytest_collection_modifyitems(config, items):
     for item in items:
         if "slow" in item.keywords:
             item.add_marker(skip_slow)
+
+@pytest.fixture(autouse=True)
+def shutdown_watchers():
+    for watcher in gateway.WATCHERS_BY_CONFIG_FILE.values():
+        watcher.shutdown()
+    gateway.WATCHERS_BY_CONFIG_FILE.clear()
+    gateway.ACTIVE_DESTINATION_MAPPERS.clear()
+    gateway.REFERRERS_BY_CONFIG_FILE.clear()
