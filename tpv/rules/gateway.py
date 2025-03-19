@@ -49,7 +49,7 @@ def setup_destination_mapper(app, referrer, tpv_config_files: Union[List[str], s
             def reload_destination_mapper(path=None):
                 # reload all config files when one file changes to preserve order of loading the files
                 global ACTIVE_DESTINATION_MAPPERS
-                # watchdog on darwin notifies only once per file, so lookup all referrers that refer to this file, and reload
+                # watchdog on darwin notifies only once per file, so reload all mappers that refer to this file
                 for referrer, config_files in REFERRERS_BY_CONFIG_FILE[tpv_config_real_path].items():
                     ACTIVE_DESTINATION_MAPPERS[referrer] = load_destination_mapper(config_files, reload=True)
 
