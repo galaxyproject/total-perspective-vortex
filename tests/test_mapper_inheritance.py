@@ -114,3 +114,12 @@ class TestMapperInheritance(unittest.TestCase):
         self.assertTrue('ABC' in [e.get('name') for e in destination.env])
         self.assertEqual('extra-args', destination.params.get('docker_extra'))
         self.assertEqual('k8s', destination.runner)
+
+    def test_noninheritance_of_tool_with_substring_id(self):
+        tool_id = 'kraken2000'
+        user = mock_galaxy.User('benjy', 'benjymouse@vortex.org')
+        tool = mock_galaxy.Tool(tool_id)
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=5*1024**3))]
+        destination = self._map_to_destination(tool, user, datasets)
+        self.assertEqual(len([e for e in destination.env if e['name'] == 'this_is_kraken2000']), 1)
+        self.assertEqual(len([e for e in destination.env if e['name'] == 'this_is_kraken2']), 0)

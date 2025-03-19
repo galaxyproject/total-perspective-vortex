@@ -23,10 +23,13 @@ class EntityToDestinationMapper(object):
         self.destinations = loader.destinations
         self.default_inherits = loader.global_settings.get('default_inherits')
         self.global_context = loader.global_settings.get('context')
-        self.lookup_tool_regex = functools.lru_cache(maxsize=None)(self.__compile_tool_regex)
+        self.lookup_entity_regex = functools.lru_cache(maxsize=None)(self.__compile_entity_regex)
         self.inherit_matching_entities = functools.lru_cache(maxsize=None)(self.__inherit_matching_entities)
 
-    def __compile_tool_regex(self, key):
+    def __compile_entity_regex(self, key):
+        # append an EOL anchor so that it's an exact match
+        if not key.endswith("$"):
+            key += "$"
         try:
             return re.compile(key)
         except re.error:
@@ -40,7 +43,7 @@ class EntityToDestinationMapper(object):
         else:
             matches = []
         for key in entity_list.keys():
-            if self.lookup_tool_regex(key).match(entity_name):
+            if self.lookup_entity_regex(key).match(entity_name):
                 match = entity_list[key]
                 if match.abstract:
                     from galaxy.jobs.mapper import JobMappingException
