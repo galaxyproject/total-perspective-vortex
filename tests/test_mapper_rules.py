@@ -24,8 +24,6 @@ class TestMapperRules(unittest.TestCase):
         tpv_configs = tpv_config_files or [os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rules.yml')]
         if reset_mappers:
             gateway.ACTIVE_DESTINATION_MAPPERS = {}
-            for watcher in gateway.CONFIG_WATCHERS.values():
-                watcher.shutdown()
         return gateway.map_tool_to_destination(galaxy_app, job, tool, user, tpv_config_files=tpv_configs, referrer=referrer)
 
     def test_map_rule_size_small(self):
@@ -89,7 +87,7 @@ class TestMapperRules(unittest.TestCase):
             shutil.copy2(updated_rule_file, tmp_file.name)
 
             # wait for reload
-            time.sleep(3.5)
+            time.sleep(2)
 
             # should have loaded the new rules
             destination = self._map_to_destination(tool, user, datasets, tpv_config_files=[tmp_file.name], reset_mappers=False)
@@ -117,7 +115,7 @@ class TestMapperRules(unittest.TestCase):
             shutil.copy2(updated_rule_file, tmp_file2.name)
 
             # wait for reload
-            time.sleep(3.5)
+            time.sleep(2)
 
             # should have loaded the new rules
             destination = self._map_to_destination(tool, user, datasets, tpv_config_files=[
@@ -143,7 +141,7 @@ class TestMapperRules(unittest.TestCase):
             shutil.copy2(updated_rule_file, tmp_file.name)
 
             # wait for reload
-            time.sleep(3.5)
+            time.sleep(2)
 
             # should have loaded the new rules for both referrers
             destination = self._map_to_destination(tool, user, datasets, tpv_config_files=[tmp_file.name], referrer="tpv_dispatcher1", reset_mappers=False)

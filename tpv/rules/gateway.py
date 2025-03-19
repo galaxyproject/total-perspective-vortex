@@ -1,3 +1,4 @@
+from collections import defaultdict
 import logging
 import os
 from typing import List, Union
@@ -13,7 +14,8 @@ log = logging.getLogger(__name__)
 
 ACTIVE_DESTINATION_MAPPERS = {}
 DESTINATION_MAPPER_LOCK = threading.Lock()
-CONFIG_WATCHERS = {}
+WATCHERS_BY_CONFIG_FILE = {}
+REFERRERS_BY_CONFIG_FILE = defaultdict(dict)
 
 
 def load_destination_mapper(tpv_config_files: Union[List[str], str], reload=False):
@@ -30,26 +32,32 @@ def load_destination_mapper(tpv_config_files: Union[List[str], str], reload=Fals
 
 
 def setup_destination_mapper(app, referrer, tpv_config_files: Union[List[str], str]):
+    global WATCHERS_BY_CONFIG_FILE
+    global REFERRERS_BY_CONFIG_FILE
     mapper = load_destination_mapper(tpv_config_files)
-
-    def reload_destination_mapper(path=None):
-        # reload all config files when one file changes to preserve order of loading the files
-        global ACTIVE_DESTINATION_MAPPERS
-        ACTIVE_DESTINATION_MAPPERS[referrer] = load_destination_mapper(tpv_config_files, reload=True)
 
     for tpv_config_file in tpv_config_files:
         if os.path.isfile(tpv_config_file):
-            log.info(f"Watching for changes in file: {tpv_config_file} via referrer: {referrer}")
-            entry_name = f"{referrer}{tpv_config_file}"
-            CONFIG_WATCHERS[entry_name] = CONFIG_WATCHERS.get(
-                entry_name
-            ) or get_watcher(
-                app.config, "watch_job_rules", monitor_what_str="job rules"
-            )
-            CONFIG_WATCHERS[entry_name].watch_file(
-                os.path.realpath(tpv_config_file), callback=reload_destination_mapper
-            )
-            CONFIG_WATCHERS[entry_name].start()
+            # adjust for tempfile handling on Darwin
+            tpv_config_real_path = os.path.realpath(tpv_config_file)
+            log.info(f"Watching for changes in file: {tpv_config_real_path} via referrer: {referrer}")
+            # there can't be two watchers on the same file
+            watcher = WATCHERS_BY_CONFIG_FILE.get(tpv_config_real_path)
+            if not watcher:
+                watcher = get_watcher(app.config, "watch_job_rules", monitor_what_str="job rules")
+
+            def reload_destination_mapper(path=None):
+                # reload all config files when one file changes to preserve order of loading the files
+                global ACTIVE_DESTINATION_MAPPERS
+                # watchdog on darwin notifies only once per file, so lookup all referrers that refer to this file, and reload
+                for referrer, config_files in REFERRERS_BY_CONFIG_FILE[tpv_config_real_path].items():
+                    ACTIVE_DESTINATION_MAPPERS[referrer] = load_destination_mapper(config_files, reload=True)
+
+            WATCHERS_BY_CONFIG_FILE[tpv_config_real_path] = watcher
+            REFERRERS_BY_CONFIG_FILE[tpv_config_real_path][referrer] = tpv_config_files
+            watcher.watch_file(tpv_config_real_path, callback=reload_destination_mapper)
+            watcher.start()
+
     return mapper
 
 
@@ -58,8 +66,7 @@ def lock_and_load_mapper(app, referrer, tpv_config_files):
     destination_mapper = ACTIVE_DESTINATION_MAPPERS.get(referrer)
     if not destination_mapper:
         # Try again with a lock
-        # Technically, this should work without a lock, but having a lock heads off any thundering herd
-        # problems on handler restarts.
+        # We need a lock to avoid thundering herd problems and to serialize access to WATCHERS_BY_CONFIG_FILE
         with DESTINATION_MAPPER_LOCK:
             destination_mapper = ACTIVE_DESTINATION_MAPPERS.get(referrer)
             # still null with the lock - must be the first time
