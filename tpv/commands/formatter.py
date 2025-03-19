@@ -1,6 +1,8 @@
 from __future__ import annotations
 import logging
 
+from ruamel.yaml.comments import CommentedMap, CommentedSeq
+
 from tpv.core import util
 
 log = logging.getLogger(__name__)
@@ -64,14 +66,24 @@ class TPVConfigFormatter(object):
         """
         if not sort_order:
             return dict_to_sort
-        if isinstance(dict_to_sort, dict):
+        if isinstance(dict_to_sort, CommentedMap):
             sorted_keys = sorted(dict_to_sort or [], key=TPVConfigFormatter.generic_key_sorter(sort_order.keys()))
-            return {key: TPVConfigFormatter.multi_level_dict_sorter(dict_to_sort.get(key),
-                                                                    sort_order.get(key, {}) or sort_order.get('*', {}))
-                    for key in sorted_keys}
-        elif isinstance(dict_to_sort, list):
-            return [TPVConfigFormatter.multi_level_dict_sorter(item, sort_order.get('*', []))
-                    for item in dict_to_sort]
+            rval = CommentedMap()
+            for key in sorted_keys:
+                sorted_value = TPVConfigFormatter.multi_level_dict_sorter(
+                    dict_to_sort.get(key),
+                    sort_order.get(key, {}) or sort_order.get('*', {})
+                )
+                rval[key] = sorted_value
+            rval.ca.items.update(dict_to_sort.ca.items)
+            return rval
+        elif isinstance(dict_to_sort, CommentedSeq):
+            rval = CommentedSeq()
+            for item in dict_to_sort:
+                sorted_item = TPVConfigFormatter.multi_level_dict_sorter(item, sort_order.get('*', []))
+                rval.append(sorted_item)
+            rval.ca.items.update(dict_to_sort.ca.items)
+            return rval
         else:
             return dict_to_sort
 

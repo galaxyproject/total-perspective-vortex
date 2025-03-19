@@ -26,7 +26,10 @@ def repr_none(dumper: RoundTripRepresenter, data):
 
 def tpv_lint_config_file(args):
     try:
-        tpv_linter = TPVConfigLinter.from_url_or_path(args.config)
+        ignore = []
+        if args.ignore is not None:
+            ignore = [x.strip() for x in args.ignore.split(",")]
+        tpv_linter = TPVConfigLinter.from_url_or_path(args.config, ignore)
         tpv_linter.lint()
         log.info("lint successful.")
         return 0
@@ -53,7 +56,7 @@ def tpv_format_config_file(args):
 
 def tpv_dry_run_config_files(args):
     dry_runner = TPVDryRunner.from_params(user=args.user, tool=args.tool, job_conf=args.job_conf, tpv_confs=args.config,
-                                          input_size=args.input_size)
+                                          roles=args.roles, history_tags=args.history_tags, input_size=args.input_size)
     destination = dry_runner.run()
     yaml = YAML(typ='unsafe', pure=True)
     yaml.dump(destination, sys.stdout)
@@ -74,6 +77,9 @@ def create_parser():
         'lint',
         help='loads a TPV configuration file and checks it for syntax errors',
         description="The linter will check yaml syntax and compile python code blocks")
+    lint_parser.add_argument(
+        '--ignore', type=str,
+        help="Comma-separated list of lint error and warning codes to ignore")
     lint_parser.add_argument(
         'config', type=str,
         help="Path to the TPV config file to lint. Can be a local path or http url.")
@@ -107,6 +113,15 @@ def create_parser():
         '--user', type=str,
         help="Test mapping for Galaxy user with username or email")
     dry_run_parser.add_argument(
+        '--roles', type=str, nargs='+',
+        help="Add one or more Galaxy roles for user")
+    dry_run_parser.add_argument(
+        "--history-tags",
+        type=str,
+        nargs="+",
+        help="Add one or more history tag names to user's history",
+    )
+    dry_run_parser.add_argument(
         'config',
         nargs='*',
         help="TPV configuration files, overrides tpv_config_files in Galaxy job configuration if provided")
@@ -120,14 +135,15 @@ def configure_logging(verbosity_count):
     # or basicConfig persists
     for handler in logging.root.handlers[:]:
         logging.root.removeHandler(handler)
+    level = max(4 - verbosity_count, 1) * 10
     # set global logging level
     logging.basicConfig(
         stream=sys.stdout,
-        level=logging.DEBUG if verbosity_count > 3 else logging.ERROR,
+        level=level,
         format='%(levelname)-5s: %(name)s: %(message)s')
     # Set client log level
     if verbosity_count:
-        log.setLevel(max(4 - verbosity_count, 1) * 10)
+        log.setLevel(level)
     else:
         log.setLevel(logging.INFO)
 

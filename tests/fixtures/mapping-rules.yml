@@ -39,6 +39,14 @@ tools:
         env:
           bwameth_is_great: yes
 users:
+  default:
+    rules:
+      - id: training_destination_rule
+        if: |
+          any([r for r in user.all_roles() if (not r.deleted and r.name.startswith('training'))])
+        scheduling:
+          require:
+            - training
   fairycake@vortex.org:
     env:
       TEST_JOB_SLOTS_USER: "{cores}"
@@ -50,6 +58,14 @@ users:
   krikkitrobot@planetkrikkit.org:
     env:
       TEST_JOB_SLOTS_USER: "{cores}"
+  slartibartfast@glacier.org:
+    rules:
+      - id: magrathea_history_tag_rule
+        if: |
+            'magrathea' in [hta.user_tname for hta in job.history.tags]
+        scheduling:
+          require:
+            - commercial-council-of-magrathea
   arthur@vortex.org:
     scheduling:
       require:
@@ -81,3 +97,17 @@ destinations:
     scheduling:
       prefer:
         - pulsar
+  magrathea:
+    runner: local
+    max_accepted_cores: 4
+    max_accepted_mem: 16
+    scheduling:
+      require:
+        - commercial-council-of-magrathea
+  training:
+    runner: local
+    max_accepted_cores: 4
+    max_accepted_mem: 16
+    scheduling:
+      require:
+        - training

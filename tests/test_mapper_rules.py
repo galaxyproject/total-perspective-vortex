@@ -3,8 +3,10 @@ import time
 import tempfile
 import shutil
 import unittest
+
 from tpv.rules import gateway
 from tpv.commands.test import mock_galaxy
+
 from galaxy.jobs.mapper import JobMappingException
 from galaxy.jobs.mapper import JobNotReadyException
 
@@ -12,7 +14,7 @@ from galaxy.jobs.mapper import JobNotReadyException
 class TestMapperRules(unittest.TestCase):
 
     @staticmethod
-    def _map_to_destination(tool, user, datasets, param_values=None, tpv_config_files=None, app=None):
+    def _map_to_destination(tool, user, datasets, param_values=None, tpv_config_files=None, app=None, referrer="tpv_dispatcher", reset_mappers=True):
         galaxy_app = app or mock_galaxy.App(job_conf=os.path.join(os.path.dirname(__file__), 'fixtures/job_conf.yml'))
         job = mock_galaxy.Job()
         for d in datasets:
@@ -20,8 +22,9 @@ class TestMapperRules(unittest.TestCase):
         if param_values:
             job.param_values = param_values
         tpv_configs = tpv_config_files or [os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rules.yml')]
-        gateway.ACTIVE_DESTINATION_MAPPER = None
-        return gateway.map_tool_to_destination(galaxy_app, job, tool, user, tpv_config_files=tpv_configs)
+        if reset_mappers:
+            gateway.ACTIVE_DESTINATION_MAPPERS = {}
+        return gateway.map_tool_to_destination(galaxy_app, job, tool, user, tpv_config_files=tpv_configs, referrer=referrer)
 
     def test_map_rule_size_small(self):
         tool = mock_galaxy.Tool('bwa')
@@ -76,7 +79,7 @@ class TestMapperRules(unittest.TestCase):
             user = mock_galaxy.User('gargravarr', 'fairycake@vortex.org')
             datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=5*1024**3))]
 
-            destination = self._map_to_destination(tool, user, datasets, tpv_config_files=[tmp_file.name])
+            destination = self._map_to_destination(tool, user, datasets, tpv_config_files=[tmp_file.name], reset_mappers=True)
             self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_JOB_SLOTS_USER'], ['4'])
 
             # update the rule file
@@ -84,10 +87,10 @@ class TestMapperRules(unittest.TestCase):
             shutil.copy2(updated_rule_file, tmp_file.name)
 
             # wait for reload
-            time.sleep(0.5)
+            time.sleep(2)
 
             # should have loaded the new rules
-            destination = self._map_to_destination(tool, user, datasets, tpv_config_files=[tmp_file.name])
+            destination = self._map_to_destination(tool, user, datasets, tpv_config_files=[tmp_file.name], reset_mappers=False)
             self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_JOB_SLOTS_USER'], ['8'])
 
     def test_multiple_files_automatically_reload_on_update(self):
@@ -102,7 +105,7 @@ class TestMapperRules(unittest.TestCase):
             datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=5*1024**3))]
 
             destination = self._map_to_destination(tool, user, datasets, tpv_config_files=[
-                tmp_file1.name, tmp_file2.name])
+                tmp_file1.name, tmp_file2.name], reset_mappers=True)
             self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_JOB_SLOTS_USER'], ['3'])
 
             # update the rule files
@@ -112,12 +115,39 @@ class TestMapperRules(unittest.TestCase):
             shutil.copy2(updated_rule_file, tmp_file2.name)
 
             # wait for reload
-            time.sleep(0.5)
+            time.sleep(2)
 
             # should have loaded the new rules
             destination = self._map_to_destination(tool, user, datasets, tpv_config_files=[
-                tmp_file1.name, tmp_file2.name])
+                tmp_file1.name, tmp_file2.name], reset_mappers=False)
             self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_JOB_SLOTS_USER'], ['10'])
+
+    def test_rules_automatically_reload_when_multi_referrer(self):
+        with tempfile.NamedTemporaryFile('w+t') as tmp_file:
+            rule_file = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rules.yml')
+            shutil.copy2(rule_file, tmp_file.name)
+
+            tool = mock_galaxy.Tool('bwa')
+            user = mock_galaxy.User('gargravarr', 'fairycake@vortex.org')
+            datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=5*1024**3))]
+
+            destination = self._map_to_destination(tool, user, datasets, tpv_config_files=[tmp_file.name], referrer="tpv_dispatcher1", reset_mappers=True)
+            self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_JOB_SLOTS_USER'], ['4'])
+            destination = self._map_to_destination(tool, user, datasets, tpv_config_files=[tmp_file.name], referrer="tpv_dispatcher2", reset_mappers=False)
+            self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_JOB_SLOTS_USER'], ['4'])
+
+            # update the rule file
+            updated_rule_file = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rules-changed.yml')
+            shutil.copy2(updated_rule_file, tmp_file.name)
+
+            # wait for reload
+            time.sleep(2)
+
+            # should have loaded the new rules for both referrers
+            destination = self._map_to_destination(tool, user, datasets, tpv_config_files=[tmp_file.name], referrer="tpv_dispatcher1", reset_mappers=False)
+            self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_JOB_SLOTS_USER'], ['8'])
+            destination = self._map_to_destination(tool, user, datasets, tpv_config_files=[tmp_file.name], referrer="tpv_dispatcher2", reset_mappers=False)
+            self.assertEqual([env['value'] for env in destination.env if env['name'] == 'TEST_JOB_SLOTS_USER'], ['8'])
 
     def test_map_with_syntax_error(self):
         tool = mock_galaxy.Tool('bwa')

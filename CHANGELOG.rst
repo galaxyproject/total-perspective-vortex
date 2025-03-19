@@ -1,3 +1,8 @@
+2.5.0 - Dec 17, 2024. (sha d835738f6cb6625e2dac1355bd58ccbc3970598d)
+--------------------------------------------------------------------
+* Fix tests by @nuwang (PR #138)
+* Add lint warning for tools with `cores` and no `mem` by @natefoo (PR #140)
+
 2.4.0 - Feb 29, 2024. (sha cd877c4b34e81dde1a02d5e3d7a6385e6b6f5855)
 --------------------------------------------------------------------
 * Update shared db short link by @nuwang (PR #128)

@@ -14,6 +14,7 @@ class Job:
         self.input_library_datasets = []
         self.param_values = dict()
         self.parameters = []
+        self.history = None
 
     def add_input_dataset(self, dataset_association):
         self.input_datasets.append(JobToInputDatasetAssociation(dataset_association.name, dataset_association))
@@ -69,6 +70,7 @@ class App:
             track_jobs_in_database=True,
             server_name="main",
             is_set=lambda x: True,
+            watch_job_rules='auto'
         )
         self.job_metrics = JobMetrics()
         if create_model:
@@ -101,3 +103,14 @@ class Role:
     def __init__(self, name):
         self.name = name
         self.deleted = False
+
+
+class History:
+    def __init__(self, name='Unnamed TPV dry run history', tags=[]):
+        self.name = name
+        self.tags = [HistoryTag(tag_name) for tag_name in tags]
+
+
+class HistoryTag:
+    def __init__(self, user_tname):
+        self.user_tname = user_tname
