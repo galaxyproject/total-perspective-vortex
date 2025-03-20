@@ -1,14 +1,14 @@
 import logging
-import tempfile
 import os
 import re
+import tempfile
+from typing import Annotated, Any, List, Tuple, get_args, get_origin
+
 import mypy.api
+from jinja2 import Environment, FileSystemLoader
 from pydantic import Field
-from typing import List, Tuple,  get_origin, get_args, Any, Annotated
 
 from tpv.core.entities import Entity, TPVFieldMetadata
-
-from jinja2 import Environment, FileSystemLoader
 
 log = logging.getLogger(__name__)
 
@@ -18,26 +18,33 @@ def get_return_type_str(field_info: Field) -> str:
     Attempt to convert the field's annotation into a nice string for a function return.
     Example: Annotated[Optional[int], TPVFieldMetadata(...)] -> Optional[int]
     """
-    annotation = field_info.annotation  # e.g. Annotated[Optional[int], TPVFieldMetadata()]
+    annotation = (
+        field_info.annotation
+    )  # e.g. Annotated[Optional[int], TPVFieldMetadata()]
     origin = get_origin(annotation)
     args = get_args(annotation)
 
     # If a return type is explicitly defined on the Entity field, use that.
     metadata_list = getattr(field_info, "metadata", [])
-    if any(isinstance(m, TPVFieldMetadata) and getattr(m, "return_type", False) for m in metadata_list):
-        return_type = [getattr(m, "return_type", False)
-                       for m in metadata_list
-                       if isinstance(m, TPVFieldMetadata)][0]
+    if any(
+        isinstance(m, TPVFieldMetadata) and getattr(m, "return_type", False)
+        for m in metadata_list
+    ):
+        return_type = [
+            getattr(m, "return_type", False)
+            for m in metadata_list
+            if isinstance(m, TPVFieldMetadata)
+        ][0]
         return str(return_type)
 
     # If it's Annotated[<something>, <metadata>], args[0] is the underlying type
     if origin is type(Annotated[Any, []]):  # or: if origin is Annotated:
         underlying = args[0]
-        return str(underlying).replace('NoneType', 'None')
+        return str(underlying).replace("NoneType", "None")
 
     # Otherwise, it might be Union or something else. Just return str(annotation).
     # e.g. Union[int, str], or Optional[str].
-    return str(annotation).replace('NoneType', 'None')
+    return str(annotation).replace("NoneType", "None")
 
 
 def gather_all_evaluable_code(tpv_config) -> List[Tuple[str, str]]:
@@ -93,12 +100,14 @@ def gather_fields_from_entity(path: str, entity: Entity) -> List[dict]:
                 # Derive a return type string from the Entity type annotation
                 return_type = get_return_type_str(field_info)
 
-                code_snippets.append({
-                    "func_name": safe_name,
-                    "code": value,
-                    "complex_property": is_complex,
-                    "return_type": return_type,
-                })
+                code_snippets.append(
+                    {
+                        "func_name": safe_name,
+                        "code": value,
+                        "complex_property": is_complex,
+                        "return_type": return_type,
+                    }
+                )
     return code_snippets
 
 
@@ -139,5 +148,5 @@ def slugify(value: str) -> str:
       - Strip leading/trailing underscores
     """
     slug = value.lower()
-    slug = re.sub(r'[^a-z0-9_]+', '_', slug)
-    return slug.strip('_')
+    slug = re.sub(r"[^a-z0-9_]+", "_", slug)
+    return slug.strip("_")
