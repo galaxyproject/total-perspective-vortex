@@ -1,6 +1,7 @@
 import logging
 import re
 
+from tpv.commands import mypychecker
 from tpv.core.loader import TPVConfigLoader
 
 log = logging.getLogger(__name__)
@@ -9,7 +10,7 @@ log = logging.getLogger(__name__)
 # Warning codes:
 # T101: default inheritance not marked abstract
 # T102: entity specifies cores without memory
-
+# T103: mypy error
 
 class TPVLintError(Exception):
     pass
@@ -40,9 +41,23 @@ class TPVConfigLinter(object):
     def lint(self):
         if self.loader is None:
             self.load_config()
+        self.lint_code(self.loader)
         self.lint_tools(self.loader)
         self.lint_destinations(self.loader)
         self.print_errors_and_warnings()
+
+    def lint_code(self, loader):
+        """
+        Gather code blocks from the loader, render them into a .py file with Jinja2,
+        run mypy, record errors if any.
+        """
+        warnings, errors, tmp_filename = mypychecker.type_check_code(loader)
+        print("TMP_FILE", tmp_filename)
+        if warnings:
+            self.errors.append(warnings)
+            #self.warnings.append(('T103', warnings))
+        # if errors:
+        #     self.errors.append(errors)
 
     def lint_tools(self, loader):
         default_inherits = loader.config.global_config.default_inherits

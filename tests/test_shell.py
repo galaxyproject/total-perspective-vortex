@@ -131,6 +131,18 @@ class TPVShellTestCase(unittest.TestCase):
             f"Did not expect destination: `working_dest` to be in the output, but found: {output}",
         )
 
+    def test_lint_undefined_variable(self):
+        tpv_config = os.path.join(
+            os.path.dirname(__file__), "fixtures/linter/linter-undefined-variable.yml"
+        )
+        output = self.call_shell_command("tpv", "lint", tpv_config)
+        self.assertTrue(
+            "lint failed" in output, f"Expected lint to fail but output was: {output}"
+        )
+        self.assertTrue(
+            "oops syntax!" in output, f"Expected lint to fail but output was: {output}"
+        )
+
     def test_lint_warnings(self):
         tpv_config = os.path.join(
             os.path.dirname(__file__), "fixtures/linter/linter-warnings.yml"
