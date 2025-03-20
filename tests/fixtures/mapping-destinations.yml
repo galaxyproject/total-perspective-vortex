@@ -193,7 +193,7 @@ destinations:
       TEST_ENTITY_PRIORITY: "{cores*2}"
     params:
       memory_requests: "{mem*2}"
-      k8s_walltime_limit: 20
+      k8s_walltime_limit: "20"
     rules:
       - if: input_size > 20
         execute: |

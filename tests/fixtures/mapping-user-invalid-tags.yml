@@ -3,9 +3,25 @@ global:
 
 tools:
   default:
-    abstract: true
     cores: 2
     mem: 8
+    gpus: 1
+    env: {}
+    scheduling:
+      require: []
+      prefer:
+        - general
+      accept:
+      reject:
+        - pulsar
+    params:
+      native_spec: "--mem {mem} --cores {cores}"
+    rules: []
+
+users:
+  default:
+    max_cores: 3
+    max_mem: 4
     env: {}
     scheduling:
       require: []
@@ -15,25 +31,12 @@ tools:
       reject:
         - pulsar
     rules: []
-  my_abstract_tool:
-    inherits: default
-    abstract: true
-  my_concrete_tool:
-    inherits: default
-  bwa:
-    scheduling:
-      require:
-        - pulsar
-  unschedulable_tool:
-    scheduling:
-      require:
-        - non_existent
-  regex_tool.*:
+  improbable@vortex.org:
     scheduling:
       require:
         - pulsar
       reject:
-        - general
+        - pulsar
 
 destinations:
   local:
@@ -43,11 +46,5 @@ destinations:
     scheduling:
       prefer:
         - general
-  k8s_environment:
-    runner: k8s
-    max_accepted_cores: 16
-    max_accepted_mem: 64
-    max_accepted_gpus: 2
-    scheduling:
-      prefer:
+      accept:
         - pulsar

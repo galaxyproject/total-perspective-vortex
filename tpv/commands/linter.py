@@ -32,14 +32,19 @@ class TPVConfigLinter(object):
             raise TPVLintError("Linting failed due to syntax errors in yaml file: ") from e
 
     def add_warning(self, entity, code, message):
-        if code not in self.ignore and not self.loader.check_noqa(entity, code):
+        if code not in self.ignore and not entity.should_skip_qa(code):
             self.warnings.append((code, message))
 
     def lint(self):
         if self.loader is None:
             self.load_config()
-        default_inherits = self.loader.global_settings.get('default_inherits')
-        for tool_regex, tool in self.loader.tools.items():
+        self.lint_tools(self.loader)
+        self.lint_destinations(self.loader)
+        self.print_errors_and_warnings()
+
+    def lint_tools(self, loader):
+        default_inherits = loader.config.global_config.default_inherits
+        for tool_regex, tool in loader.config.tools.items():
             try:
                 re.compile(tool_regex)
             except re.error:
@@ -57,7 +62,10 @@ class TPVConfigLinter(object):
                     "T102",
                     f"The tool named: {tool_regex} sets `cores` but not `mem`. This can lead to "
                     "unexpected memory usage since memory is typically a multiplier of cores.")
-        for destination in self.loader.destinations.values():
+
+    def lint_destinations(self, loader):
+        default_inherits = loader.config.global_config.default_inherits
+        for destination in loader.config.destinations.values():
             if not destination.runner and not destination.abstract:
                 self.errors.append(f"Destination '{destination.id}' does not define the runner parameter. "
                                    "The runner parameter is mandatory.")
@@ -76,6 +84,8 @@ class TPVConfigLinter(object):
                     f"The destination named: {default_inherits} is marked globally as the destination to inherit from "
                     "by default. You may want to mark it as abstract if it is not meant to be dispatched to, and it "
                     "will be excluded from scheduling decisions.")
+
+    def print_errors_and_warnings(self):
         if self.warnings:
             for code, message in self.warnings:
                 log.warning(f"{code}: {message}")

@@ -63,8 +63,7 @@ users:
             rule_helper = RuleHelper(app)
             # Find all destinations that support highmem
             destinations = [d.dest_name for d in mapper.destinations.values()
-                            if any(d.tpv_dest_tags.filter(tag_value='highmem',
-                                   tag_type=[TagType.REQUIRE, TagType.PREFER, TagType.ACCEPT]))]
+                            if 'highmem' in (d.tpv_dest_tags.require + d.tpv_dest_tags.prefer + d.tpv_dest_tags.accept)]
             count = rule_helper.job_count(for_user_email=user.email, for_destinations=destinations)
             if count > 4:
               retval = True

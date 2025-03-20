@@ -60,12 +60,6 @@ users:
         - earth
       reject:
         - pulsar
-  improbable@vortex.org:
-    scheduling:
-      require:
-        - pulsar
-      reject:
-        - pulsar
   prefect@vortex.org:
     max_cores: 4
     max_mem: 32

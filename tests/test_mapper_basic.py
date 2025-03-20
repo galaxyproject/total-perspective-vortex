@@ -35,8 +35,9 @@ class TestMapperBasic(unittest.TestCase):
 
     def test_map_invalidly_tagged_tool(self):
         tool = mock_galaxy.Tool('invalidly_tagged_tool')
-        with self.assertRaisesRegex(JobMappingException, "No destinations are available to fulfill request"):
-            self._map_to_destination(tool)
+        config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-invalid-tags.yml')
+        with self.assertRaisesRegex(Exception, r"Duplicate tags found: 'general' in \['require', 'reject'\]"):
+            self._map_to_destination(tool, tpv_config_path=config)
 
     def test_map_tool_by_regex(self):
         tool = mock_galaxy.Tool('regex_tool_test')

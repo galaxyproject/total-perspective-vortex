@@ -15,23 +15,10 @@ tools:
       reject:
         - pulsar
     rules: []
-  my_abstract_tool:
-    inherits: default
-    abstract: true
-  my_concrete_tool:
-    inherits: default
-  bwa:
+  invalidly_tagged_tool:
     scheduling:
       require:
-        - pulsar
-  unschedulable_tool:
-    scheduling:
-      require:
-        - non_existent
-  regex_tool.*:
-    scheduling:
-      require:
-        - pulsar
+        - general
       reject:
         - general
 

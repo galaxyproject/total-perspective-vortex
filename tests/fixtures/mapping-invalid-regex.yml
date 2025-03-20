@@ -28,12 +28,6 @@ tools:
     scheduling:
       require:
         - non_existent
-  invalidly_tagged_tool:
-    scheduling:
-      require:
-        - general
-      reject:
-        - general
   regex_tool.*:
     scheduling:
       require:

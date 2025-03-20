@@ -52,12 +52,6 @@ users:
         max_mem: cores * 6
       - if: input_size >= 5
         fail: Just because
-  improbable@vortex.org:
-    scheduling:
-      require:
-        - pulsar
-      reject:
-        - pulsar
   .*@vortex.org:
     scheduling:
       require:

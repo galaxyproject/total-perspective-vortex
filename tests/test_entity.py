@@ -28,7 +28,7 @@ class TestEntity(unittest.TestCase):
         self._map_to_destination(app, job, tool, user)
 
         # get the original loader
-        original_loader = gateway.ACTIVE_DESTINATION_MAPPERS["tpv_dispatcher"].loader
+        original_evaluator = gateway.ACTIVE_DESTINATION_MAPPERS["tpv_dispatcher"].loader
 
         context = {
             'app': app,
@@ -36,9 +36,9 @@ class TestEntity(unittest.TestCase):
         }
         # make sure we are still referring to the same loader after evaluation
         evaluated_entity = gateway.ACTIVE_DESTINATION_MAPPERS["tpv_dispatcher"].match_combine_evaluate_entities(context, tool, user)
-        assert evaluated_entity.loader == original_loader
+        assert evaluated_entity.evaluator == original_evaluator
         for rule in evaluated_entity.rules:
-            assert rule.loader == original_loader
+            assert rule.evaluator == original_evaluator
 
     def test_each_referrer_has_unique_mapper(self):
         app = mock_galaxy.App(job_conf=os.path.join(os.path.dirname(__file__), 'fixtures/job_conf.yml'))
@@ -55,16 +55,15 @@ class TestEntity(unittest.TestCase):
         assert gateway.ACTIVE_DESTINATION_MAPPERS["tpv_dispatcher1"].loader != gateway.ACTIVE_DESTINATION_MAPPERS["tpv_dispatcher2"].loader
 
     def test_destination_to_dict(self):
-
         tpv_config = os.path.join(os.path.dirname(__file__), 'fixtures/mapping-rule-argument-based.yml')
         loader = TPVConfigLoader.from_url_or_path(tpv_config)
 
         # create a destination
-        destination = loader.destinations["k8s_environment"]
+        destination = loader.config.destinations["k8s_environment"]
         # serialize the destination
-        serialized_destination = destination.to_dict()
+        serialized_destination = destination.dict()
         # deserialize the same destination
-        deserialized_destination = Destination.from_dict(loader, serialized_destination)
+        deserialized_destination = Destination(evaluator=loader, **serialized_destination)
         # make sure the deserialized destination is the same as the original
         self.assertEqual(deserialized_destination, destination)
 
@@ -73,24 +72,23 @@ class TestEntity(unittest.TestCase):
         loader = TPVConfigLoader.from_url_or_path(tpv_config)
 
         # create a tool
-        tool = loader.tools["limbo"]
+        tool = loader.config.tools["limbo"]
         # serialize the tool
-        serialized_destination = tool.to_dict()
+        serialized_tool = tool.dict()
         # deserialize the same tool
-        deserialized_destination = Tool.from_dict(loader, serialized_destination)
+        deserialized_tool = Tool(evaluator=loader, **serialized_tool)
         # make sure the deserialized tool is the same as the original
-        self.assertEqual(deserialized_destination, tool)
+        self.assertEqual(deserialized_tool, tool)
 
     def test_tag_equivalence(self):
-        tag1 = Tag("tag_name", "tag_value", TagType.REQUIRE)
-        tag2 = Tag("tag_name2", "tag_value", TagType.REQUIRE)
-        tag3 = Tag("tag_name", "tag_value1", TagType.REQUIRE)
-        tag4 = Tag("tag_name", "tag_value1", TagType.PREFER)
-        same_as_tag1 = Tag("tag_name", "tag_value", TagType.REQUIRE)
+        tag1 = Tag(value="tag_value", tag_type=TagType.REQUIRE)
+        tag2 = Tag(value="tag_value", tag_type=TagType.REQUIRE)
+        tag3 = Tag(value="tag_value1", tag_type=TagType.REQUIRE)
+        tag4 = Tag(value="tag_value1", tag_type=TagType.PREFER)
+        same_as_tag1 = Tag(value="tag_value", tag_type=TagType.REQUIRE)
 
         self.assertEqual(tag1, tag1)
         self.assertEqual(tag1, same_as_tag1)
-        self.assertNotEqual(tag1, tag2)
         self.assertNotEqual(tag1, tag3)
         self.assertNotEqual(tag1, tag4)
         self.assertNotEqual(tag1, "hello")
