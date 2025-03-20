@@ -41,18 +41,26 @@ def setup_destination_mapper(app, referrer, tpv_config_files: Union[List[str], s
         if os.path.isfile(tpv_config_file):
             # adjust for tempfile handling on Darwin
             tpv_config_real_path = os.path.realpath(tpv_config_file)
-            log.info(f"Watching for changes in file: {tpv_config_real_path} via referrer: {referrer}")
+            log.info(
+                f"Watching for changes in file: {tpv_config_real_path} via referrer: {referrer}"
+            )
             # there can't be two watchers on the same file
             watcher = WATCHERS_BY_CONFIG_FILE.get(tpv_config_real_path)
             if not watcher:
-                watcher = get_watcher(app.config, "watch_job_rules", monitor_what_str="job rules")
+                watcher = get_watcher(
+                    app.config, "watch_job_rules", monitor_what_str="job rules"
+                )
 
             def reload_destination_mapper(path=None):
                 # reload all config files when one file changes to preserve order of loading the files
                 global ACTIVE_DESTINATION_MAPPERS
                 # watchdog on darwin notifies only once per file, so reload all mappers that refer to this file
-                for referrer, config_files in REFERRERS_BY_CONFIG_FILE[tpv_config_real_path].items():
-                    ACTIVE_DESTINATION_MAPPERS[referrer] = load_destination_mapper(config_files, reload=True)
+                for referrer, config_files in REFERRERS_BY_CONFIG_FILE[
+                    tpv_config_real_path
+                ].items():
+                    ACTIVE_DESTINATION_MAPPERS[referrer] = load_destination_mapper(
+                        config_files, reload=True
+                    )
 
             WATCHERS_BY_CONFIG_FILE[tpv_config_real_path] = watcher
             REFERRERS_BY_CONFIG_FILE[tpv_config_real_path][referrer] = tpv_config_files
@@ -72,7 +80,9 @@ def lock_and_load_mapper(app, referrer, tpv_config_files):
             destination_mapper = ACTIVE_DESTINATION_MAPPERS.get(referrer)
             # still null with the lock - must be the first time
             if not destination_mapper:
-                destination_mapper = setup_destination_mapper(app, referrer, tpv_config_files)
+                destination_mapper = setup_destination_mapper(
+                    app, referrer, tpv_config_files
+                )
                 ACTIVE_DESTINATION_MAPPERS[referrer] = destination_mapper
     return destination_mapper
 
@@ -90,5 +100,6 @@ def map_tool_to_destination(
     workflow_invocation_uuid=None,
 ):
     destination_mapper = lock_and_load_mapper(app, referrer, tpv_config_files)
-    return destination_mapper.map_to_destination(app, tool, user, job, job_wrapper, resource_params,
-                                                 workflow_invocation_uuid)
+    return destination_mapper.map_to_destination(
+        app, tool, user, job, job_wrapper, resource_params, workflow_invocation_uuid
+    )

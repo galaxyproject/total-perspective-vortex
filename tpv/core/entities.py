@@ -779,7 +779,11 @@ class TPVConfig(BaseModel):
             if match:
                 codes = match.group(1)
                 # Return a set of codes or None if `# noqa` with no codes
-                return set(code.strip() for code in codes.split(',')) if codes else set(("noqa",))
+                return (
+                    set(code.strip() for code in codes.split(","))
+                    if codes
+                    else set(("noqa",))
+                )
         return set()
 
     @staticmethod
@@ -805,7 +809,9 @@ class TPVConfig(BaseModel):
 
             # If we see any comment tokens, store them in "no_qa_codes"
             if comments and len(comments) == 4 and comments[3]:
-                no_qa_codes = TPVConfig.get_noqa_codes([x.value.strip() for x in comments[3]])
+                no_qa_codes = TPVConfig.get_noqa_codes(
+                    [x.value.strip() for x in comments[3]]
+                )
 
                 # If child_value is a dict, put comment_data under a "no_qa_codes" key
                 # that your sub-models can handle. If child_value is not a dict,
