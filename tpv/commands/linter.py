@@ -12,6 +12,7 @@ log = logging.getLogger(__name__)
 # T102: entity specifies cores without memory
 # T103: mypy error
 
+
 class TPVLintError(Exception):
     pass
 
@@ -55,7 +56,7 @@ class TPVConfigLinter(object):
         print("TMP_FILE", tmp_filename)
         if warnings:
             self.errors.append(warnings)
-            #self.warnings.append(('T103', warnings))
+            # self.warnings.append(('T103', warnings))
         # if errors:
         #     self.errors.append(errors)
 
