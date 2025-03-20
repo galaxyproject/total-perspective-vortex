@@ -22,6 +22,14 @@ def get_return_type_str(field_info: Field) -> str:
     origin = get_origin(annotation)
     args = get_args(annotation)
 
+    # If a return type is explicitly defined on the Entity field, use that.
+    metadata_list = getattr(field_info, "metadata", [])
+    if any(isinstance(m, TPVFieldMetadata) and getattr(m, "return_type", False) for m in metadata_list):
+        return_type = [getattr(m, "return_type", False)
+                       for m in metadata_list
+                       if isinstance(m, TPVFieldMetadata)][0]
+        return str(return_type)
+
     # If it's Annotated[<something>, <metadata>], args[0] is the underlying type
     if origin is type(Annotated[Any, []]):  # or: if origin is Annotated:
         underlying = args[0]

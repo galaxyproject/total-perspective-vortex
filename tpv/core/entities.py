@@ -5,7 +5,7 @@ import re
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import Annotated, Any, ClassVar, Dict, Iterable, List, Optional
+from typing import Annotated, Any, ClassVar, Dict, Iterable, List, Optional, ForwardRef
 
 from galaxy import util as galaxy_util
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -33,6 +33,7 @@ class TryNextDestinationOrWait(Exception):
 @dataclass
 class TPVFieldMetadata:
     complex_property: bool = False
+    return_type: type = None
 
 
 def default_field_copier(entity1, entity2, property_name):
@@ -247,7 +248,7 @@ class Entity(BaseModel):
     resubmit: Annotated[
         Optional[Dict[str, str]], TPVFieldMetadata(complex_property=True)
     ] = Field(default_factory=dict)
-    rank: Annotated[Optional[str], TPVFieldMetadata()] = None
+    rank: Annotated[Optional[str], TPVFieldMetadata(return_type="List[Destination]")] = None
     context: Optional[Dict[str, Any]] = Field(default_factory=dict)
     evaluator: SkipJsonSchema[Optional[TPVCodeEvaluator]] = Field(
         exclude=True, default=None
