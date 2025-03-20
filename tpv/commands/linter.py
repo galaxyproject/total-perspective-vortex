@@ -32,14 +32,14 @@ class TPVConfigLinter(object):
             raise TPVLintError("Linting failed due to syntax errors in yaml file: ") from e
 
     def add_warning(self, entity, code, message):
-        if code not in self.ignore and not self.loader.check_noqa(entity, code):
+        if code not in self.ignore and not entity.should_skip_qa(code):
             self.warnings.append((code, message))
 
     def lint(self):
         if self.loader is None:
             self.load_config()
-        self.lint_tools(loader)
-        self.lint_destinations(loader)
+        self.lint_tools(self.loader)
+        self.lint_destinations(self.loader)
         self.print_errors_and_warnings()
 
     def lint_tools(self, loader):
@@ -56,17 +56,16 @@ class TPVConfigLinter(object):
                     f"The tool named: {default_inherits} is marked globally as the tool to inherit from "
                     "by default. You may want to mark it as abstract if it is not an actual tool and it "
                     "will be excluded from scheduling decisions.")
-
-    def lint_destinations(self, loader):
-        default_inherits = loader.config.global_config.default_inherits
-        for destination in loader.config.destinations.values():
             if tool.cores and not tool.mem:
                 self.add_warning(
                     tool,
                     "T102",
                     f"The tool named: {tool_regex} sets `cores` but not `mem`. This can lead to "
                     "unexpected memory usage since memory is typically a multiplier of cores.")
-        for destination in self.loader.destinations.values():
+
+    def lint_destinations(self, loader):
+        default_inherits = loader.config.global_config.default_inherits
+        for destination in loader.config.destinations.values():
             if not destination.runner and not destination.abstract:
                 self.errors.append(f"Destination '{destination.id}' does not define the runner parameter. "
                                    "The runner parameter is mandatory.")

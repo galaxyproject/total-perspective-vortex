@@ -28,7 +28,7 @@ class TestEntity(unittest.TestCase):
         self._map_to_destination(app, job, tool, user)
 
         # get the original loader
-        original_loader = gateway.ACTIVE_DESTINATION_MAPPERS["tpv_dispatcher"].loader
+        original_evaluator = gateway.ACTIVE_DESTINATION_MAPPERS["tpv_dispatcher"].loader
 
         context = {
             'app': app,
@@ -36,9 +36,9 @@ class TestEntity(unittest.TestCase):
         }
         # make sure we are still referring to the same loader after evaluation
         evaluated_entity = gateway.ACTIVE_DESTINATION_MAPPERS["tpv_dispatcher"].match_combine_evaluate_entities(context, tool, user)
-        assert evaluated_entity.loader == original_loader
+        assert evaluated_entity.evaluator == original_evaluator
         for rule in evaluated_entity.rules:
-            assert rule.evaluator == original_loader
+            assert rule.evaluator == original_evaluator
 
     def test_each_referrer_has_unique_mapper(self):
         app = mock_galaxy.App(job_conf=os.path.join(os.path.dirname(__file__), 'fixtures/job_conf.yml'))

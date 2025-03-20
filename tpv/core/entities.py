@@ -4,7 +4,10 @@ import logging
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import IntEnum
+import re
 from typing import Annotated, Any, ClassVar, Dict, Iterable, List, Optional
+
+from ruamel.yaml.comments import CommentedMap
 
 from galaxy import util as galaxy_util
 from pydantic import (
@@ -18,6 +21,9 @@ from pydantic.json_schema import SkipJsonSchema
 from .evaluator import TPVCodeEvaluator
 
 log = logging.getLogger(__name__)
+
+
+NOQA_RE = re.compile(r"#\s*noqa:?\s*([A-Z0-9, ]+)?")
 
 
 class TryNextDestinationOrFail(Exception):
@@ -255,6 +261,7 @@ class Entity(BaseModel):
     tpv_tags: Optional[SchedulingTags] = Field(
         alias="scheduling", default_factory=SchedulingTags
     )
+    no_qa_codes: Optional[List[str]] = Field(default_factory=list)
 
     def __init__(self, **data: Any):
         super().__init__(**data)
@@ -496,6 +503,9 @@ class Entity(BaseModel):
         # Ensure by_alias is set to True to use the field aliases during serialization
         kwargs.setdefault("by_alias", True)
         return super().model_dump(**kwargs)
+
+    def should_skip_qa(self, code):
+        return "noqa" in self.no_qa_codes or code in self.no_qa_codes
 
     def dict(self, **kwargs):
         # by_alias is set to True to use the field aliases during serialization
@@ -757,3 +767,59 @@ class TPVConfig(BaseModel):
             for id, destination in self.destinations.items():
                 destination.propagate_parent_properties(id=id, evaluator=self.evaluator)
         return self
+
+    @model_validator(mode="before")
+    @classmethod
+    def gather_comments(cls, data):
+        """
+        This runs before Pydantic constructs TPVConfig.
+        We have one chance to transform 'data' if it's a CommentedMap,
+        recursively attach comments to sub-dicts, and return the updated dict.
+        """
+        return TPVConfig.recursively_extract_comments(data)
+
+    @staticmethod
+    def get_noqa_codes(entity_comments: list) -> set[str]:
+        for comment in entity_comments:
+            match = NOQA_RE.match(comment)
+            if match:
+                codes = match.group(1)
+                # Return a set of codes or None if `# noqa` with no codes
+                return set(code.strip() for code in codes.split(',')) if codes else set(("noqa",))
+        return set()
+
+    @staticmethod
+    def recursively_extract_comments(cm: CommentedMap) -> dict:
+        """
+        Recursively walk a ruamel.yaml CommentedMap, extracting comments and
+        placing them under a special key (e.g., "no_qa_codes") for each item.
+        Returns a dict that Pydantic can parse.
+        """
+        if not isinstance(cm, CommentedMap):
+            # Base case: if it's a scalar or list or normal dict, just return it
+            return cm
+
+        # We'll build a new dict with the same keys, plus "no_qa_codes" if needed
+        new_dict = {}
+        for key, value in cm.items():
+            # In ruamel.yaml, comments above or inline with a key can be accessed via:
+            #   cm.ca.items.get(key) -> a list or tuple of comment tokens
+            comments = cm.ca.items.get(key)
+
+            # Recurse into nested CommentedMaps
+            child_value = TPVConfig.recursively_extract_comments(value)
+
+            # If we see any comment tokens, store them in "no_qa_codes"
+            if comments and len(comments) == 4 and comments[3]:
+                no_qa_codes = TPVConfig.get_noqa_codes([x.value.strip() for x in comments[3]])
+
+                # If child_value is a dict, put comment_data under a "no_qa_codes" key
+                # that your sub-models can handle. If child_value is not a dict,
+                # we convert it to a dict so we can attach metadata.
+                if isinstance(child_value, dict):
+                    # no_qa_codes can now be parsed by the Entity model
+                    child_value["no_qa_codes"] = no_qa_codes
+
+            new_dict[key] = child_value
+
+        return new_dict
