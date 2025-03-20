@@ -22,6 +22,7 @@ REQS_FULL = [
     "watchdog",
     "requests",
     "ruamel.yaml",
+    "mypy",
 ]
 
 REQS_CLI = ["galaxy-app"] + REQS_FULL

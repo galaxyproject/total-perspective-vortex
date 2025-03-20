@@ -35,7 +35,7 @@ def calculate_dataset_total(datasets):
         return 0.0
 
 
-def input_size(job):
+def input_size(job) -> float:
     return calculate_dataset_total(job.input_datasets) / GIGABYTES
 
 
