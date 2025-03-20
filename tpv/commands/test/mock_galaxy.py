@@ -1,8 +1,8 @@
 import hashlib
 
-from galaxy.model import mapping
 from galaxy.job_metrics import JobMetrics
 from galaxy.jobs import JobConfiguration
+from galaxy.model import mapping
 from galaxy.util import bunch
 from galaxy.web_stack import ApplicationStack
 

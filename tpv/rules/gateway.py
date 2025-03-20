@@ -1,13 +1,14 @@
-from collections import defaultdict
 import logging
 import os
+import threading
+from collections import defaultdict
 from typing import List, Union
 
 from galaxy.util import listify
 from galaxy.util.watcher import get_watcher
+
 from tpv.core.loader import TPVConfigLoader
 from tpv.core.mapper import EntityToDestinationMapper
-import threading
 
 log = logging.getLogger(__name__)
 

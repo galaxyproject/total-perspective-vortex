@@ -1,22 +1,16 @@
 import copy
 import itertools
 import logging
+import re
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import IntEnum
-import re
 from typing import Annotated, Any, ClassVar, Dict, Iterable, List, Optional
 
-from ruamel.yaml.comments import CommentedMap
-
 from galaxy import util as galaxy_util
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Field,
-    model_validator,
-)
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic.json_schema import SkipJsonSchema
+from ruamel.yaml.comments import CommentedMap
 
 from .evaluator import TPVCodeEvaluator
 

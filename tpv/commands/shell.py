@@ -6,8 +6,7 @@ from ruamel.yaml import YAML, RoundTripRepresenter
 
 from .dryrunner import TPVDryRunner
 from .formatter import TPVConfigFormatter
-from .linter import TPVConfigLinter
-from .linter import TPVLintError
+from .linter import TPVConfigLinter, TPVLintError
 
 log = logging.getLogger(__name__)
 

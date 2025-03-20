@@ -1,7 +1,7 @@
 import os
-import ruamel.yaml
 
 import requests
+import ruamel.yaml
 
 
 def load_yaml_from_url_or_path(url_or_path: str):

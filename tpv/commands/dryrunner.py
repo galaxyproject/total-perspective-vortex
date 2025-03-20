@@ -1,5 +1,6 @@
-from .test import mock_galaxy
 from tpv.rules import gateway
+
+from .test import mock_galaxy
 
 
 class TPVDryRunner():

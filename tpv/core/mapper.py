@@ -2,11 +2,11 @@ import functools
 import logging
 import re
 
-from .entities import Entity, Tool, TryNextDestinationOrFail, TryNextDestinationOrWait
-from .loader import TPVConfigLoader
-
 from galaxy.jobs import JobDestination
 from galaxy.jobs.mapper import JobNotReadyException
+
+from .entities import Entity, Tool, TryNextDestinationOrFail, TryNextDestinationOrWait
+from .loader import TPVConfigLoader
 
 log = logging.getLogger(__name__)
 

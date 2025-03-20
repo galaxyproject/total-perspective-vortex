@@ -7,6 +7,7 @@ except ImportError:
 
 import random
 from functools import reduce
+
 from galaxy import model
 
 GIGABYTES = 1024.0**3
