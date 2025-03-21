@@ -2,13 +2,15 @@
 import logging
 import typing
 from typing import Annotated, Any, ClassVar, Dict, Iterable, List, Optional
-from tpv.core.mapper import EntityToDestinationMapper
-from tpv.core.entities import SchedulingTags, Destination, Entity
-from tpv.core import helpers
+
 from galaxy.app import UniverseApplication
-from galaxy.tools import Tool
 from galaxy.jobs import JobWrapper
-from galaxy.model import User, Job
+from galaxy.model import Job, User
+from galaxy.tools import Tool
+
+from tpv.core import helpers
+from tpv.core.entities import Destination, Entity, SchedulingTags
+from tpv.core.mapper import EntityToDestinationMapper
 
 log = logging.getLogger(__name__)
 
