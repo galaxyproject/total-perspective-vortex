@@ -2,11 +2,11 @@ import functools
 import logging
 import re
 
-from .entities import Entity, Tool, TryNextDestinationOrFail, TryNextDestinationOrWait
-from .loader import TPVConfigLoader
-
 from galaxy.jobs import JobDestination
 from galaxy.jobs.mapper import JobNotReadyException
+
+from .entities import Entity, Tool, TryNextDestinationOrFail, TryNextDestinationOrWait
+from .loader import TPVConfigLoader
 
 log = logging.getLogger(__name__)
 
@@ -19,8 +19,12 @@ class EntityToDestinationMapper(object):
         self.destinations = self.config.destinations
         self.default_inherits = self.config.global_config.default_inherits
         self.global_context = self.config.global_config.context
-        self.lookup_tool_regex = functools.lru_cache(maxsize=None)(self.__compile_tool_regex)
-        self.inherit_matching_entities = functools.lru_cache(maxsize=None)(self.__inherit_matching_entities)
+        self.lookup_tool_regex = functools.lru_cache(maxsize=None)(
+            self.__compile_tool_regex
+        )
+        self.inherit_matching_entities = functools.lru_cache(maxsize=None)(
+            self.__inherit_matching_entities
+        )
 
     def __compile_tool_regex(self, key):
         try:
@@ -29,7 +33,9 @@ class EntityToDestinationMapper(object):
             log.error(f"Failed to compile regex: {key}")
             raise
 
-    def _find_entities_matching_id(self, entity_list: dict[str, Entity], entity_name: str):
+    def _find_entities_matching_id(
+        self, entity_list: dict[str, Entity], entity_name: str
+    ):
         default_inherits = self.__get_default_inherits(entity_list)
         if default_inherits:
             matches = [default_inherits]
@@ -40,7 +46,10 @@ class EntityToDestinationMapper(object):
                 match = entity_list[key]
                 if match.abstract:
                     from galaxy.jobs.mapper import JobMappingException
-                    raise JobMappingException(f"This entity is abstract and cannot be mapped : {match}")
+
+                    raise JobMappingException(
+                        f"This entity is abstract and cannot be mapped : {match}"
+                    )
                 else:
                     matches.append(match)
         return matches
@@ -60,7 +69,10 @@ class EntityToDestinationMapper(object):
     def __apply_default_destination_inheritance(self, entity_list):
         default_inherits = self.__get_default_inherits(entity_list)
         if default_inherits:
-            return [self.inherit_entities([default_inherits, entity]) for entity in entity_list.values()]
+            return [
+                self.inherit_entities([default_inherits, entity])
+                for entity in entity_list.values()
+            ]
         else:
             return entity_list.values()
 
@@ -82,8 +94,11 @@ class EntityToDestinationMapper(object):
     def match_and_rank_destinations(self, entity, destinations, context):
         # At this point, the resource requirements (cores, mem, gpus) are unevaluated.
         # So temporarily evaluate them so we can match up with a destination.
-        matches = [dest for dest in self.__apply_default_destination_inheritance(destinations)
-                   if dest.matches(entity.evaluate_resources(context), context)]
+        matches = [
+            dest
+            for dest in self.__apply_default_destination_inheritance(destinations)
+            if dest.matches(entity.evaluate_resources(context), context)
+        ]
         return self.rank(entity, matches, context)
 
     def to_galaxy_destination(self, destination):
@@ -104,8 +119,11 @@ class EntityToDestinationMapper(object):
         entity_list = [tool_entity]
 
         if user:
-            role_entities = (self.inherit_matching_entities("roles", role.name)
-                             for role in user.all_roles() if not role.deleted)
+            role_entities = (
+                self.inherit_matching_entities("roles", role.name)
+                for role in user.all_roles()
+                if not role.deleted
+            )
             # trim empty
             user_role_entities = (role for role in role_entities if role)
             user_role_entity = next(user_role_entities, None)
@@ -124,18 +142,12 @@ class EntityToDestinationMapper(object):
 
         # 2. Combine entity requirements
         combined_entity = self.combine_entities(entity_list)
-        context.update({
-            'entity': combined_entity,
-            'self': combined_entity
-        })
+        context.update({"entity": combined_entity, "self": combined_entity})
 
         # 3. Evaluate rules only, so that all expressions are collapsed into a flat entity. The final
         #    values for expressions should be evaluated only after combining with the destination.
         evaluated_entity = combined_entity.evaluate_rules(context)
-        context.update({
-            'entity': evaluated_entity,
-            'self': evaluated_entity
-        })
+        context.update({"entity": evaluated_entity, "self": evaluated_entity})
 
         # Remove the rules as they've already been evaluated, and should not be re-evaluated when combining
         # with destinations
@@ -143,28 +155,40 @@ class EntityToDestinationMapper(object):
 
         return evaluated_entity
 
-    def map_to_destination(self, app, tool, user, job, job_wrapper=None, resource_params=None,
-                           workflow_invocation_uuid=None):
+    def map_to_destination(
+        self,
+        app,
+        tool,
+        user,
+        job,
+        job_wrapper=None,
+        resource_params=None,
+        workflow_invocation_uuid=None,
+    ):
 
         # 1. Create evaluation context - these are the common variables available within any code block
         context = {}
         context.update(self.global_context or {})
-        context.update({
-            'app': app,
-            'tool': tool,
-            'user': user,
-            'job': job,
-            'job_wrapper': job_wrapper,
-            'resource_params': resource_params,
-            'workflow_invocation_uuid': workflow_invocation_uuid,
-            'mapper': self
-        })
+        context.update(
+            {
+                "app": app,
+                "tool": tool,
+                "user": user,
+                "job": job,
+                "job_wrapper": job_wrapper,
+                "resource_params": resource_params,
+                "workflow_invocation_uuid": workflow_invocation_uuid,
+                "mapper": self,
+            }
+        )
 
         # 2. Find, combine and evaluate entities that match this tool and user
         evaluated_entity = self.match_combine_evaluate_entities(context, tool, user)
 
         # 3. Match and rank destinations that best match the combined entity
-        ranked_dest_entities = self.match_and_rank_destinations(evaluated_entity, self.destinations, context)
+        ranked_dest_entities = self.match_and_rank_destinations(
+            evaluated_entity, self.destinations, context
+        )
 
         # 4. Fully combine entity with matching destinations
         if ranked_dest_entities:
@@ -176,8 +200,10 @@ class EntityToDestinationMapper(object):
                     # 5. Return the top-ranked destination that evaluates successfully
                     return self.to_galaxy_destination(evaluated_destination)
                 except TryNextDestinationOrFail as ef:
-                    log.exception(f"Destination entity: {d} matched but could not fulfill requirements due to: {ef}."
-                                  " Trying next candidate...")
+                    log.exception(
+                        f"Destination entity: {d} matched but could not fulfill requirements due to: {ef}."
+                        " Trying next candidate..."
+                    )
                 except TryNextDestinationOrWait:
                     wait_exception_raised = True
             if wait_exception_raised:
@@ -185,4 +211,7 @@ class EntityToDestinationMapper(object):
 
         # No matching destinations. Throw an exception
         from galaxy.jobs.mapper import JobMappingException
-        raise JobMappingException(f"No destinations are available to fulfill request: {evaluated_entity.id}")
+
+        raise JobMappingException(
+            f"No destinations are available to fulfill request: {evaluated_entity.id}"
+        )

@@ -1,8 +1,9 @@
-from .test import mock_galaxy
 from tpv.rules import gateway
 
+from .test import mock_galaxy
 
-class TPVDryRunner():
+
+class TPVDryRunner:
 
     def __init__(self, job_conf, tpv_confs=None, user=None, tool=None, job=None):
         self.galaxy_app = mock_galaxy.App(job_conf=job_conf, create_model=True)
@@ -13,18 +14,32 @@ class TPVDryRunner():
             self.tpv_config_files = tpv_confs
         else:
             self.tpv_config_files = self.galaxy_app.job_config.get_destination(
-                'tpv_dispatcher').params['tpv_config_files']
+                "tpv_dispatcher"
+            ).params["tpv_config_files"]
 
     def run(self):
         gateway.ACTIVE_DESTINATION_MAPPERS = {}
-        return gateway.map_tool_to_destination(self.galaxy_app, self.job, self.tool, self.user,
-                                               tpv_config_files=self.tpv_config_files)
+        return gateway.map_tool_to_destination(
+            self.galaxy_app,
+            self.job,
+            self.tool,
+            self.user,
+            tpv_config_files=self.tpv_config_files,
+        )
 
     @staticmethod
-    def from_params(job_conf, user=None, tool=None, roles=None, history_tags=None, tpv_confs=None, input_size=None):
+    def from_params(
+        job_conf,
+        user=None,
+        tool=None,
+        roles=None,
+        history_tags=None,
+        tpv_confs=None,
+        input_size=None,
+    ):
         if user is not None:
             email = user
-            user = mock_galaxy.User('gargravarr', email)
+            user = mock_galaxy.User("gargravarr", email)
         else:
             user = None
 
@@ -35,8 +50,7 @@ class TPVDryRunner():
 
         if tool:
             tool = mock_galaxy.Tool(
-                tool,
-                version=tool.split('/')[-1] if '/' in tool else None
+                tool, version=tool.split("/")[-1] if "/" in tool else None
             )
         else:
             tool = None
@@ -44,10 +58,14 @@ class TPVDryRunner():
         job = mock_galaxy.Job()
         if input_size:
             dataset = mock_galaxy.DatasetAssociation(
-                "test",
-                mock_galaxy.Dataset("test.txt", file_size=input_size*1024**3))
+                "test", mock_galaxy.Dataset("test.txt", file_size=input_size * 1024**3)
+            )
             job.add_input_dataset(dataset)
         job.history = mock_galaxy.History()
         if history_tags:
-            job.history.tags = [mock_galaxy.HistoryTag(tag_name) for tag_name in history_tags]
-        return TPVDryRunner(job_conf=job_conf, tpv_confs=tpv_confs, user=user, tool=tool, job=job)
+            job.history.tags = [
+                mock_galaxy.HistoryTag(tag_name) for tag_name in history_tags
+            ]
+        return TPVDryRunner(
+            job_conf=job_conf, tpv_confs=tpv_confs, user=user, tool=tool, job=job
+        )

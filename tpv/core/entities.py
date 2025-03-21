@@ -1,22 +1,16 @@
 import copy
 import itertools
 import logging
+import re
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import IntEnum
-import re
 from typing import Annotated, Any, ClassVar, Dict, Iterable, List, Optional
 
-from ruamel.yaml.comments import CommentedMap
-
 from galaxy import util as galaxy_util
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Field,
-    model_validator,
-)
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic.json_schema import SkipJsonSchema
+from ruamel.yaml.comments import CommentedMap
 
 from .evaluator import TPVCodeEvaluator
 
@@ -785,7 +779,11 @@ class TPVConfig(BaseModel):
             if match:
                 codes = match.group(1)
                 # Return a set of codes or None if `# noqa` with no codes
-                return set(code.strip() for code in codes.split(',')) if codes else set(("noqa",))
+                return (
+                    set(code.strip() for code in codes.split(","))
+                    if codes
+                    else set(("noqa",))
+                )
         return set()
 
     @staticmethod
@@ -811,7 +809,9 @@ class TPVConfig(BaseModel):
 
             # If we see any comment tokens, store them in "no_qa_codes"
             if comments and len(comments) == 4 and comments[3]:
-                no_qa_codes = TPVConfig.get_noqa_codes([x.value.strip() for x in comments[3]])
+                no_qa_codes = TPVConfig.get_noqa_codes(
+                    [x.value.strip() for x in comments[3]]
+                )
 
                 # If child_value is a dict, put comment_data under a "no_qa_codes" key
                 # that your sub-models can handle. If child_value is not a dict,

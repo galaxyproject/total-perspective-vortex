@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import logging
 
 from ruamel.yaml.comments import CommentedMap, CommentedSeq
@@ -22,6 +23,7 @@ class TPVConfigFormatter(object):
                 index = len(keys_to_place_first)
             # sort by keys to place first, then potential toolshed tools, and finally alphabetically
             return (index, "/" not in key, key)
+
         return sort_criteria
 
     @staticmethod
@@ -67,12 +69,15 @@ class TPVConfigFormatter(object):
         if not sort_order:
             return dict_to_sort
         if isinstance(dict_to_sort, CommentedMap):
-            sorted_keys = sorted(dict_to_sort or [], key=TPVConfigFormatter.generic_key_sorter(sort_order.keys()))
+            sorted_keys = sorted(
+                dict_to_sort or [],
+                key=TPVConfigFormatter.generic_key_sorter(sort_order.keys()),
+            )
             rval = CommentedMap()
             for key in sorted_keys:
                 sorted_value = TPVConfigFormatter.multi_level_dict_sorter(
                     dict_to_sort.get(key),
-                    sort_order.get(key, {}) or sort_order.get('*', {})
+                    sort_order.get(key, {}) or sort_order.get("*", {}),
                 )
                 rval[key] = sorted_value
             rval.ca.items.update(dict_to_sort.ca.items)
@@ -80,7 +85,9 @@ class TPVConfigFormatter(object):
         elif isinstance(dict_to_sort, CommentedSeq):
             rval = CommentedSeq()
             for item in dict_to_sort:
-                sorted_item = TPVConfigFormatter.multi_level_dict_sorter(item, sort_order.get('*', []))
+                sorted_item = TPVConfigFormatter.multi_level_dict_sorter(
+                    item, sort_order.get("*", [])
+                )
                 rval.append(sorted_item)
             rval.ca.items.update(dict_to_sort.ca.items)
             return rval
@@ -88,46 +95,39 @@ class TPVConfigFormatter(object):
             return dict_to_sort
 
     def format(self):
-        default_inherits = self.yaml_dict.get('global', {}).get('default_inherits') or 'default'
+        default_inherits = (
+            self.yaml_dict.get("global", {}).get("default_inherits") or "default"
+        )
 
         basic_entity_sort_order = {
-            'id': {},
-            'inherits': {},
-            'if': {},
-            'context': {},
-            'gpus': {},
-            'cores': {},
-            'mem': {},
-            'env': {
-                '*': {}
+            "id": {},
+            "inherits": {},
+            "if": {},
+            "context": {},
+            "gpus": {},
+            "cores": {},
+            "mem": {},
+            "env": {"*": {}},
+            "params": {"*": {}},
+            "scheduling": {
+                "require": {},
+                "prefer": {},
+                "accept": {},
+                "reject": {},
             },
-            'params': {
-                '*': {}
-            },
-            'scheduling': {
-                'require': {},
-                'prefer': {},
-                'accept': {},
-                'reject': {},
-            }
         }
 
         entity_with_rules_sort_order = {
             default_inherits: {},
-            '*': {
-                **basic_entity_sort_order,
-                'rules': {
-                    '*': basic_entity_sort_order
-                }
-            }
+            "*": {**basic_entity_sort_order, "rules": {"*": basic_entity_sort_order}},
         }
 
         global_field_sort_order = {
-            'global': {},
-            'tools': entity_with_rules_sort_order,
-            'roles': entity_with_rules_sort_order,
-            'users': entity_with_rules_sort_order,
-            'destinations': entity_with_rules_sort_order,
+            "global": {},
+            "tools": entity_with_rules_sort_order,
+            "roles": entity_with_rules_sort_order,
+            "users": entity_with_rules_sort_order,
+            "destinations": entity_with_rules_sort_order,
         }
         return self.multi_level_dict_sorter(self.yaml_dict, global_field_sort_order)
 
