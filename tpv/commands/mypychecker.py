@@ -145,8 +145,7 @@ def slugify(value: str) -> str:
     Convert value into a nice function-safe slug:
       - Lowercase
       - Replace non-alphanumeric or underscore runs with _
-      - Strip leading/trailing underscores
     """
     slug = value.lower()
     slug = re.sub(r"[^a-z0-9_]+", "_", slug)
-    return slug.strip("_")
+    return slug
