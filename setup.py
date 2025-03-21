@@ -21,20 +21,20 @@ REQS_FULL = [
     "cachetools>=3.1.0",
     "watchdog",
     "requests",
-    "ruamel.yaml"
+    "ruamel.yaml",
 ]
 
-REQS_CLI = (['galaxy-app'] + REQS_FULL)
+REQS_CLI = ["galaxy-app"] + REQS_FULL
 
-REQS_TEST = ([
-    'pytest',
-    'responses',
-    'tox>=2.9.1',
-    'coverage>=4.4.1',
-    'flake8>=3.4.1',
-    'flake8-import-order>=0.13'] + REQS_CLI
-)
-REQS_DEV = (['sphinx', 'sphinx_rtd_theme'] + REQS_TEST)
+REQS_TEST = [
+    "pytest",
+    "responses",
+    "tox>=2.9.1",
+    "coverage>=4.4.1",
+    "flake8>=3.4.1",
+    "flake8-import-order>=0.13",
+] + REQS_CLI
+REQS_DEV = ["sphinx", "sphinx_rtd_theme"] + REQS_TEST
 
 setuptools.setup(
     name="total-perspective-vortex",
@@ -49,15 +49,11 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     install_requires=REQS_FULL,
     extras_require={
-        'dev': REQS_DEV,
-        'test': REQS_TEST,
-        'cli': REQS_CLI,
+        "dev": REQS_DEV,
+        "test": REQS_TEST,
+        "cli": REQS_CLI,
     },
-    entry_points={
-        'console_scripts': [
-            'tpv = tpv.commands.shell:main'
-        ]
-    },
+    entry_points={"console_scripts": ["tpv = tpv.commands.shell:main"]},
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Programming Language :: Python :: 3",
@@ -67,7 +63,7 @@ setuptools.setup(
         "Operating System :: OS Independent",
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6"
+        "Programming Language :: Python :: 3.6",
     ],
-    test_suite="tests"
+    test_suite="tests",
 )
