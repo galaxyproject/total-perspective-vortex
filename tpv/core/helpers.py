@@ -83,16 +83,19 @@ def job_args_match(job, app, args):
 def concurrent_job_count_for_tool(
     app, tool, user=None
 ):  # requires galaxy version >= 21.09
-    # Match all tools, regardless of version. For example, a tool id such as "fastqc/0.1.0+galaxy1" is
-    # turned into "fastqc/.*"
-    tool_id_regex = (
-        "/".join(tool.id.split("/")[:-1]) + "/.*" if "/" in tool.id else tool.id
+    # Match all tools, regardless of version. For example, a tool id such as "toolshed/repos/iuc/fastqc/0.1.0+galaxy1"
+    # is turned into "toolshed/repos/iuc/fastqc/" and a LIKE query is performed on the tool_id column.
+    tool_id_base = (
+        "/".join(tool.id.split("/")[:-1]) + "/" if "/" in tool.id else tool.id
     )
-    query = app.model.context.query(model.Job)
+    query = app.model.context.query(model.Job.id)
     if user:
         query = query.filter(model.Job.table.c.user_id == user.id)
     query = query.filter(model.Job.table.c.state.in_(["queued", "running"]))
-    query = query.filter(model.Job.table.c.tool_id.regexp_match(tool_id_regex))
+    if "/" in tool_id_base:
+        query = query.filter(model.Job.table.c.tool_id.like(f"{tool_id_base}%"))
+    else:
+        query = query.filter(model.Job.table.c.tool_id == tool.id)
     return query.count()
 
 
