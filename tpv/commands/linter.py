@@ -55,7 +55,7 @@ class TPVConfigLinter(object):
         warnings, errors, tmp_filename = mypychecker.type_check_code(loader)
         print("TMP_FILE", tmp_filename)
         if warnings:
-            self.errors.append(warnings)
+            self.errors.append(warnings + errors)
             # self.warnings.append(('T103', warnings))
         # if errors:
         #     self.errors.append(errors)

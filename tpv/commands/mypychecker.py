@@ -135,8 +135,13 @@ def type_check_code(loader):
         tmp_filename = tmp_file.name
         tmp_file.write(rendered_code)
 
-        mypy_args = [tmp_filename]
+        mypy_args = [
+            "--config-file",
+            os.path.join(current_dir, "mypy.ini"),
+            tmp_filename,
+        ]
         stdout, stderr, exit_code = mypy.api.run(mypy_args)
+        # stdout += f"############ {mypy_args}"
         return stdout, stderr, tmp_filename
 
 
