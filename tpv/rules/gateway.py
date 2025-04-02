@@ -27,18 +27,11 @@ def load_destination_mapper(tpv_configs: JOB_YAML_CONFIG_TYPE, reload=False):
     loader = None
     for tpv_config in tpv_configs:
         if isinstance(tpv_config, str):
-            current_loader = TPVConfigLoader.from_url_or_path(tpv_config)
-            if loader:
-                loader.merge_loader(current_loader)
-            else:
-                loader = current_loader
+            current_loader = TPVConfigLoader.from_url_or_path(tpv_config, parent=loader)
         else:
             # it is a raw config already
-            current_loader = TPVConfigLoader(tpv_config)
-            if loader:
-                loader.merge_loader(current_loader)
-            else:
-                loader = current_loader
+            current_loader = TPVConfigLoader(tpv_config, parent=loader)
+        loader = current_loader
     return EntityToDestinationMapper(loader)
 
 

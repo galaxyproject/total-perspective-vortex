@@ -18,13 +18,19 @@ class InvalidParentException(Exception):
 
 class TPVConfigLoader(TPVCodeEvaluator):
 
-    def __init__(self, tpv_config: dict | TPVConfig):
+    def __init__(
+        self, tpv_config: dict | TPVConfig, parent: TPVConfigLoader | None = None
+    ):
         self.compile_code_block = functools.lru_cache(maxsize=None)(
             self.__compile_code_block
         )
         tpv_config["evaluator"] = self
         self.config = TPVConfig.model_validate(tpv_config)
-        self.process_entities(self.config)
+        if parent:
+            parent.merge_config(self.config)
+            self.config = parent.config
+        else:
+            self.process_entities(self.config)
 
     def compile_code_block(self, code, as_f_string=False, exec_only=False):
         # interface method, replaced with instance based lru cache in constructor
@@ -123,14 +129,11 @@ class TPVConfigLoader(TPVCodeEvaluator):
         self.inherit_existing_entities(self.config.roles, config.roles)
         self.inherit_existing_entities(self.config.destinations, config.destinations)
 
-    def merge_loader(self, loader: TPVConfigLoader):
-        self.merge_config(loader.config)
-
     @staticmethod
-    def from_url_or_path(url_or_path: str):
+    def from_url_or_path(url_or_path: str, parent: TPVConfigLoader | None = None):
         tpv_config = util.load_yaml_from_url_or_path(url_or_path)
         try:
-            return TPVConfigLoader(tpv_config)
+            return TPVConfigLoader(tpv_config, parent=parent)
         except Exception as e:
             log.exception(f"Error loading TPV config: {url_or_path}")
             raise e

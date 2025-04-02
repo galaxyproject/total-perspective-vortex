@@ -16,6 +16,7 @@ repos:
       - id: destroyed-symlinks
       - id: end-of-file-fixer
       - id: name-tests-test
+        args: ["--pytest-test-first"]
   - repo: https://github.com/pycqa/isort
     rev: 6.0.1
     hooks:
