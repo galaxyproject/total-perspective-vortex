@@ -3,7 +3,6 @@ from __future__ import annotations
 import ast
 import functools
 import logging
-from typing import Dict
 
 from . import helpers, util
 from .entities import Entity, GlobalConfig, TPVConfig
@@ -28,8 +27,7 @@ class TPVConfigLoader(TPVCodeEvaluator):
         self.config = TPVConfig.model_validate(tpv_config)
         if parent:
             self.merge_config(parent.config)
-        else:
-            self.process_entities(self.config)
+        self.process_entities(self.config)
 
     def compile_code_block(self, code, as_f_string=False, exec_only=False):
         # interface method, replaced with instance based lru cache in constructor
@@ -96,14 +94,11 @@ class TPVConfigLoader(TPVCodeEvaluator):
             entities[key] = TPVConfigLoader.process_inheritance(entities, entity)
         return entities
 
-    def validate_entities(self, entities: Dict[str, Entity]) -> dict:
-        self.recompute_inheritance(entities)
-
     def process_entities(self, tpv_config: TPVConfig) -> dict:
-        self.validate_entities(tpv_config.tools),
-        self.validate_entities(tpv_config.users),
-        self.validate_entities(tpv_config.roles),
-        self.validate_entities(tpv_config.destinations)
+        self.recompute_inheritance(tpv_config.tools),
+        self.recompute_inheritance(tpv_config.users),
+        self.recompute_inheritance(tpv_config.roles),
+        self.recompute_inheritance(tpv_config.destinations)
 
     def inherit_globals(self, parent_globals: GlobalConfig):
         if parent_globals:
@@ -126,7 +121,7 @@ class TPVConfigLoader(TPVCodeEvaluator):
                 entities_parent[entity.id] = entity.inherit(parent_entity)
             else:
                 entities_parent[entity.id] = entity
-        return self.recompute_inheritance(entities_parent)
+        return entities_parent
 
     def merge_config(self, parent_config: TPVConfig):
         self.inherit_globals(parent_config.global_config)
