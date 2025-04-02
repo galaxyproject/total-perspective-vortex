@@ -36,8 +36,6 @@ def load_destination_mapper(tpv_configs: JOB_YAML_CONFIG_TYPE, reload=False):
 
 
 def setup_destination_mapper(app, referrer, tpv_configs: JOB_YAML_CONFIG_TYPE):
-    global WATCHERS_BY_CONFIG_FILE
-    global REFERRERS_BY_CONFIG_FILE
     mapper = load_destination_mapper(tpv_configs)
 
     for tpv_config in tpv_configs:
@@ -56,7 +54,6 @@ def setup_destination_mapper(app, referrer, tpv_configs: JOB_YAML_CONFIG_TYPE):
 
             def reload_destination_mapper(path=None):
                 # reload all config files when one file changes to preserve order of loading the files
-                global ACTIVE_DESTINATION_MAPPERS
                 # watchdog on darwin notifies only once per file, so reload all mappers that refer to this file
                 for referrer, config_files in REFERRERS_BY_CONFIG_FILE[
                     tpv_config_real_path
@@ -74,7 +71,6 @@ def setup_destination_mapper(app, referrer, tpv_configs: JOB_YAML_CONFIG_TYPE):
 
 
 def lock_and_load_mapper(app, referrer, tpv_config):
-    global ACTIVE_DESTINATION_MAPPERS
     destination_mapper = ACTIVE_DESTINATION_MAPPERS.get(referrer)
     if not destination_mapper:
         # Try again with a lock
