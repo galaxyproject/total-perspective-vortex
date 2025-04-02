@@ -27,8 +27,7 @@ class TPVConfigLoader(TPVCodeEvaluator):
         tpv_config["evaluator"] = self
         self.config = TPVConfig.model_validate(tpv_config)
         if parent:
-            parent.merge_config(self.config)
-            self.config = parent.config
+            self.merge_config(parent.config)
         else:
             self.process_entities(self.config)
 
@@ -75,7 +74,8 @@ class TPVConfigLoader(TPVCodeEvaluator):
         else:
             return None
 
-    def process_inheritance(self, entity_list: dict[str, Entity], entity: Entity):
+    @staticmethod
+    def process_inheritance(entity_list: dict[str, Entity], entity: Entity):
         if entity.inherits:
             parent_entity = entity_list.get(entity.inherits)
             if not parent_entity:
@@ -83,14 +83,18 @@ class TPVConfigLoader(TPVCodeEvaluator):
                     f"The specified parent: {entity.inherits} for"
                     f" entity: {entity} does not exist"
                 )
-            return entity.inherit(self.process_inheritance(entity_list, parent_entity))
+            return entity.inherit(
+                TPVConfigLoader.process_inheritance(entity_list, parent_entity)
+            )
         # do not process default inheritance here, only at runtime, as multiple can cause default inheritance
         # to override later matches.
         return entity
 
-    def recompute_inheritance(self, entities: dict[str, Entity]):
+    @staticmethod
+    def recompute_inheritance(entities: dict[str, Entity]):
         for key, entity in entities.items():
-            entities[key] = self.process_inheritance(entities, entity)
+            entities[key] = TPVConfigLoader.process_inheritance(entities, entity)
+        return entities
 
     def validate_entities(self, entities: Dict[str, Entity]) -> dict:
         self.recompute_inheritance(entities)
@@ -101,33 +105,43 @@ class TPVConfigLoader(TPVCodeEvaluator):
         self.validate_entities(tpv_config.roles),
         self.validate_entities(tpv_config.destinations)
 
-    def inherit_globals(self, globals_other: GlobalConfig):
-        if globals_other:
+    def inherit_globals(self, parent_globals: GlobalConfig):
+        if parent_globals:
             self.config.global_config.default_inherits = (
-                globals_other.default_inherits
-                or self.config.global_config.default_inherits
+                self.config.global_config.default_inherits
+                or parent_globals.default_inherits
             )
-            self.config.global_config.context.update(globals_other.context)
+            merged_context = dict(parent_globals.context or {})
+            merged_context.update(self.config.global_config.context)
+            self.config.global_config.context = merged_context
 
-    def inherit_existing_entities(
-        self, entities_current: dict[str, Entity], entities_new: dict[str, Entity]
+    def inherit_parent_entities(
+        self, entities_parent: dict[str, Entity], entities_new: dict[str, Entity]
     ):
         for entity in entities_new.values():
-            if entities_current.get(entity.id):
-                current_entity = entities_current.get(entity.id)
-                del entities_current[entity.id]
+            if entities_parent.get(entity.id):
+                parent_entity = entities_parent.get(entity.id)
+                del entities_parent[entity.id]
                 # reinsert at the end
-                entities_current[entity.id] = entity.inherit(current_entity)
+                entities_parent[entity.id] = entity.inherit(parent_entity)
             else:
-                entities_current[entity.id] = entity
-        self.recompute_inheritance(entities_current)
+                entities_parent[entity.id] = entity
+        return self.recompute_inheritance(entities_parent)
 
-    def merge_config(self, config: TPVConfig):
-        self.inherit_globals(config.global_config)
-        self.inherit_existing_entities(self.config.tools, config.tools)
-        self.inherit_existing_entities(self.config.users, config.users)
-        self.inherit_existing_entities(self.config.roles, config.roles)
-        self.inherit_existing_entities(self.config.destinations, config.destinations)
+    def merge_config(self, parent_config: TPVConfig):
+        self.inherit_globals(parent_config.global_config)
+        self.config.tools = self.inherit_parent_entities(
+            parent_config.tools, self.config.tools
+        )
+        self.config.users = self.inherit_parent_entities(
+            parent_config.users, self.config.users
+        )
+        self.config.roles = self.inherit_parent_entities(
+            parent_config.roles, self.config.roles
+        )
+        self.config.destinations = self.inherit_parent_entities(
+            parent_config.destinations, self.config.destinations
+        )
 
     @staticmethod
     def from_url_or_path(url_or_path: str, parent: TPVConfigLoader | None = None):
