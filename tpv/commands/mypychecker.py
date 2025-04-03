@@ -47,7 +47,7 @@ def get_return_type_str(field_info: Field) -> str:
     return str(annotation).replace("NoneType", "None")
 
 
-def gather_all_evaluable_code(tpv_config) -> List[Tuple[str, str]]:
+def gather_all_evaluable_code(loader) -> List[Tuple[str, str]]:
     """
     Returns a list of (func_name, code_block) for all evaluable fields
     from all entities in the TPVConfig.
@@ -55,28 +55,28 @@ def gather_all_evaluable_code(tpv_config) -> List[Tuple[str, str]]:
     code_blocks = []
 
     # Gather from top-level groups
-    for tool_id, tool in tpv_config.tools.items():
-        code_blocks.extend(gather_fields_from_entity(f"tool_{tool_id}", tool))
+    for tool_id, tool in loader.config.tools.items():
+        code_blocks.extend(gather_fields_from_entity(loader, tool, f"tool_{tool_id}"))
 
-    for user_id, user in tpv_config.users.items():
-        code_blocks.extend(gather_fields_from_entity(f"user_{user_id}", user))
+    for user_id, user in loader.config.users.items():
+        code_blocks.extend(gather_fields_from_entity(loader, user, f"user_{user_id}"))
 
-    for role_id, role in tpv_config.roles.items():
-        code_blocks.extend(gather_fields_from_entity(f"role_{role_id}", role))
+    for role_id, role in loader.config.roles.items():
+        code_blocks.extend(gather_fields_from_entity(loader, role, f"role_{role_id}"))
 
-    for dest_id, dest in tpv_config.destinations.items():
-        code_blocks.extend(gather_fields_from_entity(f"dest_{dest_id}", dest))
+    for dest_id, dest in loader.config.destinations.items():
+        code_blocks.extend(gather_fields_from_entity(loader, dest, f"dest_{dest_id}"))
 
     return code_blocks
 
 
-def gather_fields_from_entity(path: str, entity: Entity) -> List[dict]:
+def gather_fields_from_entity(loader, entity: Entity, path: str) -> List[dict]:
     """
     Return a list of dicts, each dict with:
       {
         'func_name': str,
         'code': str,
-        'complex_property': bool
+        'return_type': str
       }
     """
     code_snippets = []
@@ -95,19 +95,32 @@ def gather_fields_from_entity(path: str, entity: Entity) -> List[dict]:
                     for m in metadata_list
                     if isinstance(m, TPVFieldMetadata)
                 )
-                safe_name = slugify(f"{path}_{field_name}" if path else field_name)
 
-                # Derive a return type string from the Entity type annotation
-                return_type = get_return_type_str(field_info)
+                def add_code_block(block_name, value):
+                    safe_name = slugify(f"{path}_{block_name}" if path else block_name)
 
-                code_snippets.append(
-                    {
-                        "func_name": safe_name,
-                        "code": value,
-                        "complex_property": is_complex,
-                        "return_type": return_type,
-                    }
-                )
+                    # Derive a return type string from the Entity type annotation
+                    return_type = (
+                        type(value).__name__
+                        if is_complex
+                        else get_return_type_str(field_info)
+                    )
+
+                    code_snippets.append(
+                        {
+                            "func_name": safe_name,
+                            "code": f"f'''{value}'''" if is_complex else value,
+                            "return_type": return_type,
+                        }
+                    )
+
+                if is_complex:
+                    loader.process_complex_property(
+                        field_name, value, None, lambda n, v, c: add_code_block(n, v)
+                    )
+                else:
+                    add_code_block(field_name, value)
+
     return code_snippets
 
 
@@ -118,8 +131,7 @@ def type_check_code(loader):
     3) Run mypy and record errors if any.
     """
     # 1. Gather code blocks
-    tpv_config = loader.config  # This is a TPVConfig
-    code_blocks = gather_all_evaluable_code(tpv_config)
+    code_blocks = gather_all_evaluable_code(loader)
     if not code_blocks:
         # Nothing to check
         return (None, None, None)

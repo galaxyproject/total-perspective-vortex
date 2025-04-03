@@ -46,21 +46,16 @@ input_size: float
 
 {% for block in code_blocks %}
 def {{ block.func_name }}() -> {{ block.return_type }}:
-    {%- if block.complex_property -%}
-    {# This is a "complex" field: treat block.code as a Python block #}
-    return {{ block.code }}
-    {% else -%}
-    {# This is a normal code snippet. #}
+    {# This is a normal code snippet. -#}
     {%- set lines = (block.code|string).strip().split('\n') -%}
     {%- if lines|length == 1 -%}
-    {# Single-line snippet => just return it #}
+    {# Single-line snippet => just return it -#}
     return {{ lines[0] }}
     {% else -%}
-    {# Multi-line => indent each line. Return the last line. #}
+    {# Multi-line => indent each line. Return the last line. -#}
     {% for line in lines[:-1] -%}
     {{ line|indent(4) }}
-    {% endfor %}
+    {% endfor -%}
     return {{ lines[-1] }}
     {% endif %}
-    {%- endif %}
 {% endfor %}
