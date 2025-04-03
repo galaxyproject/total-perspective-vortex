@@ -146,10 +146,9 @@ def type_check_code(loader):
     with tempfile.NamedTemporaryFile("w", suffix=".py", delete=False) as tmp_file:
         tmp_filename = tmp_file.name
         tmp_file.write(rendered_code)
+        tmp_file.flush()
 
         mypy_args = [
-            "--config-file",
-            os.path.join(current_dir, "mypy.ini"),
             tmp_filename,
         ]
         stdout, stderr, exit_code = mypy.api.run(mypy_args)
