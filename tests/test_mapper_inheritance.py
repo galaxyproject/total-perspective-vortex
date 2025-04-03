@@ -10,7 +10,12 @@ class TestMapperInheritance(unittest.TestCase):
 
     @staticmethod
     def _map_to_destination(
-        tool, user, datasets, tpv_config_path=None, tpv_config_files=[]
+        tool,
+        user,
+        datasets,
+        tpv_config_path=None,
+        tpv_config_files=[],
+        tpv_configs=None,
     ):
         galaxy_app = mock_galaxy.App(
             job_conf=os.path.join(os.path.dirname(__file__), "fixtures/job_conf.yml")
@@ -18,15 +23,20 @@ class TestMapperInheritance(unittest.TestCase):
         job = mock_galaxy.Job()
         for d in datasets:
             job.add_input_dataset(d)
-        tpv_config = tpv_config_path or os.path.join(
-            os.path.dirname(__file__), "fixtures/mapping-inheritance.yml"
-        )
         if not tpv_config_files:
+            tpv_config = tpv_config_path or os.path.join(
+                os.path.dirname(__file__), "fixtures/mapping-inheritance.yml"
+            )
             tpv_config_files = [tpv_config]
         gateway.ACTIVE_DESTINATION_MAPPERS = {}
-        return gateway.map_tool_to_destination(
-            galaxy_app, job, tool, user, tpv_config_files=tpv_config_files
-        )
+        if tpv_configs:
+            return gateway.map_tool_to_destination(
+                galaxy_app, job, tool, user, tpv_configs=tpv_configs
+            )
+        else:
+            return gateway.map_tool_to_destination(
+                galaxy_app, job, tool, user, tpv_config_files=tpv_config_files
+            )
 
     def test_map_inherit_twice(self):
         tool = mock_galaxy.Tool("trinity")
@@ -211,3 +221,17 @@ class TestMapperInheritance(unittest.TestCase):
         self.assertTrue("ABC" in [e.get("name") for e in destination.env])
         self.assertEqual("extra-args", destination.params.get("docker_extra"))
         self.assertEqual("k8s", destination.runner)
+
+    def test_dest_inheritance_between_files(self):
+        tool = mock_galaxy.Tool("some_random_tool")
+        user = mock_galaxy.User("gargravarr", "fairycake@vortex.org")
+        tpv_configs = [
+            "https://raw.githubusercontent.com/galaxyproject/tpv-shared-database"
+            "/d4b86a2f854ec93dcee295b621e8c4c539a935c4/tools.yml",
+            {"destinations": {"local": {"inherits": "tpvdb_local"}}},
+        ]
+
+        destination = self._map_to_destination(
+            tool, user, datasets=[], tpv_configs=tpv_configs
+        )
+        self.assertEqual(destination.id, "local")
