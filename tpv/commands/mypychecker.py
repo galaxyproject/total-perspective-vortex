@@ -1,3 +1,4 @@
+import inspect
 import logging
 import os
 import re
@@ -13,7 +14,7 @@ from tpv.core.entities import Entity, TPVFieldMetadata
 log = logging.getLogger(__name__)
 
 
-def get_return_type_str(field_info: Field) -> str:
+def get_return_type_str(field_info: Field, value: Any) -> str:
     """
     Attempt to convert the field's annotation into a nice string for a function return.
     Example: Annotated[Optional[int], TPVFieldMetadata(...)] -> Optional[int]
@@ -35,16 +36,25 @@ def get_return_type_str(field_info: Field) -> str:
             for m in metadata_list
             if isinstance(m, TPVFieldMetadata)
         ][0]
-        return "None" if return_type is None else str(return_type)
-
+    # if it's a complex_type (e.g. env, params), use the leaf value to infer type (usually string)
+    elif any(
+        isinstance(m, TPVFieldMetadata) and getattr(m, "complex_property", False)
+        for m in metadata_list
+    ):
+        return_type = type(value)
     # If it's Annotated[<something>, <metadata>], args[0] is the underlying type
-    if origin is type(Annotated[Any, []]):  # or: if origin is Annotated:
-        underlying = args[0]
-        return str(underlying).replace("NoneType", "None")
+    elif origin is type(Annotated[Any, []]):  # or: if origin is Annotated:
+        return_type = args[0]
+    else:
+        return_type = annotation
 
-    # Otherwise, it might be Union or something else. Just return str(annotation).
-    # e.g. Union[int, str], or Optional[str].
-    return str(annotation).replace("NoneType", "None")
+    # If it's a built-in class like int, float, str
+    #  we can safely return return_type.__name__ (i.e. "int", "str", "float", etc.)
+    if inspect.isclass(return_type):
+        if return_type.__module__ == "builtins":
+            # e.g. <class 'int'> => "int"
+            return_type = return_type.__name__
+    return str(return_type).replace("NoneType", "None")
 
 
 def gather_all_evaluable_code(loader) -> List[Tuple[str, str]]:
@@ -110,11 +120,7 @@ def gather_fields_from_entity(loader, entity: Entity, path: str) -> List[dict]:
                     safe_name = slugify(f"{path}_{block_name}" if path else block_name)
 
                     # Derive a return type string from the Entity type annotation
-                    return_type = (
-                        type(value).__name__
-                        if is_complex
-                        else get_return_type_str(field_info)
-                    )
+                    return_type = get_return_type_str(field_info, value)
 
                     code_snippets.append(
                         {
