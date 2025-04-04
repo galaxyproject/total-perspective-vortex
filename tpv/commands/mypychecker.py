@@ -35,7 +35,7 @@ def get_return_type_str(field_info: Field) -> str:
             for m in metadata_list
             if isinstance(m, TPVFieldMetadata)
         ][0]
-        return str(return_type)
+        return "None" if return_type is None else str(return_type)
 
     # If it's Annotated[<something>, <metadata>], args[0] is the underlying type
     if origin is type(Annotated[Any, []]):  # or: if origin is Annotated:
@@ -96,6 +96,16 @@ def gather_fields_from_entity(loader, entity: Entity, path: str) -> List[dict]:
                     if isinstance(m, TPVFieldMetadata)
                 )
 
+                eval_as_f_string = (
+                    True
+                    if is_complex
+                    else any(
+                        getattr(m, "eval_as_f_string", False)
+                        for m in metadata_list
+                        if isinstance(m, TPVFieldMetadata)
+                    )
+                )
+
                 def add_code_block(block_name, value):
                     safe_name = slugify(f"{path}_{block_name}" if path else block_name)
 
@@ -109,7 +119,11 @@ def gather_fields_from_entity(loader, entity: Entity, path: str) -> List[dict]:
                     code_snippets.append(
                         {
                             "func_name": safe_name,
-                            "code": f"f'''{value}'''" if is_complex else value,
+                            "code": (
+                                f"f'''{value}'''".replace("\n", "")
+                                if eval_as_f_string
+                                else value
+                            ),
                             "return_type": return_type,
                         }
                     )
@@ -120,6 +134,12 @@ def gather_fields_from_entity(loader, entity: Entity, path: str) -> List[dict]:
                     )
                 else:
                     add_code_block(field_name, value)
+
+    if hasattr(entity, "rules"):
+        for rule_id, rule in entity.rules.items():
+            code_snippets.extend(
+                gather_fields_from_entity(loader, rule, f"{path}_{rule_id}")
+            )
 
     return code_snippets
 

@@ -45,6 +45,11 @@ candidate_destinations: List[Destination]
 input_size: float
 
 {% for block in code_blocks %}
+{% if block.return_type == "None" -%}
+{# No return_type, like execute or fail fields. Just insert the block -#}
+def {{ block.func_name }}():
+    {{ block.code|indent(4) }}
+{% else -%}
 def {{ block.func_name }}() -> {{ block.return_type }}:
     {# This is a normal code snippet. -#}
     {%- set lines = (block.code|string).strip().split('\n') -%}
@@ -58,4 +63,5 @@ def {{ block.func_name }}() -> {{ block.return_type }}:
     {% endfor -%}
     return {{ lines[-1] }}
     {% endif %}
+{% endif -%}
 {% endfor %}

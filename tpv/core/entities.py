@@ -32,8 +32,10 @@ class TryNextDestinationOrWait(Exception):
 
 @dataclass
 class TPVFieldMetadata:
+    # complex properties are always evaluated as f-strings
     complex_property: bool = False
     return_type: type = None
+    eval_as_f_string: bool = False
 
 
 def default_field_copier(entity1, entity2, property_name):
@@ -513,9 +515,9 @@ class Entity(BaseModel):
 class Rule(Entity):
     rule_counter: ClassVar[int] = 0
     id: Optional[str] = Field(default_factory=lambda: Rule.set_default_id())
-    if_condition: str | bool = Field(alias="if")
-    execute: Optional[str] = None
-    fail: Optional[str] = None
+    if_condition: Annotated[str | bool, TPVFieldMetadata()] = Field(alias="if")
+    execute: Annotated[Optional[str], TPVFieldMetadata(return_type=type(None))] = None
+    fail: Annotated[Optional[str], TPVFieldMetadata(eval_as_f_string=True)] = None
 
     @classmethod
     def set_default_id(cls):
