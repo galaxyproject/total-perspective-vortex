@@ -135,12 +135,14 @@ class TPVShellTestCase(unittest.TestCase):
         tpv_config = os.path.join(
             os.path.dirname(__file__), "fixtures/linter/linter-undefined-variable.yml"
         )
-        output = self.call_shell_command("tpv", "lint", tpv_config)
+        output = self.call_shell_command("tpv", "-vv", "lint", tpv_config)
         self.assertTrue(
-            "lint failed" in output, f"Expected lint to fail but output was: {output}"
+            'error: Name "something" is not defined' in output,
+            f"Expected Name 'something' is not defined but output was: {output}",
         )
         self.assertTrue(
-            "oops syntax!" in output, f"Expected lint to fail but output was: {output}"
+            'error: Name "mem2" is not defined' in output,
+            f"Expected Name 'mem2' is not defined but output was: {output}",
         )
 
     def test_lint_warnings(self):

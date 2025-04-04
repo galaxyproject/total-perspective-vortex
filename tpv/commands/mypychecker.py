@@ -150,7 +150,7 @@ def gather_fields_from_entity(loader, entity: Entity, path: str) -> List[dict]:
     return code_snippets
 
 
-def type_check_code(loader):
+def type_check_code(loader) -> tuple[int, List[str], str]:
     """
     1) Gather all evaluable code blocks from the loaded TPVConfig.
     2) Render them to a single .py file using Jinja2.
@@ -160,7 +160,7 @@ def type_check_code(loader):
     code_blocks = gather_all_evaluable_code(loader)
     if not code_blocks:
         # Nothing to check
-        return (None, None, None)
+        return (0, [], "")
 
     # 2. Render with Jinja2
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -178,8 +178,13 @@ def type_check_code(loader):
             tmp_filename,
         ]
         stdout, stderr, exit_code = mypy.api.run(mypy_args)
-        # stdout += f"############ {mypy_args}"
-        return stdout, stderr, tmp_filename
+        if exit_code != 0:
+            # the last line in both stdout and stderr and useless, so always remove those
+            errors = stdout.strip().split("\n")[:-1]
+            errors.extend(stderr.strip().split("\n")[:-1])
+            return exit_code, errors, tmp_filename
+        else:
+            return (0, [], "")
 
 
 def slugify(value: str) -> str:

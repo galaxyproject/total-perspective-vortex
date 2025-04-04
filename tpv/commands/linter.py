@@ -52,13 +52,10 @@ class TPVConfigLinter(object):
         Gather code blocks from the loader, render them into a .py file with Jinja2,
         run mypy, record errors if any.
         """
-        warnings, errors, tmp_filename = mypychecker.type_check_code(loader)
-        print("TMP_FILE", tmp_filename)
-        if warnings:
-            self.errors.append(warnings + errors)
-            # self.warnings.append(('T103', warnings))
-        # if errors:
-        #     self.errors.append(errors)
+        exit_code, errors, tmp_filename = mypychecker.type_check_code(loader)
+        if exit_code != 0:
+            for err in errors:
+                self.errors.append(("T103", err))
 
     def lint_tools(self, loader):
         default_inherits = loader.config.global_config.default_inherits
