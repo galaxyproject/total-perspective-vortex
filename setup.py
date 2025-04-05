@@ -24,6 +24,7 @@ REQS_FULL = [
     "ruamel.yaml",
     "mypy",
     "jinja2",
+    "types-requests",
 ]
 
 REQS_CLI = ["galaxy-app"] + REQS_FULL

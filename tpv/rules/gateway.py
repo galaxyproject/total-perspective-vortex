@@ -2,8 +2,12 @@ import logging
 import os
 import threading
 from collections import defaultdict
-from typing import List, Union
+from typing import Any, List, Optional, Union, cast
 
+from galaxy.app import UniverseApplication
+from galaxy.jobs import JobWrapper
+from galaxy.model import Job, User
+from galaxy.tools import Tool
 from galaxy.util import listify
 from galaxy.util.watcher import get_watcher
 
@@ -12,13 +16,12 @@ from tpv.core.mapper import EntityToDestinationMapper
 
 log = logging.getLogger(__name__)
 
+JOB_YAML_CONFIG_TYPE = Union[List[Union[str, dict]], str, dict]
 
 ACTIVE_DESTINATION_MAPPERS = {}
 DESTINATION_MAPPER_LOCK = threading.Lock()
-WATCHERS_BY_CONFIG_FILE = {}
-REFERRERS_BY_CONFIG_FILE = defaultdict(dict)
-
-JOB_YAML_CONFIG_TYPE = Union[List[Union[str, dict]], str, dict]
+WATCHERS_BY_CONFIG_FILE: dict[str, Any] = {}
+REFERRERS_BY_CONFIG_FILE: dict[str, dict[str, JOB_YAML_CONFIG_TYPE]] = defaultdict(dict)
 
 
 def load_destination_mapper(tpv_configs: JOB_YAML_CONFIG_TYPE, reload=False):
@@ -32,10 +35,12 @@ def load_destination_mapper(tpv_configs: JOB_YAML_CONFIG_TYPE, reload=False):
             # it is a raw config already
             current_loader = TPVConfigLoader(tpv_config, parent=loader)
         loader = current_loader
-    return EntityToDestinationMapper(loader)
+    return EntityToDestinationMapper(loader)  # type: ignore
 
 
-def setup_destination_mapper(app, referrer, tpv_configs: JOB_YAML_CONFIG_TYPE):
+def setup_destination_mapper(
+    app: UniverseApplication, referrer: str, tpv_configs: JOB_YAML_CONFIG_TYPE
+):
     mapper = load_destination_mapper(tpv_configs)
 
     for tpv_config in tpv_configs:
@@ -70,7 +75,9 @@ def setup_destination_mapper(app, referrer, tpv_configs: JOB_YAML_CONFIG_TYPE):
     return mapper
 
 
-def lock_and_load_mapper(app, referrer, tpv_config):
+def lock_and_load_mapper(
+    app: UniverseApplication, referrer: str, tpv_config: JOB_YAML_CONFIG_TYPE
+):
     destination_mapper = ACTIVE_DESTINATION_MAPPERS.get(referrer)
     if not destination_mapper:
         # Try again with a lock
@@ -85,28 +92,28 @@ def lock_and_load_mapper(app, referrer, tpv_config):
 
 
 def map_tool_to_destination(
-    app,
-    job,
-    tool,
-    user,
+    app: UniverseApplication,
+    job: Job,
+    tool: Tool,
+    user: User,
     # the destination referring to the TPV dynamic destination, usually named "tpv_dispatcher"
     referrer="tpv_dispatcher",
-    tpv_config_files: JOB_YAML_CONFIG_TYPE = None,
-    tpv_configs: JOB_YAML_CONFIG_TYPE = None,
-    job_wrapper=None,
-    resource_params=None,
-    workflow_invocation_uuid=None,
+    tpv_config_files: Optional[JOB_YAML_CONFIG_TYPE] = None,
+    tpv_configs: Optional[JOB_YAML_CONFIG_TYPE] = None,
+    job_wrapper: Optional[JobWrapper] = None,
+    resource_params: Optional[dict] = None,
+    workflow_invocation_uuid: Optional[str] = None,
 ):
     if tpv_configs and tpv_config_files:
         raise ValueError(
             "Only one of tpv_configs or tpv_config_files can be specified in execution environment."
         )
-    if not tpv_config_files and not tpv_configs:
+    resolved_tpv_configs = cast(JOB_YAML_CONFIG_TYPE, tpv_configs or tpv_config_files)
+    if not resolved_tpv_configs:
         raise ValueError(
             "One of tpv_configs or tpv_config_files must be specified in execution environment."
         )
-    tpv_configs = tpv_configs or tpv_config_files
-    destination_mapper = lock_and_load_mapper(app, referrer, tpv_configs)
+    destination_mapper = lock_and_load_mapper(app, referrer, resolved_tpv_configs)
     return destination_mapper.map_to_destination(
         app, tool, user, job, job_wrapper, resource_params, workflow_invocation_uuid
     )

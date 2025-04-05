@@ -5,12 +5,15 @@ import re
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import Annotated, Any, ClassVar, Dict, Iterable, List, Optional
+from typing import Annotated, Any, ClassVar, Dict, Iterable, List, Optional, cast
 
 from galaxy import util as galaxy_util
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic.json_schema import SkipJsonSchema
-from ruamel.yaml.comments import CommentedMap
+
+# xref: https://github.com/python/mypy/issues/12664
+from ruamel.yaml.comments import CommentedMap  # type: ignore[import-untyped]
+from typing_extensions import Self
 
 from .evaluator import TPVCodeEvaluator
 
@@ -34,7 +37,7 @@ class TryNextDestinationOrWait(Exception):
 class TPVFieldMetadata:
     # complex properties are always evaluated as f-strings
     complex_property: bool = False
-    return_type: type = None
+    return_type: type | None = None
     eval_as_f_string: bool = False
 
 
@@ -80,10 +83,10 @@ class IncompatibleTagsException(Exception):
 
 
 class SchedulingTags(BaseModel):
-    require: Optional[List[str]] = Field(default_factory=list)
-    prefer: Optional[List[str]] = Field(default_factory=list)
-    accept: Optional[List[str]] = Field(default_factory=list)
-    reject: Optional[List[str]] = Field(default_factory=list)
+    require: Optional[List[str]] = Field(default_factory=lambda: list())
+    prefer: Optional[List[str]] = Field(default_factory=lambda: list())
+    accept: Optional[List[str]] = Field(default_factory=lambda: list())
+    reject: Optional[List[str]] = Field(default_factory=lambda: list())
 
     @model_validator(mode="after")
     def check_duplicates(self):
@@ -125,8 +128,10 @@ class SchedulingTags(BaseModel):
         )
 
     def filter(
-        self, tag_type: TagType | list[TagType] = None, tag_value: str = None
-    ) -> list[Tag]:
+        self,
+        tag_type: Optional[TagType | list[TagType]] = None,
+        tag_value: Optional[str] = None,
+    ) -> Iterable[Tag]:
         filtered = self.tags
         if tag_type:
             if isinstance(tag_type, TagType):
@@ -229,7 +234,9 @@ class Entity(BaseModel):
         arbitrary_types_allowed = True
 
     merge_order: ClassVar[int] = 0
-    id: Optional[str] = None
+    # assign a dummy value for now, so pydantic does not treat this as a required field
+    # it'll be set in the constructor later
+    id: str = ""
     abstract: Optional[bool] = False
     inherits: Optional[str] = None
     cores: Annotated[Optional[int | float | str], TPVFieldMetadata()] = None
@@ -249,24 +256,23 @@ class Entity(BaseModel):
     ] = None
     resubmit: Annotated[
         Optional[Dict[str, str]], TPVFieldMetadata(complex_property=True)
-    ] = Field(default_factory=dict)
+    ] = Field(default_factory=lambda: dict())
     rank: Annotated[
         Optional[str], TPVFieldMetadata(return_type="List[Destination]")
     ] = None
-    context: Optional[Dict[str, Any]] = Field(default_factory=dict)
-    evaluator: SkipJsonSchema[Optional[TPVCodeEvaluator]] = Field(
-        exclude=True, default=None
+    context: Optional[Dict[str, Any]] = Field(default_factory=lambda: dict())
+    # evaluator is always assigned, so ignore the warning about default being None
+    evaluator: SkipJsonSchema[TPVCodeEvaluator] = Field(
+        exclude=True, default=None  # type: ignore
     )
-    tpv_tags: Optional[SchedulingTags] = Field(
-        alias="scheduling", default_factory=SchedulingTags
-    )
-    no_qa_codes: Optional[List[str]] = Field(default_factory=list)
+    tpv_tags: SchedulingTags = Field(alias="scheduling", default_factory=SchedulingTags)
+    no_qa_codes: Optional[List[str]] = Field(default_factory=lambda: list())
 
     def __init__(self, **data: Any):
         super().__init__(**data)
         self.propagate_parent_properties(id=self.id, evaluator=self.evaluator)
 
-    def propagate_parent_properties(self, id=None, evaluator=None):
+    def propagate_parent_properties(self, id: str, evaluator: TPVCodeEvaluator):
         self.id = id
         self.evaluator = evaluator
         if evaluator:
@@ -285,7 +291,10 @@ class Entity(BaseModel):
                         else:
                             evaluator.compile_code_block(value)
 
-    def __deepcopy__(self, memo: dict):
+    def __deepcopy__(self, memo: dict[int, Any] | None = None) -> Self:
+        # satisfy mypy by ensuring memo is never None
+        if memo is None:
+            memo = {}
         # make sure we don't deepcopy the evaluator: https://github.com/galaxyproject/total-perspective-vortex/issues/53
         # xref: https://stackoverflow.com/a/68746763/10971151
         memo[id(self.evaluator)] = self.evaluator
@@ -403,29 +412,37 @@ class Entity(BaseModel):
         new_entity = copy.deepcopy(self)
         context.update(self.context or {})
         if self.min_gpus is not None:
-            new_entity.min_gpus = self.evaluator.eval_code_block(self.min_gpus, context)
+            new_entity.min_gpus = self.evaluator.eval_code_block(
+                str(self.min_gpus), context
+            )
             context["min_gpus"] = new_entity.min_gpus
         if self.min_cores is not None:
             new_entity.min_cores = self.evaluator.eval_code_block(
-                self.min_cores, context
+                str(self.min_cores), context
             )
             context["min_cores"] = new_entity.min_cores
         if self.min_mem is not None:
-            new_entity.min_mem = self.evaluator.eval_code_block(self.min_mem, context)
+            new_entity.min_mem = self.evaluator.eval_code_block(
+                str(self.min_mem), context
+            )
             context["min_mem"] = new_entity.min_mem
         if self.max_gpus is not None:
-            new_entity.max_gpus = self.evaluator.eval_code_block(self.max_gpus, context)
+            new_entity.max_gpus = self.evaluator.eval_code_block(
+                str(self.max_gpus), context
+            )
             context["max_gpus"] = new_entity.max_gpus
         if self.max_cores is not None:
             new_entity.max_cores = self.evaluator.eval_code_block(
-                self.max_cores, context
+                str(self.max_cores), context
             )
             context["max_cores"] = new_entity.max_cores
         if self.max_mem is not None:
-            new_entity.max_mem = self.evaluator.eval_code_block(self.max_mem, context)
+            new_entity.max_mem = self.evaluator.eval_code_block(
+                str(self.max_mem), context
+            )
             context["max_mem"] = new_entity.max_mem
         if self.gpus is not None:
-            new_entity.gpus = self.evaluator.eval_code_block(self.gpus, context)
+            new_entity.gpus = self.evaluator.eval_code_block(str(self.gpus), context)
             # clamp gpus
             new_entity.gpus = max(new_entity.min_gpus or 0, new_entity.gpus or 0)
             new_entity.gpus = (
@@ -435,7 +452,7 @@ class Entity(BaseModel):
             )
             context["gpus"] = new_entity.gpus
         if self.cores is not None:
-            new_entity.cores = self.evaluator.eval_code_block(self.cores, context)
+            new_entity.cores = self.evaluator.eval_code_block(str(self.cores), context)
             # clamp cores
             new_entity.cores = max(new_entity.min_cores or 0, new_entity.cores or 0)
             new_entity.cores = (
@@ -445,7 +462,7 @@ class Entity(BaseModel):
             )
             context["cores"] = new_entity.cores
         if self.mem is not None:
-            new_entity.mem = self.evaluator.eval_code_block(self.mem, context)
+            new_entity.mem = self.evaluator.eval_code_block(str(self.mem), context)
             # clamp mem
             new_entity.mem = max(new_entity.min_mem or 0, new_entity.mem or 0)
             new_entity.mem = (
@@ -514,7 +531,7 @@ class Entity(BaseModel):
 
 class Rule(Entity):
     rule_counter: ClassVar[int] = 0
-    id: Optional[str] = Field(default_factory=lambda: Rule.set_default_id())
+    id: str = Field(default_factory=lambda: Rule.set_default_id())
     if_condition: Annotated[str | bool, TPVFieldMetadata()] = Field(alias="if")
     execute: Annotated[Optional[str], TPVFieldMetadata(return_type=type(None))] = None
     fail: Annotated[Optional[str], TPVFieldMetadata(eval_as_f_string=True)] = None
@@ -554,7 +571,7 @@ class Rule(Entity):
 
 class EntityWithRules(Entity):
     merge_order: ClassVar[int] = 1
-    rules: Optional[Dict[str, Rule]] = Field(default_factory=dict)
+    rules: Dict[str, Rule] = Field(default_factory=lambda: dict())
 
     def propagate_parent_properties(self, id=None, evaluator=None):
         super().propagate_parent_properties(id=id, evaluator=evaluator)
@@ -569,8 +586,9 @@ class EntityWithRules(Entity):
             values["rules"] = {rule.id: rule for rule in rules}
         return values
 
-    def override(self, entity: Entity):
-        new_entity = super().override(entity)
+    def override(self, entity: Entity) -> "EntityWithRules":
+        entity = cast("EntityWithRules", entity)
+        new_entity = cast("EntityWithRules", super().override(entity))
         new_entity.rules = copy.deepcopy(entity.rules)
         new_entity.rules.update(self.rules or {})
         for rule in self.rules.values():
@@ -578,7 +596,7 @@ class EntityWithRules(Entity):
                 new_entity.rules[rule.id] = rule.inherit(entity.rules[rule.id])
         return new_entity
 
-    def evaluate_rules(self, context: Dict[str, str]):
+    def evaluate_rules(self, context: Dict[str, Any]):
         new_entity = copy.deepcopy(self)
         context.update(new_entity.context or {})
         for rule in self.rules.values():
@@ -592,7 +610,7 @@ class EntityWithRules(Entity):
                 context.update({"entity": new_entity})
         return new_entity
 
-    def evaluate(self, context: Dict[str, str]):
+    def evaluate(self, context: Dict[str, Any]):
         new_entity = self.evaluate_rules(context)
         return super(EntityWithRules, new_entity).evaluate(context)
 
@@ -622,15 +640,15 @@ class Destination(EntityWithRules):
     dest_name: Optional[str] = Field(alias="destination_name_override", default=None)
     # tpv_tags track what tags the entity being scheduled requested, while tpv_dest_tags track what the destination
     # supports. When serializing a Destination, we don't need tpv_tags, only tpv_dest_tags.
-    tpv_tags: SkipJsonSchema[Optional[SchedulingTags]] = Field(
+    tpv_tags: SkipJsonSchema[SchedulingTags] = Field(
         exclude=True, default_factory=SchedulingTags
     )
-    tpv_dest_tags: Optional[SchedulingTags] = Field(
+    tpv_dest_tags: SchedulingTags = Field(
         alias="scheduling", default_factory=SchedulingTags
     )
-    handler_tags: Annotated[
-        Optional[List[str]], TPVFieldMetadata(complex_property=True)
-    ] = Field(alias="tags", default_factory=list)
+    handler_tags: Annotated[List[str], TPVFieldMetadata(complex_property=True)] = Field(
+        alias="tags", default_factory=lambda: list()
+    )
 
     def propagate_parent_properties(self, id=None, evaluator=None):
         super().propagate_parent_properties(id=id, evaluator=evaluator)
@@ -664,7 +682,8 @@ class Destination(EntityWithRules):
         return new_entity
 
     def inherit(self, entity: Entity):
-        new_entity = super().inherit(entity)
+        entity = cast(Destination, entity)
+        new_entity = cast(Destination, super().inherit(entity))
         if entity:
             new_entity.tpv_dest_tags = self.tpv_dest_tags.inherit(entity.tpv_dest_tags)
         return new_entity
@@ -689,40 +708,40 @@ class Destination(EntityWithRules):
         if (
             self.max_accepted_cores is not None
             and entity.cores is not None
-            and self.max_accepted_cores < entity.cores
+            and self.max_accepted_cores < float(entity.cores)
         ):
             return False
         if (
             self.max_accepted_mem is not None
             and entity.mem is not None
-            and self.max_accepted_mem < entity.mem
+            and self.max_accepted_mem < float(entity.mem)
         ):
             return False
         if (
             self.max_accepted_gpus is not None
             and entity.gpus is not None
-            and self.max_accepted_gpus < entity.gpus
+            and self.max_accepted_gpus < float(entity.gpus)
         ):
             return False
         if (
             self.min_accepted_cores is not None
             and entity.cores is not None
-            and self.min_accepted_cores > entity.cores
+            and self.min_accepted_cores > float(entity.cores)
         ):
             return False
         if (
             self.min_accepted_mem is not None
             and entity.mem is not None
-            and self.min_accepted_mem > entity.mem
+            and self.min_accepted_mem > float(entity.mem)
         ):
             return False
         if (
             self.min_accepted_gpus is not None
             and entity.gpus is not None
-            and self.min_accepted_gpus > entity.gpus
+            and self.min_accepted_gpus > float(entity.gpus)
         ):
             return False
-        return entity.tpv_tags.match(self.tpv_dest_tags or {})
+        return entity.tpv_tags.match(self.tpv_dest_tags)
 
     def score(self, entity):
         """
@@ -738,21 +757,19 @@ class Destination(EntityWithRules):
 
 class GlobalConfig(BaseModel):
     default_inherits: Optional[str] = None
-    context: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    context: Dict[str, Any] = Field(default_factory=lambda: dict())
 
 
 class TPVConfig(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
-    global_config: Optional[GlobalConfig] = Field(
-        alias="global", default_factory=GlobalConfig
-    )
+    global_config: GlobalConfig = Field(alias="global", default_factory=GlobalConfig)
     evaluator: SkipJsonSchema[Optional[TPVCodeEvaluator]] = Field(
         exclude=True, default=None
     )
-    tools: Optional[Dict[str, Tool]] = Field(default_factory=dict)
-    users: Optional[Dict[str, User]] = Field(default_factory=dict)
-    roles: Optional[Dict[str, Role]] = Field(default_factory=dict)
-    destinations: Optional[Dict[str, Destination]] = Field(default_factory=dict)
+    tools: Dict[str, Tool] = Field(default_factory=lambda: dict())
+    users: Dict[str, User] = Field(default_factory=lambda: dict())
+    roles: Dict[str, Role] = Field(default_factory=lambda: dict())
+    destinations: Dict[str, Destination] = Field(default_factory=lambda: dict())
 
     @model_validator(mode="after")
     def propagate_parent_properties(self):

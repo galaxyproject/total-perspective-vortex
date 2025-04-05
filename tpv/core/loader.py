@@ -3,6 +3,9 @@ from __future__ import annotations
 import ast
 import functools
 import logging
+from collections.abc import Callable
+from types import CodeType
+from typing import MutableMapping, TypeVar
 
 from . import helpers, util
 from .entities import Entity, GlobalConfig, TPVConfig
@@ -11,29 +14,33 @@ from .evaluator import TPVCodeEvaluator
 log = logging.getLogger(__name__)
 
 
+EntityType = TypeVar("EntityType", bound=Entity)
+
+
 class InvalidParentException(Exception):
     pass
 
 
 class TPVConfigLoader(TPVCodeEvaluator):
 
-    def __init__(
-        self, tpv_config: dict | TPVConfig, parent: TPVConfigLoader | None = None
-    ):
-        self.compile_code_block = functools.lru_cache(maxsize=None)(
-            self.__compile_code_block
-        )
+    def __init__(self, tpv_config: dict, parent: TPVConfigLoader | None = None):
+        self._cached_compile_code_block: Callable[
+            [str, bool, bool], tuple[CodeType, CodeType | None]
+        ] = functools.lru_cache(maxsize=None)(self.__compile_code_block)
         tpv_config["evaluator"] = self
         self.config = TPVConfig.model_validate(tpv_config)
         if parent:
             self.merge_config(parent.config)
         self.process_entities(self.config)
 
-    def compile_code_block(self, code, as_f_string=False, exec_only=False):
-        # interface method, replaced with instance based lru cache in constructor
-        pass
+    def compile_code_block(
+        self, code: str, as_f_string=False, exec_only=False
+    ) -> tuple[CodeType, CodeType | None]:
+        return self._cached_compile_code_block(code, as_f_string, exec_only)
 
-    def __compile_code_block(self, code, as_f_string=False, exec_only=False):
+    def __compile_code_block(
+        self, code: str, as_f_string=False, exec_only=False
+    ) -> tuple[CodeType, CodeType | None]:
         if as_f_string:
             code_str = "f'''" + str(code) + "'''"
         else:
@@ -43,7 +50,9 @@ class TPVConfigLoader(TPVCodeEvaluator):
             return compile(block, "<string>", mode="exec"), None
         else:
             # assumes last node is an expression
-            last = ast.Expression(block.body.pop().value)
+            last_stmt = block.body.pop()
+            assert isinstance(last_stmt, ast.Expr)
+            last = ast.Expression(last_stmt.value)
             return compile(block, "<string>", mode="exec"), compile(
                 last, "<string>", mode="eval"
             )
@@ -73,7 +82,9 @@ class TPVConfigLoader(TPVCodeEvaluator):
             return None
 
     @staticmethod
-    def process_inheritance(entity_list: dict[str, Entity], entity: Entity):
+    def process_inheritance(
+        entity_list: MutableMapping[str, EntityType], entity: EntityType
+    ) -> EntityType:
         if entity.inherits:
             parent_entity = entity_list.get(entity.inherits)
             if not parent_entity:
@@ -89,15 +100,15 @@ class TPVConfigLoader(TPVCodeEvaluator):
         return entity
 
     @staticmethod
-    def recompute_inheritance(entities: dict[str, Entity]):
+    def recompute_inheritance(entities: MutableMapping[str, EntityType]):
         for key, entity in entities.items():
             entities[key] = TPVConfigLoader.process_inheritance(entities, entity)
         return entities
 
-    def process_entities(self, tpv_config: TPVConfig) -> dict:
-        self.recompute_inheritance(tpv_config.tools),
-        self.recompute_inheritance(tpv_config.users),
-        self.recompute_inheritance(tpv_config.roles),
+    def process_entities(self, tpv_config: TPVConfig):
+        self.recompute_inheritance(tpv_config.tools)
+        self.recompute_inheritance(tpv_config.users)
+        self.recompute_inheritance(tpv_config.roles)
         self.recompute_inheritance(tpv_config.destinations)
 
     def inherit_globals(self, parent_globals: GlobalConfig):
@@ -111,7 +122,9 @@ class TPVConfigLoader(TPVCodeEvaluator):
             self.config.global_config.context = merged_context
 
     def inherit_parent_entities(
-        self, entities_parent: dict[str, Entity], entities_new: dict[str, Entity]
+        self,
+        entities_parent: MutableMapping[str, EntityType],
+        entities_new: MutableMapping[str, EntityType],
     ):
         for entity in entities_new.values():
             if entities_parent.get(entity.id):

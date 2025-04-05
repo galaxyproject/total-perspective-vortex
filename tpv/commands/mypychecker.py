@@ -3,18 +3,18 @@ import logging
 import os
 import re
 import tempfile
-from typing import Annotated, Any, List, Tuple, get_args, get_origin
+from typing import Annotated, Any, List, get_args, get_origin
 
 import mypy.api
 from jinja2 import Environment, FileSystemLoader
-from pydantic import Field
+from pydantic.fields import FieldInfo
 
 from tpv.core.entities import Entity, TPVFieldMetadata
 
 log = logging.getLogger(__name__)
 
 
-def get_return_type_str(field_info: Field, value: Any) -> str:
+def get_return_type_str(field_info: FieldInfo, value: Any) -> str:
     """
     Attempt to convert the field's annotation into a nice string for a function return.
     Example: Annotated[Optional[int], TPVFieldMetadata(...)] -> Optional[int]
@@ -57,7 +57,7 @@ def get_return_type_str(field_info: Field, value: Any) -> str:
     return str(return_type).replace("NoneType", "None")
 
 
-def gather_all_evaluable_code(loader) -> List[Tuple[str, str]]:
+def gather_all_evaluable_code(loader) -> List[dict[str, str]]:
     """
     Returns a list of (func_name, code_block) for all evaluable fields
     from all entities in the TPVConfig.
@@ -80,7 +80,9 @@ def gather_all_evaluable_code(loader) -> List[Tuple[str, str]]:
     return code_blocks
 
 
-def gather_fields_from_entity(loader, entity: Entity, path: str) -> List[dict]:
+def gather_fields_from_entity(
+    loader, entity: Entity, path: str
+) -> List[dict[str, str]]:
     """
     Return a list of dicts, each dict with:
       {
@@ -175,6 +177,8 @@ def type_check_code(loader) -> tuple[int, List[str], str]:
         tmp_file.flush()
 
         mypy_args = [
+            # "--ignore-missing-imports",
+            # "--no-incremental", # https://stackoverflow.com/a/65223004/10971151
             tmp_filename,
         ]
         stdout, stderr, exit_code = mypy.api.run(mypy_args)
