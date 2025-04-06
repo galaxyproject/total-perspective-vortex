@@ -68,7 +68,7 @@ def tpv_dry_run_config_files(args):
     yaml.dump(destination, sys.stdout)
 
 
-def create_parser():
+def create_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     parser.set_defaults(func=lambda args: parser.print_help())
 
@@ -150,7 +150,7 @@ def create_parser():
     return parser
 
 
-def configure_logging(verbosity_count):
+def configure_logging(verbosity_count: int):
     # Remove all handlers associated with the root logger object.
     # or basicConfig persists
     for handler in logging.root.handlers[:]:

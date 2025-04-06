@@ -118,7 +118,7 @@ def gather_fields_from_entity(
                     )
                 )
 
-                def add_code_block(block_name, value):
+                def add_code_block(block_name: str, value: Any):
                     safe_name = slugify(f"{path}_{block_name}" if path else block_name)
 
                     # Derive a return type string from the Entity type annotation
@@ -177,7 +177,6 @@ def type_check_code(loader) -> tuple[int, List[str], str]:
         tmp_file.flush()
 
         mypy_args = [
-            # "--ignore-missing-imports",
             # "--no-incremental", # https://stackoverflow.com/a/65223004/10971151
             tmp_filename,
         ]

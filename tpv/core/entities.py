@@ -283,7 +283,7 @@ class Entity(BaseModel):
         exclude=True, default=None  # type: ignore
     )
     tpv_tags: SchedulingTags = Field(alias="scheduling", default_factory=SchedulingTags)
-    no_qa_codes: Optional[List[str]] = Field(default_factory=lambda: list())
+    no_qa_codes: SkipJsonSchema[List[str]] = Field(default_factory=lambda: list())
 
     def __init__(self, **data: Any):
         super().__init__(**data)
@@ -546,7 +546,7 @@ class Entity(BaseModel):
         kwargs.setdefault("by_alias", True)
         return super().model_dump(**kwargs)
 
-    def should_skip_qa(self, code):
+    def should_skip_qa(self, code: str):
         return "noqa" in self.no_qa_codes or code in self.no_qa_codes
 
     def dict(self, **kwargs):
