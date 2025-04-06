@@ -133,7 +133,8 @@ class TPVShellTestCase(unittest.TestCase):
 
     def test_lint_undefined_variable(self):
         tpv_config = os.path.join(
-            os.path.dirname(__file__), "fixtures/linter/linter-undefined-variable.yml"
+            os.path.dirname(__file__),
+            "fixtures/linter/linter-types-undefined-variable.yml",
         )
         output = self.call_shell_command("tpv", "-vv", "lint", tpv_config)
         self.assertTrue(
