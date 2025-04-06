@@ -2,7 +2,7 @@ import argparse
 import logging
 import sys
 
-from ruamel.yaml import YAML, RoundTripRepresenter
+from ruamel.yaml import YAML, RoundTripRepresenter  # type: ignore[import-untyped]
 
 from .dryrunner import TPVDryRunner
 from .formatter import TPVConfigFormatter

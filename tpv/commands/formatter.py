@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import logging
 
-from ruamel.yaml.comments import CommentedMap, CommentedSeq
+from ruamel.yaml.comments import (  # type: ignore[import-untyped]
+    CommentedMap,
+    CommentedSeq,
+)
 
 from tpv.core import util
 

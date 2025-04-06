@@ -1,6 +1,6 @@
 import abc
 from types import CodeType
-from typing import Any, Dict
+from typing import Any, Callable, Dict
 
 
 class TPVCodeEvaluator(abc.ABC):
@@ -18,8 +18,12 @@ class TPVCodeEvaluator(abc.ABC):
         pass
 
     def process_complex_property(
-        self, prop_name: str, prop_val: Any, context: Dict[str, Any], func
-    ):
+        self,
+        prop_name: str,
+        prop_val: Any,
+        context: Dict[str, Any],
+        func: Callable[[str, Any, Dict[str, Any]], Any],
+    ) -> Any:
         if isinstance(prop_val, str):
             return func(prop_name, prop_val, context)
         elif isinstance(prop_val, dict):
@@ -41,7 +45,7 @@ class TPVCodeEvaluator(abc.ABC):
         else:
             return prop_val
 
-    def compile_complex_property(self, prop):
+    def compile_complex_property(self, prop: Any):
         return self.process_complex_property(
             "",
             prop,
@@ -49,7 +53,7 @@ class TPVCodeEvaluator(abc.ABC):
             lambda n, v, c: self.compile_code_block(v, as_f_string=True),
         )
 
-    def evaluate_complex_property(self, prop, context: Dict[str, Any]):
+    def evaluate_complex_property(self, prop: Any, context: Dict[str, Any]):
         return self.process_complex_property(
             "",
             prop,

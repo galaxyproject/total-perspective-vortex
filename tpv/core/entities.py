@@ -5,7 +5,17 @@ import re
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import Annotated, Any, ClassVar, Dict, Iterable, List, Optional, cast
+from typing import (
+    Annotated,
+    Any,
+    Callable,
+    ClassVar,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    cast,
+)
 
 from galaxy import util as galaxy_util
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -41,7 +51,12 @@ class TPVFieldMetadata:
     eval_as_f_string: bool = False
 
 
-def default_field_copier(entity1, entity2, property_name):
+FieldCopierType = Callable[["Entity", "Entity", str], Any]
+
+
+def default_field_copier(
+    entity1: "Entity", entity2: "Entity", property_name: str
+) -> Any:
     # if property_name in entity1.model_fields_set
     return (
         getattr(
@@ -53,7 +68,9 @@ def default_field_copier(entity1, entity2, property_name):
     )
 
 
-def default_dict_copier(entity1, entity2, property_name):
+def default_dict_copier(
+    entity1: "Entity", entity2: "Entity", property_name: str
+) -> Any:
     new_dict = copy.deepcopy(getattr(entity2, property_name)) or {}
     new_dict.update(copy.deepcopy(getattr(entity1, property_name)) or {})
     return new_dict
@@ -301,21 +318,25 @@ class Entity(BaseModel):
         return super().__deepcopy__(memo)
 
     @staticmethod
-    def convert_env(env):
+    def convert_env(
+        env: Optional[List[Dict[str, str]]],
+    ) -> Optional[List[Dict[str, str]]]:
         if isinstance(env, dict):
             env = [dict(name=k, value=str(v)) for (k, v) in env.items()]
         return env
 
     @model_validator(mode="before")
     @classmethod
-    def preprocess(cls, values):
+    def preprocess(cls, values: dict[str, Any]) -> dict[str, Any]:
         if values:
             values["abstract"] = galaxy_util.asbool(values.get("abstract", False))
             values["env"] = Entity.convert_env(values.get("env"))
         return values
 
     @staticmethod
-    def merge_env_list(original, replace):
+    def merge_env_list(
+        original: list[dict[str, str]], replace: list[dict[str, str]]
+    ) -> List[Dict[str, str]]:
         for i, original_elem in enumerate(original):
             for j, replace_elem in enumerate(replace):
                 if (
@@ -329,16 +350,20 @@ class Entity(BaseModel):
 
     @staticmethod
     def override_single_property(
-        entity, entity1, entity2, property_name, field_copier=default_field_copier
+        entity: "Entity",
+        entity1: "Entity",
+        entity2: "Entity",
+        property_name: str,
+        field_copier: FieldCopierType = default_field_copier,
     ):
         setattr(entity, property_name, field_copier(entity1, entity2, property_name))
 
-    def override(self, entity: "Entity") -> "Entity":
+    def override(self, entity: Self) -> Self:
         if entity.merge_order <= self.merge_order:
             # Use the broader class as a base when copying. Useful in particular for Rules
-            new_entity = self.copy()
+            new_entity = self.model_copy()
         else:
-            new_entity = entity.copy()
+            new_entity = entity.model_copy()
         self.override_single_property(new_entity, self, entity, "id")
         self.override_single_property(new_entity, self, entity, "abstract")
         self.override_single_property(new_entity, self, entity, "cores")
@@ -357,7 +382,8 @@ class Entity(BaseModel):
             entity,
             "env",
             field_copier=lambda e1, e2, p: self.merge_env_list(
-                copy.deepcopy(entity.env) or [], copy.deepcopy(self.env) or []
+                cast(list[dict[str, str]], copy.deepcopy(entity.env) or []),
+                cast(list[dict[str, str]], copy.deepcopy(self.env) or []),
             ),
         )
         self.override_single_property(
@@ -373,7 +399,7 @@ class Entity(BaseModel):
         )
         return new_entity
 
-    def inherit(self, entity):
+    def inherit(self, entity: Self) -> Self:
         if entity:
             new_entity = self.override(entity)
             new_entity.tpv_tags = self.tpv_tags.inherit(entity.tpv_tags)
@@ -381,7 +407,7 @@ class Entity(BaseModel):
         else:
             return copy.deepcopy(self)
 
-    def combine(self, entity):
+    def combine(self, entity: "Entity") -> "Entity":
         """
         The combine operation takes an entity and combines its requirements with a second entity.
         For example, a User entity and a Tool entity can be combined to create a merged entity that contain
@@ -473,7 +499,7 @@ class Entity(BaseModel):
             context["mem"] = new_entity.mem
         return new_entity
 
-    def evaluate(self, context: Dict[str, Any]):
+    def evaluate(self, context: Dict[str, Any]) -> Self:
         """
         Evaluate expressions in entity properties that must be evaluated as late as possible, which is
         to say, after combining entity requirements. This includes env, params and resubmit, that rely on
@@ -541,7 +567,7 @@ class Rule(Entity):
         cls.rule_counter += 1
         return f"tpv_rule_{cls.rule_counter}"
 
-    def override(self, entity):
+    def override(self, entity: Self) -> Self:
         new_entity = super().override(entity)
         if isinstance(entity, Rule):
             self.override_single_property(new_entity, self, entity, "if_condition")
@@ -555,7 +581,7 @@ class Rule(Entity):
         else:
             return False
 
-    def evaluate(self, context):
+    def evaluate(self, context: Dict[str, Any]) -> Self:
         if self.fail:
             from galaxy.jobs.mapper import JobMappingException
 
@@ -586,23 +612,24 @@ class EntityWithRules(Entity):
             values["rules"] = {rule.id: rule for rule in rules}
         return values
 
-    def override(self, entity: Entity) -> "EntityWithRules":
-        entity = cast("EntityWithRules", entity)
-        new_entity = cast("EntityWithRules", super().override(entity))
+    def override(self, entity: Self) -> Self:
+        new_entity = super().override(entity)
         new_entity.rules = copy.deepcopy(entity.rules)
         new_entity.rules.update(self.rules or {})
         for rule in self.rules.values():
             if entity.rules.get(rule.id):
-                new_entity.rules[rule.id] = rule.inherit(entity.rules[rule.id])
+                new_entity.rules[rule.id] = cast(
+                    Rule, rule.inherit(entity.rules[rule.id])
+                )
         return new_entity
 
-    def evaluate_rules(self, context: Dict[str, Any]):
+    def evaluate_rules(self, context: Dict[str, Any]) -> Self:
         new_entity = copy.deepcopy(self)
         context.update(new_entity.context or {})
         for rule in self.rules.values():
             if rule.is_matching(context):
                 rule = rule.evaluate(context)
-                new_entity = rule.inherit(new_entity)
+                new_entity = cast(Self, rule.inherit(cast(Rule, new_entity)))
                 new_entity.gpus = rule.gpus or new_entity.gpus
                 new_entity.cores = rule.cores or new_entity.cores
                 new_entity.mem = rule.mem or new_entity.mem
@@ -610,7 +637,7 @@ class EntityWithRules(Entity):
                 context.update({"entity": new_entity})
         return new_entity
 
-    def evaluate(self, context: Dict[str, Any]):
+    def evaluate(self, context: Dict[str, Any]) -> Self:
         new_entity = self.evaluate_rules(context)
         return super(EntityWithRules, new_entity).evaluate(context)
 
@@ -654,7 +681,7 @@ class Destination(EntityWithRules):
         super().propagate_parent_properties(id=id, evaluator=evaluator)
         self.dest_name = self.dest_name or self.id
 
-    def override(self, entity: Entity):
+    def override(self, entity: Self) -> Self:
         new_entity = super().override(entity)
         self.override_single_property(new_entity, self, entity, "runner")
         self.override_single_property(new_entity, self, entity, "dest_name")
@@ -667,7 +694,7 @@ class Destination(EntityWithRules):
         self.override_single_property(new_entity, self, entity, "handler_tags")
         return new_entity
 
-    def evaluate(self, context: Dict[str, Any]):
+    def evaluate(self, context: Dict[str, Any]) -> Self:
         new_entity = super(Destination, self).evaluate(context)
         if self.dest_name is not None:
             new_entity.dest_name = self.evaluator.eval_code_block(
@@ -681,14 +708,13 @@ class Destination(EntityWithRules):
             context["handler_tags"] = new_entity.handler_tags
         return new_entity
 
-    def inherit(self, entity: Entity):
-        entity = cast(Destination, entity)
-        new_entity = cast(Destination, super().inherit(entity))
+    def inherit(self, entity: Self) -> Self:
+        new_entity = super().inherit(entity)
         if entity:
             new_entity.tpv_dest_tags = self.tpv_dest_tags.inherit(entity.tpv_dest_tags)
         return new_entity
 
-    def matches(self, entity: Entity, context: Dict[str, Any]):
+    def matches(self, entity: Entity, context: Dict[str, Any]) -> bool:
         """
         The match operation checks whether
 
@@ -743,7 +769,7 @@ class Destination(EntityWithRules):
             return False
         return entity.tpv_tags.match(self.tpv_dest_tags)
 
-    def score(self, entity):
+    def score(self, entity) -> int:
         """
         Rank this destination against an entity based on how well the tags match
 
@@ -786,7 +812,7 @@ class TPVConfig(BaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def gather_comments(cls, data):
+    def gather_comments(cls, data: Any) -> Any:
         """
         This runs before Pydantic constructs TPVConfig.
         We have one chance to transform 'data' if it's a CommentedMap,

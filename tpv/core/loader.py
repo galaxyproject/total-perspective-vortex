@@ -5,7 +5,7 @@ import functools
 import logging
 from collections.abc import Callable
 from types import CodeType
-from typing import MutableMapping, TypeVar
+from typing import Any, Dict, TypeVar, cast
 
 from . import helpers, util
 from .entities import Entity, GlobalConfig, TPVConfig
@@ -58,7 +58,9 @@ class TPVConfigLoader(TPVCodeEvaluator):
             )
 
     # https://stackoverflow.com/a/39381428
-    def eval_code_block(self, code, context, as_f_string=False, exec_only=False):
+    def eval_code_block(
+        self, code: str, context: Dict[str, Any], as_f_string=False, exec_only=False
+    ) -> Any:
         exec_block, eval_block = self.compile_code_block(
             code, as_f_string=as_f_string, exec_only=exec_only
         )
@@ -83,7 +85,7 @@ class TPVConfigLoader(TPVCodeEvaluator):
 
     @staticmethod
     def process_inheritance(
-        entity_list: MutableMapping[str, EntityType], entity: EntityType
+        entity_list: Dict[str, EntityType], entity: EntityType
     ) -> EntityType:
         if entity.inherits:
             parent_entity = entity_list.get(entity.inherits)
@@ -100,10 +102,9 @@ class TPVConfigLoader(TPVCodeEvaluator):
         return entity
 
     @staticmethod
-    def recompute_inheritance(entities: MutableMapping[str, EntityType]):
+    def recompute_inheritance(entities: Dict[str, EntityType]):
         for key, entity in entities.items():
             entities[key] = TPVConfigLoader.process_inheritance(entities, entity)
-        return entities
 
     def process_entities(self, tpv_config: TPVConfig):
         self.recompute_inheritance(tpv_config.tools)
@@ -123,15 +124,17 @@ class TPVConfigLoader(TPVCodeEvaluator):
 
     def inherit_parent_entities(
         self,
-        entities_parent: MutableMapping[str, EntityType],
-        entities_new: MutableMapping[str, EntityType],
-    ):
+        entities_parent: Dict[str, EntityType],
+        entities_new: Dict[str, EntityType],
+    ) -> Dict[str, EntityType]:
         for entity in entities_new.values():
             if entities_parent.get(entity.id):
                 parent_entity = entities_parent.get(entity.id)
                 del entities_parent[entity.id]
                 # reinsert at the end
-                entities_parent[entity.id] = entity.inherit(parent_entity)
+                entities_parent[entity.id] = entity.inherit(
+                    cast(EntityType, parent_entity)
+                )
             else:
                 entities_parent[entity.id] = entity
         return entities_parent

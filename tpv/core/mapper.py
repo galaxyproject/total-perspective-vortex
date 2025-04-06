@@ -1,6 +1,7 @@
 import functools
 import logging
 import re
+from typing import List
 
 from galaxy.jobs import JobDestination
 from galaxy.jobs.mapper import JobNotReadyException
@@ -26,7 +27,7 @@ class EntityToDestinationMapper(object):
             self.__inherit_matching_entities
         )
 
-    def __compile_tool_regex(self, key):
+    def __compile_tool_regex(self, key: str) -> re.Pattern[str]:
         try:
             return re.compile(key)
         except re.error:
@@ -35,7 +36,7 @@ class EntityToDestinationMapper(object):
 
     def _find_entities_matching_id(
         self, entity_list: dict[str, Entity], entity_name: str
-    ):
+    ) -> List[Entity]:
         default_inherits = self.__get_default_inherits(entity_list)
         if default_inherits:
             matches = [default_inherits]
