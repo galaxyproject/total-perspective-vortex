@@ -6,7 +6,7 @@ from typing import Annotated, Any, ClassVar, Dict, Iterable, List, Optional
 from galaxy.app import UniverseApplication
 from galaxy.jobs import JobWrapper
 from galaxy.model import Job, User
-from galaxy.tools import Tool
+from galaxy.tools import Tool as GalaxyTool
 
 from tpv.core import helpers
 from tpv.core.entities import Destination, Entity, SchedulingTags
@@ -16,12 +16,12 @@ log = logging.getLogger(__name__)
 
 # --- 1. Declare global "context" variables ---
 app: UniverseApplication
-tool: Tool
-user: User
+tool: GalaxyTool
+user: Optional[User]
 job: Job
-job_wrapper: JobWrapper
-resource_params: dict
-workflow_invocation_uuid: str
+job_wrapper: Optional[JobWrapper]
+resource_params: Optional[Dict[str, Any]]
+workflow_invocation_uuid: Optional[str]
 mapper: EntityToDestinationMapper
 entity: Entity
 

@@ -1,15 +1,27 @@
 import functools
 import logging
 import re
-from typing import List
+from typing import Any, Dict, List, Mapping, Optional, TypeVar, cast
 
-from galaxy.jobs import JobDestination
+from galaxy.app import UniverseApplication
+from galaxy.jobs import JobDestination, JobWrapper
 from galaxy.jobs.mapper import JobNotReadyException
+from galaxy.model import Job, User
+from galaxy.tools import Tool as GalaxyTool
 
-from .entities import Entity, Tool, TryNextDestinationOrFail, TryNextDestinationOrWait
+from .entities import (
+    Destination,
+    Entity,
+    EntityWithRules,
+    Tool,
+    TryNextDestinationOrFail,
+    TryNextDestinationOrWait,
+)
 from .loader import TPVConfigLoader
 
 log = logging.getLogger(__name__)
+
+EntityType = TypeVar("EntityType", bound=Entity)
 
 
 class EntityToDestinationMapper(object):
@@ -35,8 +47,8 @@ class EntityToDestinationMapper(object):
             raise
 
     def _find_entities_matching_id(
-        self, entity_list: dict[str, Entity], entity_name: str
-    ) -> List[Entity]:
+        self, entity_list: dict[str, EntityType], entity_name: str
+    ) -> List[EntityType]:
         default_inherits = self.__get_default_inherits(entity_list)
         if default_inherits:
             matches = [default_inherits]
@@ -55,19 +67,28 @@ class EntityToDestinationMapper(object):
                     matches.append(match)
         return matches
 
-    def __inherit_matching_entities(self, entity_type: str, entity_name: str):
-        entity_list = getattr(self.config, entity_type)
+    def __inherit_matching_entities(
+        self, entity_type: str, entity_name: str
+    ) -> Optional[EntityWithRules]:
+        entity_list: Dict[str, EntityWithRules] = getattr(self.config, entity_type)
         matches = self._find_entities_matching_id(entity_list, entity_name)
-        return self.inherit_entities(matches)
+        if matches:
+            return self.inherit_entities(matches)
+        else:
+            return None
 
-    def __get_default_inherits(self, entity_list: dict[str, Entity]):
+    def __get_default_inherits(
+        self, entity_list: Mapping[str, EntityType]
+    ) -> Optional[EntityType]:
         if self.default_inherits:
             default_match = entity_list.get(self.default_inherits)
             if default_match:
                 return default_match
         return None
 
-    def __apply_default_destination_inheritance(self, entity_list):
+    def __apply_default_destination_inheritance(
+        self, entity_list: Dict[str, Destination]
+    ) -> List[Destination]:
         default_inherits = self.__get_default_inherits(entity_list)
         if default_inherits:
             return [
@@ -75,24 +96,25 @@ class EntityToDestinationMapper(object):
                 for entity in entity_list.values()
             ]
         else:
-            return entity_list.values()
+            return list(entity_list.values())
 
-    def inherit_entities(self, entities):
-        if entities:
-            return functools.reduce(lambda a, b: b.inherit(a), entities)
-        else:
-            return None
+    def inherit_entities(self, entities: List[EntityType]) -> EntityType:
+        return functools.reduce(lambda a, b: b.inherit(a), entities)
 
-    def combine_entities(self, entities):
-        if entities:
-            return functools.reduce(lambda a, b: b.combine(a), entities)
-        else:
-            return None
+    def combine_entities(self, entities: List[EntityType]) -> EntityType:
+        return functools.reduce(lambda a, b: b.combine(a), entities)
 
-    def rank(self, entity, destinations, context):
+    def rank(
+        self, entity: Entity, destinations: List[Destination], context: Dict[str, Any]
+    ) -> List[Destination]:
         return entity.rank_destinations(destinations, context)
 
-    def match_and_rank_destinations(self, entity, destinations, context):
+    def match_and_rank_destinations(
+        self,
+        entity: Entity,
+        destinations: Dict[str, Destination],
+        context: Dict[str, Any],
+    ) -> List[Destination]:
         # At this point, the resource requirements (cores, mem, gpus) are unevaluated.
         # So temporarily evaluate them so we can match up with a destination.
         matches = [
@@ -102,7 +124,7 @@ class EntityToDestinationMapper(object):
         ]
         return self.rank(entity, matches, context)
 
-    def to_galaxy_destination(self, destination):
+    def to_galaxy_destination(self, destination: Destination) -> JobDestination:
         return JobDestination(
             id=destination.dest_name,
             tags=destination.handler_tags,
@@ -112,12 +134,14 @@ class EntityToDestinationMapper(object):
             resubmit=list(destination.resubmit.values()),
         )
 
-    def _find_matching_entities(self, tool, user):
+    def _find_matching_entities(
+        self, tool: GalaxyTool, user: Optional[User]
+    ) -> List[EntityWithRules]:
         tool_entity = self.inherit_matching_entities("tools", tool.id)
         if not tool_entity:
-            tool_entity = Tool(loader=self.loader, id=tool.id)
+            tool_entity = Tool(evaluator=self.loader, id=tool.id or "unknown_tool_id")
 
-        entity_list = [tool_entity]
+        entity_list: List[EntityWithRules] = [tool_entity]
 
         if user:
             role_entities = (
@@ -137,7 +161,9 @@ class EntityToDestinationMapper(object):
 
         return entity_list
 
-    def match_combine_evaluate_entities(self, context, tool, user):
+    def match_combine_evaluate_entities(
+        self, context: Dict[str, Any], tool: GalaxyTool, user: Optional[User]
+    ) -> EntityWithRules:
         # 1. Find the entities relevant to this job
         entity_list = self._find_matching_entities(tool, user)
 
@@ -158,14 +184,14 @@ class EntityToDestinationMapper(object):
 
     def map_to_destination(
         self,
-        app,
-        tool,
-        user,
-        job,
-        job_wrapper=None,
-        resource_params=None,
-        workflow_invocation_uuid=None,
-    ):
+        app: UniverseApplication,
+        tool: GalaxyTool,
+        user: Optional[User],
+        job: Job,
+        job_wrapper: Optional[JobWrapper] = None,
+        resource_params: Optional[Dict[str, Any]] = None,
+        workflow_invocation_uuid: Optional[str] = None,
+    ) -> JobDestination:
 
         # 1. Create evaluation context - these are the common variables available within any code block
         context = {}
@@ -196,7 +222,9 @@ class EntityToDestinationMapper(object):
             wait_exception_raised = False
             for d in ranked_dest_entities:
                 try:  # An exception here signifies that a destination rule did not match
-                    dest_combined_entity = d.combine(evaluated_entity)
+                    dest_combined_entity = d.combine(
+                        cast(Destination, evaluated_entity)
+                    )
                     evaluated_destination = dest_combined_entity.evaluate(context)
                     # 5. Return the top-ranked destination that evaluates successfully
                     return self.to_galaxy_destination(evaluated_destination)

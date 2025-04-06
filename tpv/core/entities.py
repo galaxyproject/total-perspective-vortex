@@ -271,9 +271,9 @@ class Entity(BaseModel):
     params: Annotated[
         Optional[Dict[str, Any]], TPVFieldMetadata(complex_property=True)
     ] = None
-    resubmit: Annotated[
-        Optional[Dict[str, str]], TPVFieldMetadata(complex_property=True)
-    ] = Field(default_factory=lambda: dict())
+    resubmit: Annotated[Dict[str, str], TPVFieldMetadata(complex_property=True)] = (
+        Field(default_factory=lambda: dict())
+    )
     rank: Annotated[
         Optional[str], TPVFieldMetadata(return_type="List[Destination]")
     ] = None
@@ -407,7 +407,7 @@ class Entity(BaseModel):
         else:
             return copy.deepcopy(self)
 
-    def combine(self, entity: "Entity") -> "Entity":
+    def combine(self, entity: Self) -> Self:
         """
         The combine operation takes an entity and combines its requirements with a second entity.
         For example, a User entity and a Tool entity can be combined to create a merged entity that contain
