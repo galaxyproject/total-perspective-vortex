@@ -26,15 +26,21 @@ mapper: EntityToDestinationMapper
 entity: Entity
 
 # --- 2. Declare local "context" variables ---
-cores: int
-mem: int
-gpus: int
-min_cores: int
-min_mem: int
-min_gpus: int
-max_cores: int
-max_mem: int
-max_gpus: int
+cores: Optional[int | float | str]
+mem: Optional[int | float | str]
+gpus: Optional[int | str]
+min_cores: Optional[int | float | str]
+min_mem: Optional[int | float | str]
+min_gpus: Optional[int | str]
+max_cores: Optional[int | float | str]
+max_mem: Optional[int | float | str]
+max_gpus: Optional[int | str]
+max_accepted_cores: Optional[int | float]
+max_accepted_mem: Optional[int | float]
+max_accepted_gpus: Optional[int]
+min_accepted_cores: Optional[int | float]
+min_accepted_mem: Optional[int | float]
+min_accepted_gpus: Optional[int]
 env: Optional[List[Dict[str, str]]]
 params: Optional[Dict[str, Any]]
 resubmit: Optional[Dict[str, str]]
@@ -42,6 +48,7 @@ rank: Optional[str]
 context: Optional[Dict[str, Any]]
 handler_tags: Optional[SchedulingTags]
 candidate_destinations: List[Destination]
+dest_name: Optional[str]
 input_size: float
 
 {% for block in code_blocks %}
