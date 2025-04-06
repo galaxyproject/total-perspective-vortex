@@ -11,8 +11,7 @@ from typing import Any, Dict, List, Optional
 
 from galaxy import model
 from galaxy.app import UniverseApplication
-from galaxy.jobs import Job
-from galaxy.model import JobToInputDatasetAssociation
+from galaxy.model import Dataset, Job, JobToInputDatasetAssociation
 from galaxy.model import User as GalaxyUser
 from galaxy.tools import Tool as GalaxyTool
 
@@ -21,10 +20,10 @@ from tpv.core.entities import Destination, Entity
 GIGABYTES = 1024.0**3
 
 
-def get_dataset_size(dataset) -> float:
+def get_dataset_size(dataset: Dataset) -> float:
     # calculate_size would mark file_size column as dirty
     # and may have unintended consequences
-    return float(dataset.get_size(calculate_size=False))
+    return float(dataset.get_size(nice_size=False, calculate_size=False))
 
 
 def sum_total(prev: float, current: float) -> float:
@@ -75,7 +74,7 @@ def job_args_match(
     # from galaxyproject/galaxy lib/galaxy/jobs/dynamic_tool_destination.py
     if not args or not isinstance(args, dict):
         return False
-    options = job.get_param_values(app)
+    options = job.get_param_values(app)  # type: ignore[no-untyped-call]
     matched = True
     # check if the args in the config file are available
     for arg in args:

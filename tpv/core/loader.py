@@ -23,7 +23,9 @@ class InvalidParentException(Exception):
 
 class TPVConfigLoader(TPVCodeEvaluator):
 
-    def __init__(self, tpv_config: dict, parent: TPVConfigLoader | None = None):
+    def __init__(
+        self, tpv_config: Dict[Any, Any], parent: TPVConfigLoader | None = None
+    ):
         self._cached_compile_code_block: Callable[
             [str, bool, bool], tuple[CodeType, CodeType | None]
         ] = functools.lru_cache(maxsize=None)(self.__compile_code_block)
@@ -34,12 +36,12 @@ class TPVConfigLoader(TPVCodeEvaluator):
         self.process_entities(self.config)
 
     def compile_code_block(
-        self, code: str, as_f_string=False, exec_only=False
+        self, code: str, as_f_string: bool = False, exec_only: bool = False
     ) -> tuple[CodeType, CodeType | None]:
         return self._cached_compile_code_block(code, as_f_string, exec_only)
 
     def __compile_code_block(
-        self, code: str, as_f_string=False, exec_only=False
+        self, code: str, as_f_string: bool = False, exec_only: bool = False
     ) -> tuple[CodeType, CodeType | None]:
         if as_f_string:
             code_str = "f'''" + str(code) + "'''"
@@ -59,7 +61,11 @@ class TPVConfigLoader(TPVCodeEvaluator):
 
     # https://stackoverflow.com/a/39381428
     def eval_code_block(
-        self, code: str, context: Dict[str, Any], as_f_string=False, exec_only=False
+        self,
+        code: str,
+        context: Dict[str, Any],
+        as_f_string: bool = False,
+        exec_only: bool = False,
     ) -> Any:
         exec_block, eval_block = self.compile_code_block(
             code, as_f_string=as_f_string, exec_only=exec_only
@@ -102,17 +108,17 @@ class TPVConfigLoader(TPVCodeEvaluator):
         return entity
 
     @staticmethod
-    def recompute_inheritance(entities: Dict[str, EntityType]):
+    def recompute_inheritance(entities: Dict[str, EntityType]) -> None:
         for key, entity in entities.items():
             entities[key] = TPVConfigLoader.process_inheritance(entities, entity)
 
-    def process_entities(self, tpv_config: TPVConfig):
+    def process_entities(self, tpv_config: TPVConfig) -> None:
         self.recompute_inheritance(tpv_config.tools)
         self.recompute_inheritance(tpv_config.users)
         self.recompute_inheritance(tpv_config.roles)
         self.recompute_inheritance(tpv_config.destinations)
 
-    def inherit_globals(self, parent_globals: GlobalConfig):
+    def inherit_globals(self, parent_globals: GlobalConfig) -> None:
         if parent_globals:
             self.config.global_config.default_inherits = (
                 self.config.global_config.default_inherits
@@ -139,7 +145,7 @@ class TPVConfigLoader(TPVCodeEvaluator):
                 entities_parent[entity.id] = entity
         return entities_parent
 
-    def merge_config(self, parent_config: TPVConfig):
+    def merge_config(self, parent_config: TPVConfig) -> None:
         self.inherit_globals(parent_config.global_config)
         self.config.tools = self.inherit_parent_entities(
             parent_config.tools, self.config.tools
@@ -155,7 +161,9 @@ class TPVConfigLoader(TPVCodeEvaluator):
         )
 
     @staticmethod
-    def from_url_or_path(url_or_path: str, parent: TPVConfigLoader | None = None):
+    def from_url_or_path(
+        url_or_path: str, parent: TPVConfigLoader | None = None
+    ) -> TPVConfigLoader:
         tpv_config = util.load_yaml_from_url_or_path(url_or_path)
         try:
             return TPVConfigLoader(tpv_config, parent=parent)

@@ -1,8 +1,11 @@
 import argparse
 import logging
 import sys
+from typing import Any
 
-from ruamel.yaml import YAML, RoundTripRepresenter  # type: ignore[import-untyped]
+from ruamel.yaml import YAML
+from ruamel.yaml.nodes import ScalarNode
+from ruamel.yaml.representer import RoundTripRepresenter
 
 from .dryrunner import TPVDryRunner
 from .formatter import TPVConfigFormatter
@@ -12,18 +15,18 @@ log = logging.getLogger(__name__)
 
 
 # https://stackoverflow.com/a/64933809
-def repr_str(dumper: RoundTripRepresenter, data: str):
+def repr_str(dumper: RoundTripRepresenter, data: str) -> ScalarNode:
     if "\n" in data:
         return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
     return dumper.represent_scalar("tag:yaml.org,2002:str", data)
 
 
 # https://stackoverflow.com/a/37445121
-def repr_none(dumper: RoundTripRepresenter, data):
+def repr_none(dumper: RoundTripRepresenter, data: Any) -> ScalarNode:
     return dumper.represent_scalar("tag:yaml.org,2002:null", "")
 
 
-def tpv_lint_config_file(args):
+def tpv_lint_config_file(args: Any) -> int:
     try:
         ignore = []
         if args.ignore is not None:
@@ -37,7 +40,7 @@ def tpv_lint_config_file(args):
         return 1
 
 
-def tpv_format_config_file(args):
+def tpv_format_config_file(args: Any) -> int:
     try:
         formatter = TPVConfigFormatter.from_url_or_path(args.config)
         yaml = YAML(typ="unsafe", pure=True)
@@ -53,10 +56,10 @@ def tpv_format_config_file(args):
         return 1
 
 
-def tpv_dry_run_config_files(args):
+def tpv_dry_run_config_files(args: Any) -> None:
     dry_runner = TPVDryRunner.from_params(
-        user=args.user,
-        tool=args.tool,
+        user_email=args.user,
+        tool_name=args.tool,
         job_conf=args.job_conf,
         tpv_confs=args.config,
         roles=args.roles,
@@ -150,7 +153,7 @@ def create_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def configure_logging(verbosity_count: int):
+def configure_logging(verbosity_count: int) -> None:
     # Remove all handlers associated with the root logger object.
     # or basicConfig persists
     for handler in logging.root.handlers[:]:
@@ -167,7 +170,7 @@ def configure_logging(verbosity_count: int):
         log.setLevel(logging.INFO)
 
 
-def main():
+def main() -> Any:
     parser = create_parser()
     args = parser.parse_args(sys.argv[1:])
     configure_logging(args.verbosity_count)

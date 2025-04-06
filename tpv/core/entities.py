@@ -14,6 +14,7 @@ from typing import (
     Iterable,
     List,
     Optional,
+    Set,
     cast,
 )
 
@@ -22,7 +23,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic.json_schema import SkipJsonSchema
 
 # xref: https://github.com/python/mypy/issues/12664
-from ruamel.yaml.comments import CommentedMap  # type: ignore[import-untyped]
+from ruamel.yaml.comments import CommentedMap
 from typing_extensions import Self
 
 from .evaluator import TPVCodeEvaluator
@@ -106,7 +107,7 @@ class SchedulingTags(BaseModel):
     reject: Optional[List[str]] = Field(default_factory=lambda: list())
 
     @model_validator(mode="after")
-    def check_duplicates(self):
+    def check_duplicates(self) -> Self:
         tag_occurrences = defaultdict(list)
 
         # Track tag occurrences within each category and across categories
@@ -159,7 +160,7 @@ class SchedulingTags(BaseModel):
             filtered = (tag for tag in filtered if tag.value == tag_value)
         return filtered
 
-    def add_tag_override(self, tag_type: TagType, tag_value: str):
+    def add_tag_override(self, tag_type: TagType, tag_value: str) -> None:
         # Remove tag from all categories
         for field in TagType:
             field_name = field.name.lower()
@@ -280,7 +281,7 @@ class Entity(BaseModel):
     context: Optional[Dict[str, Any]] = Field(default_factory=lambda: dict())
     # evaluator is always assigned, so ignore the warning about default being None
     evaluator: SkipJsonSchema[TPVCodeEvaluator] = Field(
-        exclude=True, default=None  # type: ignore
+        exclude=True, default=cast(SkipJsonSchema[TPVCodeEvaluator], None)
     )
     tpv_tags: SchedulingTags = Field(alias="scheduling", default_factory=SchedulingTags)
     no_qa_codes: SkipJsonSchema[List[str]] = Field(default_factory=lambda: list())
@@ -289,13 +290,13 @@ class Entity(BaseModel):
         super().__init__(**data)
         self.propagate_parent_properties(id=self.id, evaluator=self.evaluator)
 
-    def propagate_parent_properties(self, id: str, evaluator: TPVCodeEvaluator):
+    def propagate_parent_properties(self, id: str, evaluator: TPVCodeEvaluator) -> None:
         self.id = id
         self.evaluator = evaluator
         if evaluator:
             self.precompile_properties(evaluator)
 
-    def precompile_properties(self, evaluator: TPVCodeEvaluator):
+    def precompile_properties(self, evaluator: TPVCodeEvaluator) -> None:
         # compile properties and check for errors
         if evaluator:
             for name, value in self:
@@ -329,7 +330,7 @@ class Entity(BaseModel):
     @classmethod
     def preprocess(cls, values: dict[str, Any]) -> dict[str, Any]:
         if values:
-            values["abstract"] = galaxy_util.asbool(values.get("abstract", False))
+            values["abstract"] = galaxy_util.asbool(values.get("abstract", False))  # type: ignore[no-untyped-call]
             values["env"] = Entity.convert_env(values.get("env"))
         return values
 
@@ -355,7 +356,7 @@ class Entity(BaseModel):
         entity2: "Entity",
         property_name: str,
         field_copier: FieldCopierType = default_field_copier,
-    ):
+    ) -> None:
         setattr(entity, property_name, field_copier(entity1, entity2, property_name))
 
     def override(self, entity: Self) -> Self:
@@ -382,8 +383,8 @@ class Entity(BaseModel):
             entity,
             "env",
             field_copier=lambda e1, e2, p: self.merge_env_list(
-                cast(list[dict[str, str]], copy.deepcopy(entity.env) or []),
-                cast(list[dict[str, str]], copy.deepcopy(self.env) or []),
+                copy.deepcopy(entity.env or []),
+                copy.deepcopy(self.env or []),
             ),
         )
         self.override_single_property(
@@ -434,7 +435,7 @@ class Entity(BaseModel):
         new_entity.tpv_tags = entity.tpv_tags.combine(self.tpv_tags)
         return new_entity
 
-    def evaluate_resources(self, context: Dict[str, Any]):
+    def evaluate_resources(self, context: Dict[str, Any]) -> Self:
         new_entity = copy.deepcopy(self)
         context.update(self.context or {})
         if self.min_gpus is not None:
@@ -525,14 +526,16 @@ class Entity(BaseModel):
 
     def rank_destinations(
         self, destinations: List["Destination"], context: Dict[str, Any]
-    ):
+    ) -> List["Destination"]:
         if self.rank:
             log.debug(
                 f"Ranking destinations: {destinations} for entity: {self} using custom"
                 " function"
             )
             context["candidate_destinations"] = destinations
-            return self.evaluator.eval_code_block(self.rank, context)
+            return cast(
+                List["Destination"], self.evaluator.eval_code_block(self.rank, context)
+            )
         else:
             # Sort destinations by priority
             log.debug(
@@ -541,15 +544,15 @@ class Entity(BaseModel):
             )
             return sorted(destinations, key=lambda d: d.score(self), reverse=True)
 
-    def model_dump(self, **kwargs):
+    def should_skip_qa(self, code: str) -> bool:
+        return "noqa" in self.no_qa_codes or code in self.no_qa_codes
+
+    def model_dump(self, **kwargs: Any) -> dict[str, Any]:
         # Ensure by_alias is set to True to use the field aliases during serialization
         kwargs.setdefault("by_alias", True)
         return super().model_dump(**kwargs)
 
-    def should_skip_qa(self, code: str):
-        return "noqa" in self.no_qa_codes or code in self.no_qa_codes
-
-    def dict(self, **kwargs):
+    def dict(self, **kwargs: Any) -> Dict[str, Any]:
         # by_alias is set to True to use the field aliases during serialization
         kwargs.setdefault("by_alias", True)
         return super().dict(**kwargs)
@@ -563,7 +566,7 @@ class Rule(Entity):
     fail: Annotated[Optional[str], TPVFieldMetadata(eval_as_f_string=True)] = None
 
     @classmethod
-    def set_default_id(cls):
+    def set_default_id(cls) -> str:
         cls.rule_counter += 1
         return f"tpv_rule_{cls.rule_counter}"
 
@@ -575,8 +578,8 @@ class Rule(Entity):
             self.override_single_property(new_entity, self, entity, "fail")
         return new_entity
 
-    def is_matching(self, context):
-        if self.evaluator.eval_code_block(self.if_condition, context):
+    def is_matching(self, context: Dict[str, Any]) -> bool:
+        if self.evaluator.eval_code_block(str(self.if_condition), context):
             return True
         else:
             return False
@@ -587,11 +590,11 @@ class Rule(Entity):
 
             raise JobMappingException(
                 self.evaluator.eval_code_block(self.fail, context, as_f_string=True)
-            )
+            )  # type: ignore[no-untyped-call]
         if self.execute:
             self.evaluator.eval_code_block(self.execute, context, exec_only=True)
             # return any changes made to the entity
-            return context["entity"]
+            return cast(Self, context["entity"])
         return self
 
 
@@ -599,7 +602,7 @@ class EntityWithRules(Entity):
     merge_order: ClassVar[int] = 1
     rules: Dict[str, Rule] = Field(default_factory=lambda: dict())
 
-    def propagate_parent_properties(self, id=None, evaluator=None):
+    def propagate_parent_properties(self, id: str, evaluator: TPVCodeEvaluator) -> None:
         super().propagate_parent_properties(id=id, evaluator=evaluator)
         for rule in self.rules.values():
             rule.evaluator = evaluator
@@ -618,9 +621,7 @@ class EntityWithRules(Entity):
         new_entity.rules.update(self.rules or {})
         for rule in self.rules.values():
             if entity.rules.get(rule.id):
-                new_entity.rules[rule.id] = cast(
-                    Rule, rule.inherit(entity.rules[rule.id])
-                )
+                new_entity.rules[rule.id] = rule.inherit(entity.rules[rule.id])
         return new_entity
 
     def evaluate_rules(self, context: Dict[str, Any]) -> Self:
@@ -677,7 +678,7 @@ class Destination(EntityWithRules):
         alias="tags", default_factory=lambda: list()
     )
 
-    def propagate_parent_properties(self, id=None, evaluator=None):
+    def propagate_parent_properties(self, id: str, evaluator: TPVCodeEvaluator) -> None:
         super().propagate_parent_properties(id=id, evaluator=evaluator)
         self.dest_name = self.dest_name or self.id
 
@@ -769,7 +770,7 @@ class Destination(EntityWithRules):
             return False
         return entity.tpv_tags.match(self.tpv_dest_tags)
 
-    def score(self, entity) -> int:
+    def score(self, entity: Entity) -> int:
         """
         Rank this destination against an entity based on how well the tags match
 
@@ -798,7 +799,7 @@ class TPVConfig(BaseModel):
     destinations: Dict[str, Destination] = Field(default_factory=lambda: dict())
 
     @model_validator(mode="after")
-    def propagate_parent_properties(self):
+    def propagate_parent_properties(self) -> Self:
         if self.evaluator:
             for id, tool in self.tools.items():
                 tool.propagate_parent_properties(id=id, evaluator=self.evaluator)
@@ -821,7 +822,7 @@ class TPVConfig(BaseModel):
         return TPVConfig.recursively_extract_comments(data)
 
     @staticmethod
-    def get_noqa_codes(entity_comments: list) -> set[str]:
+    def get_noqa_codes(entity_comments: List[str]) -> Set[str]:
         for comment in entity_comments:
             match = NOQA_RE.match(comment)
             if match:
@@ -835,7 +836,7 @@ class TPVConfig(BaseModel):
         return set()
 
     @staticmethod
-    def recursively_extract_comments(cm: CommentedMap) -> dict:
+    def recursively_extract_comments(cm: CommentedMap) -> Any:
         """
         Recursively walk a ruamel.yaml CommentedMap, extracting comments and
         placing them under a special key (e.g., "no_qa_codes") for each item.

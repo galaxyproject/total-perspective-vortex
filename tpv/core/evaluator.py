@@ -7,13 +7,17 @@ class TPVCodeEvaluator(abc.ABC):
 
     @abc.abstractmethod
     def compile_code_block(
-        self, code: str, as_f_string=False, exec_only=False
+        self, code: str, as_f_string: bool = False, exec_only: bool = False
     ) -> tuple[CodeType, CodeType | None]:
         pass
 
     @abc.abstractmethod
     def eval_code_block(
-        self, code: str, context: Dict[str, Any], as_f_string=False, exec_only=False
+        self,
+        code: str,
+        context: Dict[str, Any],
+        as_f_string: bool = False,
+        exec_only: bool = False,
     ) -> Any:
         pass
 
@@ -45,7 +49,7 @@ class TPVCodeEvaluator(abc.ABC):
         else:
             return prop_val
 
-    def compile_complex_property(self, prop: Any):
+    def compile_complex_property(self, prop: Any) -> Any:
         return self.process_complex_property(
             "",
             prop,
@@ -53,7 +57,7 @@ class TPVCodeEvaluator(abc.ABC):
             lambda n, v, c: self.compile_code_block(v, as_f_string=True),
         )
 
-    def evaluate_complex_property(self, prop: Any, context: Dict[str, Any]):
+    def evaluate_complex_property(self, prop: Any, context: Dict[str, Any]) -> Any:
         return self.process_complex_property(
             "",
             prop,

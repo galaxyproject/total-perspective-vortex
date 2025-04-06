@@ -63,7 +63,7 @@ class EntityToDestinationMapper(object):
 
                     raise JobMappingException(
                         f"This entity is abstract and cannot be mapped : {match}"
-                    )
+                    )  # type: ignore[no-untyped-call]
                 else:
                     matches.append(match)
         return matches
@@ -133,7 +133,7 @@ class EntityToDestinationMapper(object):
             params=destination.params,
             env=destination.env,
             resubmit=list(destination.resubmit.values()),
-        )
+        )  # type: ignore[no-untyped-call]
 
     def _find_matching_entities(
         self, tool: GalaxyTool, user: Optional[GalaxyUser]
@@ -147,7 +147,7 @@ class EntityToDestinationMapper(object):
         if user:
             role_entities = (
                 self.inherit_matching_entities("roles", role.name)
-                for role in user.all_roles()
+                for role in user.all_roles()  # type: ignore[no-untyped-call]
                 if not role.deleted
             )
             # trim empty
@@ -237,11 +237,11 @@ class EntityToDestinationMapper(object):
                 except TryNextDestinationOrWait:
                     wait_exception_raised = True
             if wait_exception_raised:
-                raise JobNotReadyException()
+                raise JobNotReadyException()  # type: ignore[no-untyped-call]
 
         # No matching destinations. Throw an exception
         from galaxy.jobs.mapper import JobMappingException
 
         raise JobMappingException(
             f"No destinations are available to fulfill request: {evaluated_entity.id}"
-        )
+        )  # type: ignore[no-untyped-call]

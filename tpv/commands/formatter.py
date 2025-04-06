@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List
+from typing import Any, Callable, Dict, List, Tuple
 
-from ruamel.yaml.comments import (  # type: ignore[import-untyped]
+from ruamel.yaml.comments import (
     CommentedMap,
     CommentedSeq,
 )
@@ -15,12 +15,14 @@ log = logging.getLogger(__name__)
 
 class TPVConfigFormatter(object):
 
-    def __init__(self, yaml_dict: Dict):
+    def __init__(self, yaml_dict: Any):
         self.yaml_dict = yaml_dict or {}
 
     @staticmethod
-    def generic_key_sorter(keys_to_place_first: List[str]):
-        def sort_criteria(key):
+    def generic_key_sorter(
+        keys_to_place_first: List[str],
+    ) -> Callable[[str], Tuple[int, bool, str]]:
+        def sort_criteria(key: str) -> Tuple[int, bool, str]:
             try:
                 index = keys_to_place_first.index(key)
             except ValueError:
@@ -138,6 +140,6 @@ class TPVConfigFormatter(object):
         return self.multi_level_dict_sorter(self.yaml_dict, global_field_sort_order)
 
     @staticmethod
-    def from_url_or_path(url_or_path: str):
+    def from_url_or_path(url_or_path: str) -> TPVConfigFormatter:
         tpv_config = util.load_yaml_from_url_or_path(url_or_path)
         return TPVConfigFormatter(tpv_config)

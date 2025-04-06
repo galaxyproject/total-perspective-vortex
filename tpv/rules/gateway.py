@@ -2,7 +2,7 @@ import logging
 import os
 import threading
 from collections import defaultdict
-from typing import Any, List, Optional, Union, cast
+from typing import Any, Dict, List, Optional, Union, cast
 
 from galaxy.app import UniverseApplication
 from galaxy.jobs import JobDestination, JobWrapper
@@ -17,7 +17,7 @@ from tpv.core.mapper import EntityToDestinationMapper
 
 log = logging.getLogger(__name__)
 
-JOB_YAML_CONFIG_TYPE = Union[List[Union[str, dict]], str, dict]
+JOB_YAML_CONFIG_TYPE = Union[List[Union[str, Dict[str, Any]]], str, Dict[str, Any]]
 
 ACTIVE_DESTINATION_MAPPERS = {}
 DESTINATION_MAPPER_LOCK = threading.Lock()
@@ -26,12 +26,12 @@ REFERRERS_BY_CONFIG_FILE: dict[str, dict[str, JOB_YAML_CONFIG_TYPE]] = defaultdi
 
 
 def load_destination_mapper(
-    tpv_configs: JOB_YAML_CONFIG_TYPE, reload=False
+    tpv_configs: JOB_YAML_CONFIG_TYPE, reload: bool = False
 ) -> EntityToDestinationMapper:
-    tpv_configs = listify(tpv_configs)
+    tpv_config_list: List[Any] = listify(tpv_configs)
     log.info(f"{'re' if reload else ''}loading tpv rules from: {tpv_configs}")
     loader = None
-    for tpv_config in tpv_configs:
+    for tpv_config in tpv_config_list:
         if isinstance(tpv_config, str):
             current_loader = TPVConfigLoader.from_url_or_path(tpv_config, parent=loader)
         else:
@@ -58,9 +58,9 @@ def setup_destination_mapper(
             if not watcher:
                 watcher = get_watcher(
                     app.config, "watch_job_rules", monitor_what_str="job rules"
-                )
+                )  # type: ignore[no-untyped-call]
 
-            def reload_destination_mapper(path=None):
+            def reload_destination_mapper(path: Optional[str]) -> None:
                 # reload all config files when one file changes to preserve order of loading the files
                 # watchdog on darwin notifies only once per file, so reload all mappers that refer to this file
                 for referrer, config_files in REFERRERS_BY_CONFIG_FILE[
@@ -100,11 +100,11 @@ def map_tool_to_destination(
     tool: GalaxyTool,
     user: Optional[GalaxyUser],
     # the destination referring to the TPV dynamic destination, usually named "tpv_dispatcher"
-    referrer="tpv_dispatcher",
+    referrer: str = "tpv_dispatcher",
     tpv_config_files: Optional[JOB_YAML_CONFIG_TYPE] = None,
     tpv_configs: Optional[JOB_YAML_CONFIG_TYPE] = None,
     job_wrapper: Optional[JobWrapper] = None,
-    resource_params: Optional[dict] = None,
+    resource_params: Optional[Dict[str, Any]] = None,
     workflow_invocation_uuid: Optional[str] = None,
 ) -> JobDestination:
     if tpv_configs and tpv_config_files:

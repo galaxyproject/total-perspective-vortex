@@ -28,7 +28,7 @@ class TPVConfigLinter(object):
         self.errors: List[str | Tuple[str, str]] = []
         self.loader: Optional[TPVConfigLoader] = None
 
-    def load_config(self):
+    def load_config(self) -> None:
         try:
             self.loader = TPVConfigLoader.from_url_or_path(self.url_or_path)
         except Exception as e:
@@ -37,19 +37,20 @@ class TPVConfigLinter(object):
                 "Linting failed due to syntax errors in yaml file: "
             ) from e
 
-    def add_warning(self, entity: Entity, code: str, message: str):
+    def add_warning(self, entity: Entity, code: str, message: str) -> None:
         if code not in self.ignore and not entity.should_skip_qa(code):
             self.warnings.append((code, message))
 
-    def lint(self):
+    def lint(self) -> None:
         if self.loader is None:
             self.load_config()
-        self.lint_code(self.loader)
-        self.lint_tools(self.loader)
-        self.lint_destinations(self.loader)
-        self.print_errors_and_warnings()
+        if self.loader is not None:  # satisfy mypy
+            self.lint_code(self.loader)
+            self.lint_tools(self.loader)
+            self.lint_destinations(self.loader)
+            self.print_errors_and_warnings()
 
-    def lint_code(self, loader: TPVConfigLoader):
+    def lint_code(self, loader: TPVConfigLoader) -> None:
         """
         Gather code blocks from the loader, render them into a .py file with Jinja2,
         run mypy, record errors if any.
@@ -59,7 +60,7 @@ class TPVConfigLinter(object):
             for err in errors:
                 self.errors.append(("T103", err))
 
-    def lint_tools(self, loader: TPVConfigLoader):
+    def lint_tools(self, loader: TPVConfigLoader) -> None:
         default_inherits = loader.config.global_config.default_inherits
         for tool_regex, tool in loader.config.tools.items():
             try:
@@ -82,7 +83,7 @@ class TPVConfigLinter(object):
                     "unexpected memory usage since memory is typically a multiplier of cores.",
                 )
 
-    def lint_destinations(self, loader: TPVConfigLoader):
+    def lint_destinations(self, loader: TPVConfigLoader) -> None:
         default_inherits = loader.config.global_config.default_inherits
         for destination in loader.config.destinations.values():
             if not destination.runner and not destination.abstract:
@@ -110,7 +111,7 @@ class TPVConfigLinter(object):
                     "will be excluded from scheduling decisions.",
                 )
 
-    def print_errors_and_warnings(self):
+    def print_errors_and_warnings(self) -> None:
         if self.warnings:
             for code, message in self.warnings:
                 log.warning(f"{code}: {message}")
@@ -122,5 +123,7 @@ class TPVConfigLinter(object):
             )
 
     @staticmethod
-    def from_url_or_path(url_or_path: str, ignore: Optional[List[str]] = None):
+    def from_url_or_path(
+        url_or_path: str, ignore: Optional[List[str]] = None
+    ) -> "TPVConfigLinter":
         return TPVConfigLinter(url_or_path, ignore=ignore)

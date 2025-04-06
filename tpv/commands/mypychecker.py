@@ -10,6 +10,7 @@ from jinja2 import Environment, FileSystemLoader
 from pydantic.fields import FieldInfo
 
 from tpv.core.entities import Entity, TPVFieldMetadata
+from tpv.core.loader import TPVConfigLoader
 
 log = logging.getLogger(__name__)
 
@@ -57,7 +58,7 @@ def get_return_type_str(field_info: FieldInfo, value: Any) -> str:
     return str(return_type).replace("NoneType", "None")
 
 
-def gather_all_evaluable_code(loader) -> List[dict[str, str]]:
+def gather_all_evaluable_code(loader: TPVConfigLoader) -> List[dict[str, str]]:
     """
     Returns a list of (func_name, code_block) for all evaluable fields
     from all entities in the TPVConfig.
@@ -81,7 +82,7 @@ def gather_all_evaluable_code(loader) -> List[dict[str, str]]:
 
 
 def gather_fields_from_entity(
-    loader, entity: Entity, path: str
+    loader: TPVConfigLoader, entity: Entity, path: str
 ) -> List[dict[str, str]]:
     """
     Return a list of dicts, each dict with:
@@ -118,7 +119,7 @@ def gather_fields_from_entity(
                     )
                 )
 
-                def add_code_block(block_name: str, value: Any):
+                def add_code_block(block_name: str, value: Any) -> None:
                     safe_name = slugify(f"{path}_{block_name}" if path else block_name)
 
                     # Derive a return type string from the Entity type annotation
@@ -138,7 +139,7 @@ def gather_fields_from_entity(
 
                 if is_complex:
                     loader.process_complex_property(
-                        field_name, value, None, lambda n, v, c: add_code_block(n, v)
+                        field_name, value, {}, lambda n, v, c: add_code_block(n, v)
                     )
                 else:
                     add_code_block(field_name, value)
@@ -152,7 +153,7 @@ def gather_fields_from_entity(
     return code_snippets
 
 
-def type_check_code(loader) -> tuple[int, List[str], str]:
+def type_check_code(loader: TPVConfigLoader) -> tuple[int, List[str], str]:
     """
     1) Gather all evaluable code blocks from the loaded TPVConfig.
     2) Render them to a single .py file using Jinja2.
