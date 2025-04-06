@@ -5,9 +5,10 @@ from collections import defaultdict
 from typing import Any, List, Optional, Union, cast
 
 from galaxy.app import UniverseApplication
-from galaxy.jobs import JobWrapper
-from galaxy.model import Job, User
-from galaxy.tools import Tool
+from galaxy.jobs import JobDestination, JobWrapper
+from galaxy.model import Job
+from galaxy.model import User as GalaxyUser
+from galaxy.tools import Tool as GalaxyTool
 from galaxy.util import listify
 from galaxy.util.watcher import get_watcher
 
@@ -24,7 +25,9 @@ WATCHERS_BY_CONFIG_FILE: dict[str, Any] = {}
 REFERRERS_BY_CONFIG_FILE: dict[str, dict[str, JOB_YAML_CONFIG_TYPE]] = defaultdict(dict)
 
 
-def load_destination_mapper(tpv_configs: JOB_YAML_CONFIG_TYPE, reload=False):
+def load_destination_mapper(
+    tpv_configs: JOB_YAML_CONFIG_TYPE, reload=False
+) -> EntityToDestinationMapper:
     tpv_configs = listify(tpv_configs)
     log.info(f"{'re' if reload else ''}loading tpv rules from: {tpv_configs}")
     loader = None
@@ -40,7 +43,7 @@ def load_destination_mapper(tpv_configs: JOB_YAML_CONFIG_TYPE, reload=False):
 
 def setup_destination_mapper(
     app: UniverseApplication, referrer: str, tpv_configs: JOB_YAML_CONFIG_TYPE
-):
+) -> EntityToDestinationMapper:
     mapper = load_destination_mapper(tpv_configs)
 
     for tpv_config in tpv_configs:
@@ -77,7 +80,7 @@ def setup_destination_mapper(
 
 def lock_and_load_mapper(
     app: UniverseApplication, referrer: str, tpv_config: JOB_YAML_CONFIG_TYPE
-):
+) -> EntityToDestinationMapper:
     destination_mapper = ACTIVE_DESTINATION_MAPPERS.get(referrer)
     if not destination_mapper:
         # Try again with a lock
@@ -94,8 +97,8 @@ def lock_and_load_mapper(
 def map_tool_to_destination(
     app: UniverseApplication,
     job: Job,
-    tool: Tool,
-    user: User,
+    tool: GalaxyTool,
+    user: Optional[GalaxyUser],
     # the destination referring to the TPV dynamic destination, usually named "tpv_dispatcher"
     referrer="tpv_dispatcher",
     tpv_config_files: Optional[JOB_YAML_CONFIG_TYPE] = None,
@@ -103,7 +106,7 @@ def map_tool_to_destination(
     job_wrapper: Optional[JobWrapper] = None,
     resource_params: Optional[dict] = None,
     workflow_invocation_uuid: Optional[str] = None,
-):
+) -> JobDestination:
     if tpv_configs and tpv_config_files:
         raise ValueError(
             "Only one of tpv_configs or tpv_config_files can be specified in execution environment."

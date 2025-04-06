@@ -6,7 +6,8 @@ from typing import Any, Dict, List, Mapping, Optional, TypeVar, cast
 from galaxy.app import UniverseApplication
 from galaxy.jobs import JobDestination, JobWrapper
 from galaxy.jobs.mapper import JobNotReadyException
-from galaxy.model import Job, User
+from galaxy.model import Job
+from galaxy.model import User as GalaxyUser
 from galaxy.tools import Tool as GalaxyTool
 
 from .entities import (
@@ -135,7 +136,7 @@ class EntityToDestinationMapper(object):
         )
 
     def _find_matching_entities(
-        self, tool: GalaxyTool, user: Optional[User]
+        self, tool: GalaxyTool, user: Optional[GalaxyUser]
     ) -> List[EntityWithRules]:
         tool_entity = self.inherit_matching_entities("tools", tool.id)
         if not tool_entity:
@@ -162,7 +163,7 @@ class EntityToDestinationMapper(object):
         return entity_list
 
     def match_combine_evaluate_entities(
-        self, context: Dict[str, Any], tool: GalaxyTool, user: Optional[User]
+        self, context: Dict[str, Any], tool: GalaxyTool, user: Optional[GalaxyUser]
     ) -> EntityWithRules:
         # 1. Find the entities relevant to this job
         entity_list = self._find_matching_entities(tool, user)
@@ -186,7 +187,7 @@ class EntityToDestinationMapper(object):
         self,
         app: UniverseApplication,
         tool: GalaxyTool,
-        user: Optional[User],
+        user: Optional[GalaxyUser],
         job: Job,
         job_wrapper: Optional[JobWrapper] = None,
         resource_params: Optional[Dict[str, Any]] = None,
