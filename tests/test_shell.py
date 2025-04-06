@@ -131,7 +131,7 @@ class TPVShellTestCase(unittest.TestCase):
             f"Did not expect destination: `working_dest` to be in the output, but found: {output}",
         )
 
-    def test_lint_undefined_variable(self):
+    def test_lint_types_undefined_variable(self):
         tpv_config = os.path.join(
             os.path.dirname(__file__),
             "fixtures/linter/linter-types-undefined-variable.yml",
@@ -144,6 +144,27 @@ class TPVShellTestCase(unittest.TestCase):
         self.assertTrue(
             'error: Name "mem2" is not defined' in output,
             f"Expected Name 'mem2' is not defined but output was: {output}",
+        )
+
+    def test_lint_types_legacy_tagset_reference(self):
+        tpv_config = os.path.join(
+            os.path.dirname(__file__),
+            "fixtures/linter/linter-types-legacy-tags.yml",
+        )
+        output = self.call_shell_command("tpv", "-vv", "lint", tpv_config)
+        self.assertTrue(
+            'error: Module "tpv.core.entities" has no attribute "TagSetManager"'
+            in output,
+            f'Expected error: Module "tpv.core.entities" has no attribute "TagSetManager": {output}',
+        )
+        self.assertTrue(
+            'Too many arguments for "Tag' in output,
+            f'Too many arguments for "Tag" but output was: {output}',
+        )
+        self.assertTrue(
+            'Item "None" of "User | None" has no attribute "extra_preferences"'
+            in output,
+            f'Expected Item "None" of "User | None" has no attribute "extra_preferences" but output was: {output}',
         )
 
     def test_lint_warnings(self):
