@@ -153,7 +153,9 @@ def gather_fields_from_entity(
     return code_snippets
 
 
-def type_check_code(loader: TPVConfigLoader) -> tuple[int, List[str], str]:
+def type_check_code(
+    loader: TPVConfigLoader, preserve_temp_code: bool
+) -> tuple[int, List[str], str]:
     """
     1) Gather all evaluable code blocks from the loaded TPVConfig.
     2) Render them to a single .py file using Jinja2.
@@ -172,7 +174,9 @@ def type_check_code(loader: TPVConfigLoader) -> tuple[int, List[str], str]:
     rendered_code = template.render(code_blocks=code_blocks)
 
     # 3. Write the rendered code to a temp file and run mypy
-    with tempfile.NamedTemporaryFile("w", suffix=".py", delete=False) as tmp_file:
+    with tempfile.NamedTemporaryFile(
+        "w", suffix=".py", delete=not preserve_temp_code
+    ) as tmp_file:
         tmp_filename = tmp_file.name
         tmp_file.write(rendered_code)
         tmp_file.flush()

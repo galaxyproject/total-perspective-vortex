@@ -21,9 +21,12 @@ class TPVLintError(Exception):
 
 class TPVConfigLinter(object):
 
-    def __init__(self, url_or_path: str, ignore: Optional[List[str]]):
+    def __init__(
+        self, url_or_path: str, ignore: Optional[List[str]], preserve_temp_code: bool
+    ):
         self.url_or_path: str = url_or_path
         self.ignore: List[str] = ignore or []
+        self.preserve_temp_code = preserve_temp_code
         self.warnings: List[Tuple[str, str]] = []
         self.errors: List[str | Tuple[str, str]] = []
         self.loader: Optional[TPVConfigLoader] = None
@@ -55,7 +58,9 @@ class TPVConfigLinter(object):
         Gather code blocks from the loader, render them into a .py file with Jinja2,
         run mypy, record errors if any.
         """
-        exit_code, errors, tmp_filename = mypychecker.type_check_code(loader)
+        exit_code, errors, tmp_filename = mypychecker.type_check_code(
+            loader, self.preserve_temp_code
+        )
         if exit_code != 0:
             for err in errors:
                 self.errors.append(("T103", err))
@@ -124,6 +129,10 @@ class TPVConfigLinter(object):
 
     @staticmethod
     def from_url_or_path(
-        url_or_path: str, ignore: Optional[List[str]] = None
+        url_or_path: str,
+        ignore: Optional[List[str]] = None,
+        preserve_temp_code: bool = False,
     ) -> "TPVConfigLinter":
-        return TPVConfigLinter(url_or_path, ignore=ignore)
+        return TPVConfigLinter(
+            url_or_path, ignore=ignore, preserve_temp_code=preserve_temp_code
+        )
