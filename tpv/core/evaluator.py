@@ -9,7 +9,7 @@ class TPVCodeEvaluator(abc.ABC):
     def compile_code_block(
         self, code: str, as_f_string: bool = False, exec_only: bool = False
     ) -> tuple[CodeType, CodeType | None]:
-        pass
+        pass  # pragma: no cover
 
     @abc.abstractmethod
     def eval_code_block(
@@ -19,7 +19,7 @@ class TPVCodeEvaluator(abc.ABC):
         as_f_string: bool = False,
         exec_only: bool = False,
     ) -> Any:
-        pass
+        pass  # pragma: no cover
 
     def process_complex_property(
         self,

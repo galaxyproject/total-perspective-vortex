@@ -312,7 +312,7 @@ class Entity(BaseModel):
     def __deepcopy__(self, memo: dict[int, Any] | None = None) -> Self:
         # satisfy mypy by ensuring memo is never None
         if memo is None:
-            memo = {}
+            memo = {}  # pragma: no cover
         # make sure we don't deepcopy the evaluator: https://github.com/galaxyproject/total-perspective-vortex/issues/53
         # xref: https://stackoverflow.com/a/68746763/10971151
         memo[id(self.evaluator)] = self.evaluator

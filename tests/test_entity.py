@@ -96,13 +96,57 @@ class TestEntity(unittest.TestCase):
 
     def test_tag_equivalence(self):
         tag1 = Tag(value="tag_value", tag_type=TagType.REQUIRE)
-        tag2 = Tag(value="tag_value", tag_type=TagType.REQUIRE)
-        tag3 = Tag(value="tag_value1", tag_type=TagType.REQUIRE)
-        tag4 = Tag(value="tag_value1", tag_type=TagType.PREFER)
+        tag2 = Tag(value="tag_value1", tag_type=TagType.REQUIRE)
+        tag3 = Tag(value="tag_value1", tag_type=TagType.PREFER)
         same_as_tag1 = Tag(value="tag_value", tag_type=TagType.REQUIRE)
 
         self.assertEqual(tag1, tag1)
         self.assertEqual(tag1, same_as_tag1)
+        self.assertNotEqual(tag1, tag2)
         self.assertNotEqual(tag1, tag3)
-        self.assertNotEqual(tag1, tag4)
         self.assertNotEqual(tag1, "hello")
+
+    def test_tag_filter(self):
+        tpv_config = os.path.join(
+            os.path.dirname(__file__), "fixtures/mapping-rule-argument-based.yml"
+        )
+        loader = TPVConfigLoader.from_url_or_path(tpv_config)
+
+        # create a destination
+        destination = loader.config.destinations["k8s_environment"]
+
+        # a non-existent tag should not be returned
+        assert not list(destination.tpv_dest_tags.filter(tag_type=TagType.PREFER))
+
+        # an existing tag should match
+        tag = list(destination.tpv_dest_tags.filter(tag_type=TagType.REQUIRE))[0]
+        assert tag.tag_type == TagType.REQUIRE
+        assert tag.value == "pulsar"
+
+        # tags should also be matchable by a list of tag types
+        tag = list(
+            destination.tpv_dest_tags.filter(tag_type=[TagType.ACCEPT, TagType.REQUIRE])
+        )[0]
+        assert tag.tag_type == TagType.REQUIRE
+        assert tag.value == "pulsar"
+
+        # tags should also be matchable by tag value
+        tag = list(destination.tpv_dest_tags.filter(tag_value="pulsar"))[0]
+        assert tag.tag_type == TagType.REQUIRE
+        assert tag.value == "pulsar"
+
+        # tags should also be matchable by both tag type and tag value
+        tag = list(
+            destination.tpv_dest_tags.filter(
+                tag_type=[TagType.REQUIRE], tag_value="pulsar"
+            )
+        )[0]
+        assert tag.tag_type == TagType.REQUIRE
+        assert tag.value == "pulsar"
+
+        # tag should not match if either tag_type or tag_value mismatches
+        assert not list(
+            destination.tpv_dest_tags.filter(
+                tag_type=[TagType.ACCEPT], tag_value="pulsar"
+            )
+        )
