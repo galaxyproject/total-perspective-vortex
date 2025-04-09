@@ -281,7 +281,7 @@ class Entity(BaseModel):
     context: Optional[Dict[str, Any]] = Field(default_factory=lambda: dict())
     # evaluator is always assigned, so ignore the warning about default being None
     evaluator: SkipJsonSchema[TPVCodeEvaluator] = Field(
-        exclude=True, default=cast(SkipJsonSchema[TPVCodeEvaluator], None)
+        exclude=True, default=cast(TPVCodeEvaluator, None)
     )
     tpv_tags: SchedulingTags = Field(alias="scheduling", default_factory=SchedulingTags)
     no_qa_codes: SkipJsonSchema[List[str]] = Field(default_factory=lambda: list())
