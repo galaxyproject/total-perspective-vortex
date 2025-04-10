@@ -173,8 +173,8 @@ class TPVShellTestCase(unittest.TestCase):
             os.path.dirname(__file__),
             "fixtures/linter/linter-types-undefined-variable.yml",
         )
-        output = self.call_shell_command("tpv", "lint", tpv_config)
-        pattern = r"T103', '([^']+tmp[^']+\.py):\d+: error:"
+        output = self.call_shell_command("tpv", "-vv", "lint", tpv_config)
+        pattern = r"T103: ([^:\s]+tmp[^:\s]*\.py):\d+: error:"
         match = re.search(pattern, output)
         self.assertTrue(
             match and match.group(1),
@@ -187,7 +187,7 @@ class TPVShellTestCase(unittest.TestCase):
         )
 
         output = self.call_shell_command(
-            "tpv", "lint", "--preserve-temp-code", tpv_config
+            "tpv", "-vv", "lint", "--preserve-temp-code", tpv_config
         )
         match = re.search(pattern, output)
         self.assertTrue(
@@ -211,7 +211,7 @@ class TPVShellTestCase(unittest.TestCase):
             os.path.dirname(__file__),
             "fixtures/linter/linter-types-context-vars.yml",
         )
-        output = self.call_shell_command("tpv", "lint", tpv_config)
+        output = self.call_shell_command("tpv", "-vv", "lint", tpv_config)
         self.assertTrue(
             'error: Unsupported operand types for + ("int" and "str")' in output,
             'Expected Unsupported operand types for + ("int" and "str") due to '
@@ -246,6 +246,16 @@ class TPVShellTestCase(unittest.TestCase):
             if ": error:" in line and ": note:" not in line
         )
         assert count == 5, "Expected only 5 errors but found: {count}"
+
+    def test_lint_types_silence_warnings(self):
+        tpv_config = os.path.join(
+            os.path.dirname(__file__), "fixtures/linter/linter-types-context-vars.yml"
+        )
+        output = self.call_shell_command("tpv", "lint", tpv_config)
+        self.assertTrue(
+            "T103" not in output,
+            f"Expected T103 errors to be suppressed but output was: {output}",
+        )
 
     def test_lint_warnings(self):
         tpv_config = os.path.join(

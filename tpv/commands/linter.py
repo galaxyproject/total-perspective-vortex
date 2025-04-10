@@ -40,9 +40,13 @@ class TPVConfigLinter(object):
                 "Linting failed due to syntax errors in yaml file: "
             ) from e
 
-    def add_warning(self, entity: Entity, code: str, message: str) -> None:
-        if code not in self.ignore and not entity.should_skip_qa(code):
+    def add_warning(self, code: str, message: str) -> None:
+        if code not in self.ignore:
             self.warnings.append((code, message))
+
+    def add_entity_warning(self, entity: Entity, code: str, message: str) -> None:
+        if not entity.should_skip_qa(code):
+            self.add_warning(code, message)
 
     def lint(self) -> None:
         if self.loader is None:
@@ -58,12 +62,12 @@ class TPVConfigLinter(object):
         Gather code blocks from the loader, render them into a .py file with Jinja2,
         run mypy, record errors if any.
         """
-        exit_code, errors, tmp_filename = mypychecker.type_check_code(
+        exit_code, errors, _ = mypychecker.type_check_code(
             loader, self.preserve_temp_code
         )
         if exit_code != 0:
             for err in errors:
-                self.errors.append(("T103", err))
+                self.add_warning("T103", err)
 
     def lint_tools(self, loader: TPVConfigLoader) -> None:
         default_inherits = loader.config.global_config.default_inherits
@@ -73,7 +77,7 @@ class TPVConfigLinter(object):
             except re.error:
                 self.errors.append(f"Failed to compile regex: {tool_regex}")
             if default_inherits == tool.id and not tool.abstract:
-                self.add_warning(
+                self.add_entity_warning(
                     tool,
                     "T101",
                     f"The tool named: {default_inherits} is marked globally as the tool to inherit from "
@@ -81,7 +85,7 @@ class TPVConfigLinter(object):
                     "will be excluded from scheduling decisions.",
                 )
             if tool.cores and not tool.mem:
-                self.add_warning(
+                self.add_entity_warning(
                     tool,
                     "T102",
                     f"The tool named: {tool_regex} sets `cores` but not `mem`. This can lead to "
@@ -108,7 +112,7 @@ class TPVConfigLinter(object):
                     f"max_accepted_cores/mem/gpus property. Simply renaming them will give you the same functionality."
                 )
             if default_inherits == destination.id and not destination.abstract:
-                self.add_warning(
+                self.add_entity_warning(
                     destination,
                     "T101",
                     f"The destination named: {default_inherits} is marked globally as the destination to inherit from "

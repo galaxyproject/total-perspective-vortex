@@ -24,7 +24,7 @@ SERIALIZABLE_TYPE_MAP = {
 }
 
 
-def get_serializable_type_str(return_type: Type) -> str:
+def get_serializable_type_str(return_type: Any) -> str:
     """
     Given a type/class, convert it to a nice string for serializing into source code.
     Handles built-in types and known wrapper types like ruamel.yaml's scalar types.
@@ -63,14 +63,15 @@ def get_return_type_str(field_info: FieldInfo, value: Any) -> str:
 
     # If a return type is explicitly defined on the Entity field, use that.
     metadata_list = getattr(field_info, "metadata", [])
+    return_type: Any
     if any(
-        isinstance(m, TPVFieldMetadata) and getattr(m, "return_type", False)
+        isinstance(m, TPVFieldMetadata) and m.return_type is not None
         for m in metadata_list
     ):
         return_type = [
-            getattr(m, "return_type", False)
+            m.return_type
             for m in metadata_list
-            if isinstance(m, TPVFieldMetadata)
+            if isinstance(m, TPVFieldMetadata) and m.return_type is not None
         ][0]
     # if it's a complex_type (e.g. env, params), use the leaf value to infer type (usually string)
     elif any(
@@ -146,7 +147,8 @@ def gather_all_evaluable_code(
 
 
 def infer_context_var_type(
-    context_vars_container: Dict[str, Set[Type]], entity_context_vars: Dict[str, Any]
+    context_vars_container: Dict[str, Set[Type[Any]]],
+    entity_context_vars: Dict[str, Any],
 ) -> None:
     for var_name, var_val in entity_context_vars.items():
         possible_types = context_vars_container.get(var_name, set())
