@@ -3,7 +3,7 @@ import logging
 import os
 import re
 import tempfile
-from typing import Annotated, Any, List, get_args, get_origin
+from typing import Annotated, Any, Dict, List, Set, Tuple, Type, get_args, get_origin
 
 import mypy.api
 from jinja2 import Environment, FileSystemLoader
@@ -13,6 +13,41 @@ from tpv.core.entities import Entity, TPVFieldMetadata
 from tpv.core.loader import TPVConfigLoader
 
 log = logging.getLogger(__name__)
+
+
+# Optional mapping for known "weird" but serializable types
+SERIALIZABLE_TYPE_MAP = {
+    "ruamel.yaml.scalarfloat.ScalarFloat": "float",
+    "ruamel.yaml.scalarint.ScalarInt": "int",
+    "ruamel.yaml.scalarbool.ScalarBoolean": "bool",
+    "ruamel.yaml.scalarstring.ScalarString": "str",
+}
+
+
+def get_serializable_type_str(return_type: Type) -> str:
+    """
+    Given a type/class, convert it to a nice string for serializing into source code.
+    Handles built-in types and known wrapper types like ruamel.yaml's scalar types.
+    """
+    if inspect.isclass(return_type):
+        module = return_type.__module__
+        qualname = return_type.__qualname__
+        full_name = f"{module}.{qualname}"
+
+        # Handle known type replacements
+        if full_name in SERIALIZABLE_TYPE_MAP:
+            return SERIALIZABLE_TYPE_MAP[full_name]
+
+        if module == "builtins":
+            return return_type.__name__.replace("NoneType", "None")
+
+    # Fallback: prettify the string output
+    return (
+        str(return_type)
+        .replace("NoneType", "None")
+        .replace("<class '", "")
+        .replace("'>", "")
+    )
 
 
 def get_return_type_str(field_info: FieldInfo, value: Any) -> str:
@@ -49,40 +84,82 @@ def get_return_type_str(field_info: FieldInfo, value: Any) -> str:
     else:
         return_type = annotation
 
-    # If it's a built-in class like int, float, str
-    #  we can safely return return_type.__name__ (i.e. "int", "str", "float", etc.)
-    if inspect.isclass(return_type):
-        if return_type.__module__ == "builtins":
-            # e.g. <class 'int'> => "int"
-            return_type = return_type.__name__
-    return str(return_type).replace("NoneType", "None")
+    return get_serializable_type_str(return_type)
 
 
-def gather_all_evaluable_code(loader: TPVConfigLoader) -> List[dict[str, str]]:
+def render_optional_union(type_names: List[str]) -> str:
+    cleaned = [t for t in type_names if t != "None"]
+
+    if not cleaned:
+        return "Optional[Any]"
+    elif len(cleaned) == 1:
+        return f"Optional[{cleaned[0]}]"
+    else:
+        union_part = " | ".join(sorted(cleaned))
+        return f"Optional[{union_part}]"
+
+
+def gather_all_evaluable_code(
+    loader: TPVConfigLoader,
+) -> Tuple[Dict[str, Any], List[dict[str, str]]]:
     """
-    Returns a list of (func_name, code_block) for all evaluable fields
+    Returns a list of all context vars and a list of (func_name, code_block) for all evaluable fields
     from all entities in the TPVConfig.
     """
+    context_vars_container: Dict[str, Any] = {}
     code_blocks = []
 
     # Gather from top-level groups
     for tool_id, tool in loader.config.tools.items():
-        code_blocks.extend(gather_fields_from_entity(loader, tool, f"tool_{tool_id}"))
+        code_blocks.extend(
+            gather_fields_from_entity(
+                loader, context_vars_container, tool, f"tool_{tool_id}"
+            )
+        )
 
     for user_id, user in loader.config.users.items():
-        code_blocks.extend(gather_fields_from_entity(loader, user, f"user_{user_id}"))
+        code_blocks.extend(
+            gather_fields_from_entity(
+                loader, context_vars_container, user, f"user_{user_id}"
+            )
+        )
 
     for role_id, role in loader.config.roles.items():
-        code_blocks.extend(gather_fields_from_entity(loader, role, f"role_{role_id}"))
+        code_blocks.extend(
+            gather_fields_from_entity(
+                loader, context_vars_container, role, f"role_{role_id}"
+            )
+        )
 
     for dest_id, dest in loader.config.destinations.items():
-        code_blocks.extend(gather_fields_from_entity(loader, dest, f"dest_{dest_id}"))
+        code_blocks.extend(
+            gather_fields_from_entity(
+                loader, context_vars_container, dest, f"dest_{dest_id}"
+            )
+        )
 
-    return code_blocks
+    context_vars_serializable = {
+        key: render_optional_union([get_serializable_type_str(typ) for typ in val])
+        for key, val in context_vars_container.items()
+    }
+    return context_vars_serializable, code_blocks
+
+
+def infer_context_var_type(
+    context_vars_container: Dict[str, Set[Type]], entity_context_vars: Dict[str, Any]
+) -> None:
+    for var_name, var_val in entity_context_vars.items():
+        possible_types = context_vars_container.get(var_name, set())
+        if type(var_val) not in possible_types:
+            possible_types.add(type(var_val))
+        context_vars_container[var_name] = possible_types
 
 
 def gather_fields_from_entity(
-    loader: TPVConfigLoader, entity: Entity, path: str
+    loader: TPVConfigLoader,
+    context_vars_container: Dict[str, Any],
+    entity: Entity,
+    path: str,
 ) -> List[dict[str, str]]:
     """
     Return a list of dicts, each dict with:
@@ -92,6 +169,8 @@ def gather_fields_from_entity(
         'return_type': str
       }
     """
+    context_vars = getattr(entity, "context") or {}
+    infer_context_var_type(context_vars_container, context_vars)
     code_snippets = []
     fields_dict = getattr(entity, "model_fields")
 
@@ -147,7 +226,9 @@ def gather_fields_from_entity(
     if hasattr(entity, "rules"):
         for rule_id, rule in entity.rules.items():
             code_snippets.extend(
-                gather_fields_from_entity(loader, rule, f"{path}_{rule_id}")
+                gather_fields_from_entity(
+                    loader, context_vars_container, rule, f"{path}_{rule_id}"
+                )
             )
 
     return code_snippets
@@ -162,7 +243,7 @@ def type_check_code(
     3) Run mypy and record errors if any.
     """
     # 1. Gather code blocks
-    code_blocks = gather_all_evaluable_code(loader)
+    context_vars, code_blocks = gather_all_evaluable_code(loader)
     if not code_blocks:
         # Nothing to check
         return (0, [], "")
@@ -171,7 +252,7 @@ def type_check_code(
     current_dir = os.path.dirname(os.path.abspath(__file__))
     env = Environment(loader=FileSystemLoader(current_dir))
     template = env.get_template("type_check_template.j2")
-    rendered_code = template.render(code_blocks=code_blocks)
+    rendered_code = template.render(context_vars=context_vars, code_blocks=code_blocks)
 
     # 3. Write the rendered code to a temp file and run mypy
     with tempfile.NamedTemporaryFile(

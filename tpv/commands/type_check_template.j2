@@ -25,7 +25,7 @@ workflow_invocation_uuid: Optional[str]
 mapper: EntityToDestinationMapper
 entity: Entity
 
-# --- 2. Declare local "context" variables ---
+# --- 2. Declare evaluation time "context" variables ---
 cores: Optional[int | float | str]
 mem: Optional[int | float | str]
 gpus: Optional[int | str]
@@ -51,10 +51,16 @@ candidate_destinations: List[Destination]
 dest_name: Optional[str]
 input_size: float
 
+# --- 3. Declare user defined "context" variables ---
+{% for context_var, context_var_types in context_vars.items() -%}
+{{ context_var }}: {{ context_var_types }}
+{% endfor %}
+
+# --- 4. User defined, evaluable entity fields ---
 {% for block in code_blocks %}
 {% if block.return_type == "None" -%}
 {# No return_type, like execute or fail fields. Just insert the block -#}
-def {{ block.func_name }}():
+def {{ block.func_name }}() -> None:
     {{ block.code|indent(4) }}
 {% else -%}
 def {{ block.func_name }}() -> {{ block.return_type }}:
