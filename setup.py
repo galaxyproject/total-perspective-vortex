@@ -22,6 +22,9 @@ REQS_FULL = [
     "watchdog",
     "requests",
     "ruamel.yaml",
+    "mypy",
+    "jinja2",
+    "types-requests",
 ]
 
 REQS_CLI = ["galaxy-app"] + REQS_FULL

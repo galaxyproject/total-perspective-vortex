@@ -1,45 +1,66 @@
 import abc
-from typing import Any, Dict
+from types import CodeType
+from typing import Any, Callable, Dict
 
 
 class TPVCodeEvaluator(abc.ABC):
 
     @abc.abstractmethod
-    def compile_code_block(self, code: str, as_f_string=False, exec_only=False):
-        pass
+    def compile_code_block(
+        self, code: str, as_f_string: bool = False, exec_only: bool = False
+    ) -> tuple[CodeType, CodeType | None]:
+        pass  # pragma: no cover
 
     @abc.abstractmethod
     def eval_code_block(
-        self, code: str, context: Dict[str, Any], as_f_string=False, exec_only=False
-    ):
-        pass
+        self,
+        code: str,
+        context: Dict[str, Any],
+        as_f_string: bool = False,
+        exec_only: bool = False,
+    ) -> Any:
+        pass  # pragma: no cover
 
-    def process_complex_property(self, prop: Any, context: Dict[str, Any], func):
-        if isinstance(prop, str):
-            return func(prop, context)
-        elif isinstance(prop, dict):
-            evaluated_props = {
-                key: self.process_complex_property(childprop, context, func)
-                for key, childprop in prop.items()
+    def process_complex_property(
+        self,
+        prop_name: str,
+        prop_val: Any,
+        context: Dict[str, Any],
+        func: Callable[[str, Any, Dict[str, Any]], Any],
+    ) -> Any:
+        if isinstance(prop_val, str):
+            return func(prop_name, prop_val, context)
+        elif isinstance(prop_val, dict):
+            evaluated_props_dict = {
+                key: self.process_complex_property(
+                    f"{prop_name}_{key}", childprop, context, func
+                )
+                for key, childprop in prop_val.items()
             }
-            return evaluated_props
-        elif isinstance(prop, list):
-            evaluated_props = [
-                self.process_complex_property(childprop, context, func)
-                for childprop in prop
+            return evaluated_props_dict
+        elif isinstance(prop_val, list):
+            evaluated_props_list = [
+                self.process_complex_property(
+                    f"{prop_name}_{idx}", childprop, context, func
+                )
+                for idx, childprop in enumerate(prop_val)
             ]
-            return evaluated_props
+            return evaluated_props_list
         else:
-            return prop
+            return prop_val
 
-    def compile_complex_property(self, prop):
+    def compile_complex_property(self, prop: Any) -> Any:
         return self.process_complex_property(
-            prop, None, lambda p, c: self.compile_code_block(p, as_f_string=True)
+            "",
+            prop,
+            {},
+            lambda n, v, c: self.compile_code_block(v, as_f_string=True),
         )
 
-    def evaluate_complex_property(self, prop, context: Dict[str, Any]):
+    def evaluate_complex_property(self, prop: Any, context: Dict[str, Any]) -> Any:
         return self.process_complex_property(
+            "",
             prop,
             context,
-            lambda p, c: self.eval_code_block(p, c, as_f_string=True),
+            lambda n, v, c: self.eval_code_block(v, c, as_f_string=True),
         )

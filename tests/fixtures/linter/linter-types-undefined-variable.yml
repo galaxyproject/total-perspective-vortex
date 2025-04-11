@@ -1,0 +1,19 @@
+global:
+  default_inherits: default
+
+tools:
+  default:
+    abstract: true
+    cores: 2
+    mem: "{something}"
+    params:
+      native_spec: "--mem {mem2}"
+
+destinations:
+  local:
+    runner: local
+    max_accepted_cores: 4
+    max_accepted_mem: 16
+    scheduling:
+      prefer:
+        - general

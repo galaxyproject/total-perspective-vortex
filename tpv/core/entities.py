@@ -5,12 +5,26 @@ import re
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import Annotated, Any, ClassVar, Dict, Iterable, List, Optional
+from typing import (
+    Annotated,
+    Any,
+    Callable,
+    ClassVar,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Set,
+    cast,
+)
 
 from galaxy import util as galaxy_util
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic.json_schema import SkipJsonSchema
+
+# xref: https://github.com/python/mypy/issues/12664
 from ruamel.yaml.comments import CommentedMap
+from typing_extensions import Self
 
 from .evaluator import TPVCodeEvaluator
 
@@ -32,10 +46,18 @@ class TryNextDestinationOrWait(Exception):
 
 @dataclass
 class TPVFieldMetadata:
+    # complex properties are always evaluated as f-strings
     complex_property: bool = False
+    return_type: type | None = None
+    eval_as_f_string: bool = False
 
 
-def default_field_copier(entity1, entity2, property_name):
+FieldCopierType = Callable[["Entity", "Entity", str], Any]
+
+
+def default_field_copier(
+    entity1: "Entity", entity2: "Entity", property_name: str
+) -> Any:
     # if property_name in entity1.model_fields_set
     return (
         getattr(
@@ -47,7 +69,9 @@ def default_field_copier(entity1, entity2, property_name):
     )
 
 
-def default_dict_copier(entity1, entity2, property_name):
+def default_dict_copier(
+    entity1: "Entity", entity2: "Entity", property_name: str
+) -> Any:
     new_dict = copy.deepcopy(getattr(entity2, property_name)) or {}
     new_dict.update(copy.deepcopy(getattr(entity1, property_name)) or {})
     return new_dict
@@ -77,13 +101,13 @@ class IncompatibleTagsException(Exception):
 
 
 class SchedulingTags(BaseModel):
-    require: Optional[List[str]] = Field(default_factory=list)
-    prefer: Optional[List[str]] = Field(default_factory=list)
-    accept: Optional[List[str]] = Field(default_factory=list)
-    reject: Optional[List[str]] = Field(default_factory=list)
+    require: Optional[List[str]] = Field(default_factory=lambda: list())
+    prefer: Optional[List[str]] = Field(default_factory=lambda: list())
+    accept: Optional[List[str]] = Field(default_factory=lambda: list())
+    reject: Optional[List[str]] = Field(default_factory=lambda: list())
 
     @model_validator(mode="after")
-    def check_duplicates(self):
+    def check_duplicates(self) -> Self:
         tag_occurrences = defaultdict(list)
 
         # Track tag occurrences within each category and across categories
@@ -122,8 +146,10 @@ class SchedulingTags(BaseModel):
         )
 
     def filter(
-        self, tag_type: TagType | list[TagType] = None, tag_value: str = None
-    ) -> list[Tag]:
+        self,
+        tag_type: Optional[TagType | list[TagType]] = None,
+        tag_value: Optional[str] = None,
+    ) -> Iterable[Tag]:
         filtered = self.tags
         if tag_type:
             if isinstance(tag_type, TagType):
@@ -134,7 +160,7 @@ class SchedulingTags(BaseModel):
             filtered = (tag for tag in filtered if tag.value == tag_value)
         return filtered
 
-    def add_tag_override(self, tag_type: TagType, tag_value: str):
+    def add_tag_override(self, tag_type: TagType, tag_value: str) -> None:
         # Remove tag from all categories
         for field in TagType:
             field_name = field.name.lower()
@@ -226,7 +252,9 @@ class Entity(BaseModel):
         arbitrary_types_allowed = True
 
     merge_order: ClassVar[int] = 0
-    id: Optional[str] = None
+    # assign a dummy value for now, so pydantic does not treat this as a required field
+    # it'll be set in the constructor later
+    id: str = ""
     abstract: Optional[bool] = False
     inherits: Optional[str] = None
     cores: Annotated[Optional[int | float | str], TPVFieldMetadata()] = None
@@ -244,30 +272,31 @@ class Entity(BaseModel):
     params: Annotated[
         Optional[Dict[str, Any]], TPVFieldMetadata(complex_property=True)
     ] = None
-    resubmit: Annotated[
-        Optional[Dict[str, str]], TPVFieldMetadata(complex_property=True)
-    ] = Field(default_factory=dict)
-    rank: Annotated[Optional[str], TPVFieldMetadata()] = None
-    context: Optional[Dict[str, Any]] = Field(default_factory=dict)
-    evaluator: SkipJsonSchema[Optional[TPVCodeEvaluator]] = Field(
-        exclude=True, default=None
+    resubmit: Annotated[Dict[str, str], TPVFieldMetadata(complex_property=True)] = (
+        Field(default_factory=lambda: dict())
     )
-    tpv_tags: Optional[SchedulingTags] = Field(
-        alias="scheduling", default_factory=SchedulingTags
+    rank: Annotated[
+        Optional[str], TPVFieldMetadata(return_type="List[Destination]")
+    ] = None
+    context: Optional[Dict[str, Any]] = Field(default_factory=lambda: dict())
+    # evaluator is always assigned, so ignore the warning about default being None
+    evaluator: SkipJsonSchema[TPVCodeEvaluator] = Field(
+        exclude=True, default=cast(TPVCodeEvaluator, None)
     )
-    no_qa_codes: Optional[List[str]] = Field(default_factory=list)
+    tpv_tags: SchedulingTags = Field(alias="scheduling", default_factory=SchedulingTags)
+    no_qa_codes: SkipJsonSchema[List[str]] = Field(default_factory=lambda: list())
 
     def __init__(self, **data: Any):
         super().__init__(**data)
         self.propagate_parent_properties(id=self.id, evaluator=self.evaluator)
 
-    def propagate_parent_properties(self, id=None, evaluator=None):
+    def propagate_parent_properties(self, id: str, evaluator: TPVCodeEvaluator) -> None:
         self.id = id
         self.evaluator = evaluator
         if evaluator:
             self.precompile_properties(evaluator)
 
-    def precompile_properties(self, evaluator: TPVCodeEvaluator):
+    def precompile_properties(self, evaluator: TPVCodeEvaluator) -> None:
         # compile properties and check for errors
         if evaluator:
             for name, value in self:
@@ -280,28 +309,35 @@ class Entity(BaseModel):
                         else:
                             evaluator.compile_code_block(value)
 
-    def __deepcopy__(self, memo: dict):
+    def __deepcopy__(self, memo: dict[int, Any] | None = None) -> Self:
+        # satisfy mypy by ensuring memo is never None
+        if memo is None:
+            memo = {}  # pragma: no cover
         # make sure we don't deepcopy the evaluator: https://github.com/galaxyproject/total-perspective-vortex/issues/53
         # xref: https://stackoverflow.com/a/68746763/10971151
         memo[id(self.evaluator)] = self.evaluator
         return super().__deepcopy__(memo)
 
     @staticmethod
-    def convert_env(env):
+    def convert_env(
+        env: Optional[List[Dict[str, str]]],
+    ) -> Optional[List[Dict[str, str]]]:
         if isinstance(env, dict):
             env = [dict(name=k, value=str(v)) for (k, v) in env.items()]
         return env
 
     @model_validator(mode="before")
     @classmethod
-    def preprocess(cls, values):
+    def preprocess(cls, values: dict[str, Any]) -> dict[str, Any]:
         if values:
-            values["abstract"] = galaxy_util.asbool(values.get("abstract", False))
+            values["abstract"] = galaxy_util.asbool(values.get("abstract", False))  # type: ignore[no-untyped-call]
             values["env"] = Entity.convert_env(values.get("env"))
         return values
 
     @staticmethod
-    def merge_env_list(original, replace):
+    def merge_env_list(
+        original: list[dict[str, str]], replace: list[dict[str, str]]
+    ) -> List[Dict[str, str]]:
         for i, original_elem in enumerate(original):
             for j, replace_elem in enumerate(replace):
                 if (
@@ -315,16 +351,20 @@ class Entity(BaseModel):
 
     @staticmethod
     def override_single_property(
-        entity, entity1, entity2, property_name, field_copier=default_field_copier
-    ):
+        entity: "Entity",
+        entity1: "Entity",
+        entity2: "Entity",
+        property_name: str,
+        field_copier: FieldCopierType = default_field_copier,
+    ) -> None:
         setattr(entity, property_name, field_copier(entity1, entity2, property_name))
 
-    def override(self, entity: "Entity") -> "Entity":
+    def override(self, entity: Self) -> Self:
         if entity.merge_order <= self.merge_order:
             # Use the broader class as a base when copying. Useful in particular for Rules
-            new_entity = self.copy()
+            new_entity = self.model_copy()
         else:
-            new_entity = entity.copy()
+            new_entity = entity.model_copy()
         self.override_single_property(new_entity, self, entity, "id")
         self.override_single_property(new_entity, self, entity, "abstract")
         self.override_single_property(new_entity, self, entity, "cores")
@@ -343,7 +383,8 @@ class Entity(BaseModel):
             entity,
             "env",
             field_copier=lambda e1, e2, p: self.merge_env_list(
-                copy.deepcopy(entity.env) or [], copy.deepcopy(self.env) or []
+                copy.deepcopy(entity.env or []),
+                copy.deepcopy(self.env or []),
             ),
         )
         self.override_single_property(
@@ -359,7 +400,7 @@ class Entity(BaseModel):
         )
         return new_entity
 
-    def inherit(self, entity):
+    def inherit(self, entity: Self) -> Self:
         if entity:
             new_entity = self.override(entity)
             new_entity.tpv_tags = self.tpv_tags.inherit(entity.tpv_tags)
@@ -367,7 +408,7 @@ class Entity(BaseModel):
         else:
             return copy.deepcopy(self)
 
-    def combine(self, entity):
+    def combine(self, entity: Self) -> Self:
         """
         The combine operation takes an entity and combines its requirements with a second entity.
         For example, a User entity and a Tool entity can be combined to create a merged entity that contain
@@ -394,33 +435,41 @@ class Entity(BaseModel):
         new_entity.tpv_tags = entity.tpv_tags.combine(self.tpv_tags)
         return new_entity
 
-    def evaluate_resources(self, context: Dict[str, Any]):
+    def evaluate_resources(self, context: Dict[str, Any]) -> Self:
         new_entity = copy.deepcopy(self)
         context.update(self.context or {})
         if self.min_gpus is not None:
-            new_entity.min_gpus = self.evaluator.eval_code_block(self.min_gpus, context)
+            new_entity.min_gpus = self.evaluator.eval_code_block(
+                str(self.min_gpus), context
+            )
             context["min_gpus"] = new_entity.min_gpus
         if self.min_cores is not None:
             new_entity.min_cores = self.evaluator.eval_code_block(
-                self.min_cores, context
+                str(self.min_cores), context
             )
             context["min_cores"] = new_entity.min_cores
         if self.min_mem is not None:
-            new_entity.min_mem = self.evaluator.eval_code_block(self.min_mem, context)
+            new_entity.min_mem = self.evaluator.eval_code_block(
+                str(self.min_mem), context
+            )
             context["min_mem"] = new_entity.min_mem
         if self.max_gpus is not None:
-            new_entity.max_gpus = self.evaluator.eval_code_block(self.max_gpus, context)
+            new_entity.max_gpus = self.evaluator.eval_code_block(
+                str(self.max_gpus), context
+            )
             context["max_gpus"] = new_entity.max_gpus
         if self.max_cores is not None:
             new_entity.max_cores = self.evaluator.eval_code_block(
-                self.max_cores, context
+                str(self.max_cores), context
             )
             context["max_cores"] = new_entity.max_cores
         if self.max_mem is not None:
-            new_entity.max_mem = self.evaluator.eval_code_block(self.max_mem, context)
+            new_entity.max_mem = self.evaluator.eval_code_block(
+                str(self.max_mem), context
+            )
             context["max_mem"] = new_entity.max_mem
         if self.gpus is not None:
-            new_entity.gpus = self.evaluator.eval_code_block(self.gpus, context)
+            new_entity.gpus = self.evaluator.eval_code_block(str(self.gpus), context)
             # clamp gpus
             new_entity.gpus = max(new_entity.min_gpus or 0, new_entity.gpus or 0)
             new_entity.gpus = (
@@ -430,7 +479,7 @@ class Entity(BaseModel):
             )
             context["gpus"] = new_entity.gpus
         if self.cores is not None:
-            new_entity.cores = self.evaluator.eval_code_block(self.cores, context)
+            new_entity.cores = self.evaluator.eval_code_block(str(self.cores), context)
             # clamp cores
             new_entity.cores = max(new_entity.min_cores or 0, new_entity.cores or 0)
             new_entity.cores = (
@@ -440,7 +489,7 @@ class Entity(BaseModel):
             )
             context["cores"] = new_entity.cores
         if self.mem is not None:
-            new_entity.mem = self.evaluator.eval_code_block(self.mem, context)
+            new_entity.mem = self.evaluator.eval_code_block(str(self.mem), context)
             # clamp mem
             new_entity.mem = max(new_entity.min_mem or 0, new_entity.mem or 0)
             new_entity.mem = (
@@ -451,7 +500,7 @@ class Entity(BaseModel):
             context["mem"] = new_entity.mem
         return new_entity
 
-    def evaluate(self, context: Dict[str, Any]):
+    def evaluate(self, context: Dict[str, Any]) -> Self:
         """
         Evaluate expressions in entity properties that must be evaluated as late as possible, which is
         to say, after combining entity requirements. This includes env, params and resubmit, that rely on
@@ -477,14 +526,16 @@ class Entity(BaseModel):
 
     def rank_destinations(
         self, destinations: List["Destination"], context: Dict[str, Any]
-    ):
+    ) -> List["Destination"]:
         if self.rank:
             log.debug(
                 f"Ranking destinations: {destinations} for entity: {self} using custom"
                 " function"
             )
             context["candidate_destinations"] = destinations
-            return self.evaluator.eval_code_block(self.rank, context)
+            return cast(
+                List["Destination"], self.evaluator.eval_code_block(self.rank, context)
+            )
         else:
             # Sort destinations by priority
             log.debug(
@@ -493,15 +544,15 @@ class Entity(BaseModel):
             )
             return sorted(destinations, key=lambda d: d.score(self), reverse=True)
 
-    def model_dump(self, **kwargs):
+    def should_skip_qa(self, code: str) -> bool:
+        return "noqa" in self.no_qa_codes or code in self.no_qa_codes
+
+    def model_dump(self, **kwargs: Any) -> dict[str, Any]:
         # Ensure by_alias is set to True to use the field aliases during serialization
         kwargs.setdefault("by_alias", True)
         return super().model_dump(**kwargs)
 
-    def should_skip_qa(self, code):
-        return "noqa" in self.no_qa_codes or code in self.no_qa_codes
-
-    def dict(self, **kwargs):
+    def dict(self, **kwargs: Any) -> Dict[str, Any]:
         # by_alias is set to True to use the field aliases during serialization
         kwargs.setdefault("by_alias", True)
         return super().dict(**kwargs)
@@ -509,17 +560,17 @@ class Entity(BaseModel):
 
 class Rule(Entity):
     rule_counter: ClassVar[int] = 0
-    id: Optional[str] = Field(default_factory=lambda: Rule.set_default_id())
-    if_condition: str | bool = Field(alias="if")
-    execute: Optional[str] = None
-    fail: Optional[str] = None
+    id: str = Field(default_factory=lambda: Rule.set_default_id())
+    if_condition: Annotated[str | bool, TPVFieldMetadata()] = Field(alias="if")
+    execute: Annotated[Optional[str], TPVFieldMetadata(return_type=type(None))] = None
+    fail: Annotated[Optional[str], TPVFieldMetadata(eval_as_f_string=True)] = None
 
     @classmethod
-    def set_default_id(cls):
+    def set_default_id(cls) -> str:
         cls.rule_counter += 1
         return f"tpv_rule_{cls.rule_counter}"
 
-    def override(self, entity):
+    def override(self, entity: Self) -> Self:
         new_entity = super().override(entity)
         if isinstance(entity, Rule):
             self.override_single_property(new_entity, self, entity, "if_condition")
@@ -527,31 +578,31 @@ class Rule(Entity):
             self.override_single_property(new_entity, self, entity, "fail")
         return new_entity
 
-    def is_matching(self, context):
-        if self.evaluator.eval_code_block(self.if_condition, context):
+    def is_matching(self, context: Dict[str, Any]) -> bool:
+        if self.evaluator.eval_code_block(str(self.if_condition), context):
             return True
         else:
             return False
 
-    def evaluate(self, context):
+    def evaluate(self, context: Dict[str, Any]) -> Self:
         if self.fail:
             from galaxy.jobs.mapper import JobMappingException
 
             raise JobMappingException(
                 self.evaluator.eval_code_block(self.fail, context, as_f_string=True)
-            )
+            )  # type: ignore[no-untyped-call]
         if self.execute:
             self.evaluator.eval_code_block(self.execute, context, exec_only=True)
             # return any changes made to the entity
-            return context["entity"]
+            return cast(Self, context["entity"])
         return self
 
 
 class EntityWithRules(Entity):
     merge_order: ClassVar[int] = 1
-    rules: Optional[Dict[str, Rule]] = Field(default_factory=dict)
+    rules: Dict[str, Rule] = Field(default_factory=lambda: dict())
 
-    def propagate_parent_properties(self, id=None, evaluator=None):
+    def propagate_parent_properties(self, id: str, evaluator: TPVCodeEvaluator) -> None:
         super().propagate_parent_properties(id=id, evaluator=evaluator)
         for rule in self.rules.values():
             rule.evaluator = evaluator
@@ -564,7 +615,7 @@ class EntityWithRules(Entity):
             values["rules"] = {rule.id: rule for rule in rules}
         return values
 
-    def override(self, entity: Entity):
+    def override(self, entity: Self) -> Self:
         new_entity = super().override(entity)
         new_entity.rules = copy.deepcopy(entity.rules)
         new_entity.rules.update(self.rules or {})
@@ -573,13 +624,13 @@ class EntityWithRules(Entity):
                 new_entity.rules[rule.id] = rule.inherit(entity.rules[rule.id])
         return new_entity
 
-    def evaluate_rules(self, context: Dict[str, str]):
+    def evaluate_rules(self, context: Dict[str, Any]) -> Self:
         new_entity = copy.deepcopy(self)
         context.update(new_entity.context or {})
         for rule in self.rules.values():
             if rule.is_matching(context):
                 rule = rule.evaluate(context)
-                new_entity = rule.inherit(new_entity)
+                new_entity = cast(Self, rule.inherit(cast(Rule, new_entity)))
                 new_entity.gpus = rule.gpus or new_entity.gpus
                 new_entity.cores = rule.cores or new_entity.cores
                 new_entity.mem = rule.mem or new_entity.mem
@@ -587,7 +638,7 @@ class EntityWithRules(Entity):
                 context.update({"entity": new_entity})
         return new_entity
 
-    def evaluate(self, context: Dict[str, str]):
+    def evaluate(self, context: Dict[str, Any]) -> Self:
         new_entity = self.evaluate_rules(context)
         return super(EntityWithRules, new_entity).evaluate(context)
 
@@ -617,21 +668,21 @@ class Destination(EntityWithRules):
     dest_name: Optional[str] = Field(alias="destination_name_override", default=None)
     # tpv_tags track what tags the entity being scheduled requested, while tpv_dest_tags track what the destination
     # supports. When serializing a Destination, we don't need tpv_tags, only tpv_dest_tags.
-    tpv_tags: SkipJsonSchema[Optional[SchedulingTags]] = Field(
+    tpv_tags: SkipJsonSchema[SchedulingTags] = Field(
         exclude=True, default_factory=SchedulingTags
     )
-    tpv_dest_tags: Optional[SchedulingTags] = Field(
+    tpv_dest_tags: SchedulingTags = Field(
         alias="scheduling", default_factory=SchedulingTags
     )
-    handler_tags: Annotated[
-        Optional[List[str]], TPVFieldMetadata(complex_property=True)
-    ] = Field(alias="tags", default_factory=list)
+    handler_tags: Annotated[List[str], TPVFieldMetadata(complex_property=True)] = Field(
+        alias="tags", default_factory=lambda: list()
+    )
 
-    def propagate_parent_properties(self, id=None, evaluator=None):
+    def propagate_parent_properties(self, id: str, evaluator: TPVCodeEvaluator) -> None:
         super().propagate_parent_properties(id=id, evaluator=evaluator)
         self.dest_name = self.dest_name or self.id
 
-    def override(self, entity: Entity):
+    def override(self, entity: Self) -> Self:
         new_entity = super().override(entity)
         self.override_single_property(new_entity, self, entity, "runner")
         self.override_single_property(new_entity, self, entity, "dest_name")
@@ -644,7 +695,7 @@ class Destination(EntityWithRules):
         self.override_single_property(new_entity, self, entity, "handler_tags")
         return new_entity
 
-    def evaluate(self, context: Dict[str, Any]):
+    def evaluate(self, context: Dict[str, Any]) -> Self:
         new_entity = super(Destination, self).evaluate(context)
         if self.dest_name is not None:
             new_entity.dest_name = self.evaluator.eval_code_block(
@@ -658,13 +709,13 @@ class Destination(EntityWithRules):
             context["handler_tags"] = new_entity.handler_tags
         return new_entity
 
-    def inherit(self, entity: Entity):
+    def inherit(self, entity: Self) -> Self:
         new_entity = super().inherit(entity)
         if entity:
             new_entity.tpv_dest_tags = self.tpv_dest_tags.inherit(entity.tpv_dest_tags)
         return new_entity
 
-    def matches(self, entity: Entity, context: Dict[str, Any]):
+    def matches(self, entity: Entity, context: Dict[str, Any]) -> bool:
         """
         The match operation checks whether
 
@@ -684,42 +735,42 @@ class Destination(EntityWithRules):
         if (
             self.max_accepted_cores is not None
             and entity.cores is not None
-            and self.max_accepted_cores < entity.cores
+            and self.max_accepted_cores < float(entity.cores)
         ):
             return False
         if (
             self.max_accepted_mem is not None
             and entity.mem is not None
-            and self.max_accepted_mem < entity.mem
+            and self.max_accepted_mem < float(entity.mem)
         ):
             return False
         if (
             self.max_accepted_gpus is not None
             and entity.gpus is not None
-            and self.max_accepted_gpus < entity.gpus
+            and self.max_accepted_gpus < float(entity.gpus)
         ):
             return False
         if (
             self.min_accepted_cores is not None
             and entity.cores is not None
-            and self.min_accepted_cores > entity.cores
+            and self.min_accepted_cores > float(entity.cores)
         ):
             return False
         if (
             self.min_accepted_mem is not None
             and entity.mem is not None
-            and self.min_accepted_mem > entity.mem
+            and self.min_accepted_mem > float(entity.mem)
         ):
             return False
         if (
             self.min_accepted_gpus is not None
             and entity.gpus is not None
-            and self.min_accepted_gpus > entity.gpus
+            and self.min_accepted_gpus > float(entity.gpus)
         ):
             return False
-        return entity.tpv_tags.match(self.tpv_dest_tags or {})
+        return entity.tpv_tags.match(self.tpv_dest_tags)
 
-    def score(self, entity):
+    def score(self, entity: Entity) -> int:
         """
         Rank this destination against an entity based on how well the tags match
 
@@ -733,24 +784,22 @@ class Destination(EntityWithRules):
 
 class GlobalConfig(BaseModel):
     default_inherits: Optional[str] = None
-    context: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    context: Dict[str, Any] = Field(default_factory=lambda: dict())
 
 
 class TPVConfig(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
-    global_config: Optional[GlobalConfig] = Field(
-        alias="global", default_factory=GlobalConfig
-    )
+    global_config: GlobalConfig = Field(alias="global", default_factory=GlobalConfig)
     evaluator: SkipJsonSchema[Optional[TPVCodeEvaluator]] = Field(
         exclude=True, default=None
     )
-    tools: Optional[Dict[str, Tool]] = Field(default_factory=dict)
-    users: Optional[Dict[str, User]] = Field(default_factory=dict)
-    roles: Optional[Dict[str, Role]] = Field(default_factory=dict)
-    destinations: Optional[Dict[str, Destination]] = Field(default_factory=dict)
+    tools: Dict[str, Tool] = Field(default_factory=lambda: dict())
+    users: Dict[str, User] = Field(default_factory=lambda: dict())
+    roles: Dict[str, Role] = Field(default_factory=lambda: dict())
+    destinations: Dict[str, Destination] = Field(default_factory=lambda: dict())
 
     @model_validator(mode="after")
-    def propagate_parent_properties(self):
+    def propagate_parent_properties(self) -> Self:
         if self.evaluator:
             for id, tool in self.tools.items():
                 tool.propagate_parent_properties(id=id, evaluator=self.evaluator)
@@ -764,7 +813,7 @@ class TPVConfig(BaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def gather_comments(cls, data):
+    def gather_comments(cls, data: Any) -> Any:
         """
         This runs before Pydantic constructs TPVConfig.
         We have one chance to transform 'data' if it's a CommentedMap,
@@ -773,7 +822,7 @@ class TPVConfig(BaseModel):
         return TPVConfig.recursively_extract_comments(data)
 
     @staticmethod
-    def get_noqa_codes(entity_comments: list) -> set[str]:
+    def get_noqa_codes(entity_comments: List[str]) -> Set[str]:
         for comment in entity_comments:
             match = NOQA_RE.match(comment)
             if match:
@@ -787,7 +836,7 @@ class TPVConfig(BaseModel):
         return set()
 
     @staticmethod
-    def recursively_extract_comments(cm: CommentedMap) -> dict:
+    def recursively_extract_comments(cm: CommentedMap) -> Any:
         """
         Recursively walk a ruamel.yaml CommentedMap, extracting comments and
         placing them under a special key (e.g., "no_qa_codes") for each item.

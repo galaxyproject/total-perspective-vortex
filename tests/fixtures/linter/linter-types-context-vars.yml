@@ -1,0 +1,79 @@
+global:
+  default_inherits: default
+tools:
+  default:
+    cores: 1
+    gpus: 2
+    context:
+      integer_var_1: 10
+      integer_var_2: 10
+      float_var_1: 20.0
+      float_var_2: 20.0
+      bool_var_1: true
+      bool_var_2: false
+      str_var_1: "hello"
+      str_var_2: "world"
+      untyped_var_1:
+      untyped_var_2:
+      different_inherited_var_1: "somestr"
+    rules:
+    - id: check_valid_int_assignment_generates_no_errors
+      if: |
+        True
+      execute: |
+        if integer_var_1 is not None:
+          integer_var_1 += 1
+    - id: check_invalid_int_assignment_generates_errors
+      if: |
+        True
+      execute: |
+        if integer_var_2 is not None:
+          integer_var_2 += "hello"
+    - id: check_valid_float_assignment_generates_no_errors
+      if: |
+        True
+      execute: |
+        if float_var_1 is not None:
+          float_var_1 += 1.0
+          float_var_1 += 2
+    - id: check_invalid_float_assignment_generates_errors
+      if: |
+        True
+      execute: |
+        if float_var_2 is not None:
+          float_var_2 += "str"
+    - id: check_valid_bool_assignment_generates_no_errors
+      if: |
+        True
+      execute: |
+        if bool_var_1 is not None:
+          new_bool = bool_var_1 & False
+    - id: check_invalid_bool_assignment_generates_errors
+      if: |
+        True
+      execute: |
+        if bool_var_2 is not None:
+          new_bool2 = bool_var_2 & "true"
+    - id: check_valid_str_assignment_generates_no_errors
+      if: |
+        True
+      execute: |
+        if str_var_1 is not None:
+          str_var_1.lower()
+    - id: check_invalid_str_assignment_generates_errors
+      if: |
+        True
+      execute: |
+        if str_var_2 is not None:
+          str_var_2 + 10
+
+  inheriting_tool:
+    context:
+      different_inherited_var_1: 20
+    rules:
+    - id: check_mismatching_inherited_types_expands_possible_types
+      if: |
+        True
+      execute: |
+        if different_inherited_var_1 is not None:
+          different_inherited_var_1.capitalize()

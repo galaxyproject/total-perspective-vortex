@@ -2,7 +2,7 @@ import os
 import unittest
 
 from tpv.commands.test import mock_galaxy
-from tpv.core.loader import InvalidParentException
+from tpv.core.loader import InvalidParentException, TPVConfigLoader
 from tpv.rules import gateway
 
 
@@ -235,3 +235,13 @@ class TestMapperInheritance(unittest.TestCase):
             tool, user, datasets=[], tpv_configs=tpv_configs
         )
         self.assertEqual(destination.id, "local")
+
+    def test_entity_inherit_none(self):
+        tpv_config = os.path.join(
+            os.path.dirname(__file__), "fixtures/mapping-rule-argument-based.yml"
+        )
+        loader = TPVConfigLoader.from_url_or_path(tpv_config)
+
+        # create a destination
+        destination = loader.config.destinations["k8s_environment"]
+        assert destination.inherit(None) == destination
