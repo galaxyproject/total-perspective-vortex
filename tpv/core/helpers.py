@@ -7,23 +7,32 @@ except ImportError:
 
 import random
 from functools import reduce
+from typing import Any, Dict, List, Optional
 
 from galaxy import model
+from galaxy.app import UniverseApplication
+from galaxy.model import Dataset, Job, JobToInputDatasetAssociation
+from galaxy.model import User as GalaxyUser
+from galaxy.tools import Tool as GalaxyTool
+
+from tpv.core.entities import Destination, Entity
 
 GIGABYTES = 1024.0**3
 
 
-def get_dataset_size(dataset):
+def get_dataset_size(dataset: Dataset) -> float:
     # calculate_size would mark file_size column as dirty
     # and may have unintended consequences
-    return float(dataset.get_size(calculate_size=False))
+    return float(dataset.get_size(nice_size=False, calculate_size=False))
 
 
-def sum_total(prev, current):
+def sum_total(prev: float, current: float) -> float:
     return prev + current
 
 
-def calculate_dataset_total(datasets):
+def calculate_dataset_total(
+    datasets: Optional[List[JobToInputDatasetAssociation]],
+) -> float:
     if datasets:
         unique_datasets = {
             inp_ds.dataset.dataset.id: inp_ds.dataset.dataset
@@ -35,19 +44,19 @@ def calculate_dataset_total(datasets):
         return 0.0
 
 
-def input_size(job):
+def input_size(job: Job) -> float:
     return calculate_dataset_total(job.input_datasets) / GIGABYTES
 
 
-def weighted_random_sampling(destinations):
+def weighted_random_sampling(destinations: List[Destination]) -> List[Destination]:
     if not destinations:
         return []
     rankings = [(d.params.get("weight", 1) if d.params else 1) for d in destinations]
     return random.choices(destinations, weights=rankings, k=len(destinations))
 
 
-def __get_keys_from_dict(dl, keys_list):
-    # This function builds a list using the keys from nest dictionaries
+def __get_keys_from_dict(dl: Any, keys_list: List[str]) -> None:
+    # This function builds a list using the keys from nested dictionaries
     # (copied from galaxyproject/galaxy lib/galaxy/jobs/dynamic_tool_destination.py)
     if isinstance(dl, dict):
         keys_list.extend(dl.keys())
@@ -58,17 +67,19 @@ def __get_keys_from_dict(dl, keys_list):
             __get_keys_from_dict(x, keys_list)
 
 
-def job_args_match(job, app, args):
+def job_args_match(
+    job: Job, app: UniverseApplication, args: Optional[Dict[str, Any]]
+) -> bool:
     # Check whether a dictionary of arguments matches a job's parameters.  This code is
     # from galaxyproject/galaxy lib/galaxy/jobs/dynamic_tool_destination.py
     if not args or not isinstance(args, dict):
         return False
-    options = job.get_param_values(app)
+    options = job.get_param_values(app)  # type: ignore[no-untyped-call]
     matched = True
     # check if the args in the config file are available
     for arg in args:
         arg_dict = {arg: args[arg]}
-        arg_keys_list = []
+        arg_keys_list: List[str] = []
         __get_keys_from_dict(arg_dict, arg_keys_list)
         try:
             options_value = reduce(dict.__getitem__, arg_keys_list, options)
@@ -81,12 +92,13 @@ def job_args_match(job, app, args):
 
 
 def concurrent_job_count_for_tool(
-    app, tool, user=None
-):  # requires galaxy version >= 21.09
+    app: UniverseApplication, tool: GalaxyTool, user: Optional[GalaxyUser] = None
+) -> int:  # requires galaxy version >= 21.09
     # Match all tools, regardless of version. For example, a tool id such as "toolshed/repos/iuc/fastqc/0.1.0+galaxy1"
     # is turned into "toolshed/repos/iuc/fastqc/" and a LIKE query is performed on the tool_id column.
+    tool_id = tool.id or "unknown_tool_id"
     tool_id_base = (
-        "/".join(tool.id.split("/")[:-1]) + "/" if "/" in tool.id else tool.id
+        "/".join(tool_id.split("/")[:-1]) + "/" if "/" in tool_id else tool_id
     )
     query = app.model.context.query(model.Job.id)
     if user:
@@ -99,7 +111,9 @@ def concurrent_job_count_for_tool(
     return query.count()
 
 
-def tag_values_match(entity, match_tag_values=[], exclude_tag_values=[]):
+def tag_values_match(
+    entity: Entity, match_tag_values: List[str] = [], exclude_tag_values: List[str] = []
+) -> bool:
     # Return true if an entity has require/prefer/accept tags in the match_tags_values list
     # and no require/prefer/accept tags in the exclude_tag_values list
     return all(
@@ -115,27 +129,29 @@ def tag_values_match(entity, match_tag_values=[], exclude_tag_values=[]):
     )
 
 
-def tool_version_eq(tool, version):
+def tool_version_eq(tool: GalaxyTool, version: str) -> bool:
     return parse_version(tool.version) == parse_version(version)
 
 
-def tool_version_lte(tool, version):
+def tool_version_lte(tool: GalaxyTool, version: str) -> bool:
     return parse_version(tool.version) <= parse_version(version)
 
 
-def tool_version_lt(tool, version):
+def tool_version_lt(tool: GalaxyTool, version: str) -> bool:
     return parse_version(tool.version) < parse_version(version)
 
 
-def tool_version_gte(tool, version):
+def tool_version_gte(tool: GalaxyTool, version: str) -> bool:
     return parse_version(tool.version) >= parse_version(version)
 
 
-def tool_version_gt(tool, version):
+def tool_version_gt(tool: GalaxyTool, version: str) -> bool:
     return parse_version(tool.version) > parse_version(version)
 
 
-def get_dataset_attributes(datasets):
+def get_dataset_attributes(
+    datasets: Optional[List[JobToInputDatasetAssociation]],
+) -> Dict[int, Dict[str, Any]]:
     # Return a dictionary of dataset ids and their object store ids
     # and file sizes in bytes for all input datasets in a job
     return {

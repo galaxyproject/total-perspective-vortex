@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 import logging
+from typing import Any, Callable, Dict, List, Tuple
 
-from ruamel.yaml.comments import CommentedMap, CommentedSeq
+from ruamel.yaml.comments import (
+    CommentedMap,
+    CommentedSeq,
+)
 
 from tpv.core import util
 
@@ -11,14 +15,16 @@ log = logging.getLogger(__name__)
 
 class TPVConfigFormatter(object):
 
-    def __init__(self, yaml_dict):
+    def __init__(self, yaml_dict: Any):
         self.yaml_dict = yaml_dict or {}
 
     @staticmethod
-    def generic_key_sorter(keys_to_place_first):
-        def sort_criteria(key):
+    def generic_key_sorter(
+        keys_to_place_first: List[str],
+    ) -> Callable[[str], Tuple[int, bool, str]]:
+        def sort_criteria(key: str) -> Tuple[int, bool, str]:
             try:
-                index = list(keys_to_place_first).index(key)
+                index = keys_to_place_first.index(key)
             except ValueError:
                 index = len(keys_to_place_first)
             # sort by keys to place first, then potential toolshed tools, and finally alphabetically
@@ -27,7 +33,9 @@ class TPVConfigFormatter(object):
         return sort_criteria
 
     @staticmethod
-    def multi_level_dict_sorter(dict_to_sort, sort_order):
+    def multi_level_dict_sorter(
+        dict_to_sort: Dict[str, Any], sort_order: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """
         Sorts a dict by given criteria, placing the given keys first.
         For example:
@@ -71,7 +79,7 @@ class TPVConfigFormatter(object):
         if isinstance(dict_to_sort, CommentedMap):
             sorted_keys = sorted(
                 dict_to_sort or [],
-                key=TPVConfigFormatter.generic_key_sorter(sort_order.keys()),
+                key=TPVConfigFormatter.generic_key_sorter(list(sort_order.keys())),
             )
             rval = CommentedMap()
             for key in sorted_keys:
@@ -94,12 +102,12 @@ class TPVConfigFormatter(object):
         else:
             return dict_to_sort
 
-    def format(self):
+    def format(self) -> Dict[str, Any]:
         default_inherits = (
             self.yaml_dict.get("global", {}).get("default_inherits") or "default"
         )
 
-        basic_entity_sort_order = {
+        basic_entity_sort_order: Dict[str, Any] = {
             "id": {},
             "inherits": {},
             "if": {},
@@ -132,6 +140,6 @@ class TPVConfigFormatter(object):
         return self.multi_level_dict_sorter(self.yaml_dict, global_field_sort_order)
 
     @staticmethod
-    def from_url_or_path(url_or_path: str):
+    def from_url_or_path(url_or_path: str) -> TPVConfigFormatter:
         tpv_config = util.load_yaml_from_url_or_path(url_or_path)
         return TPVConfigFormatter(tpv_config)

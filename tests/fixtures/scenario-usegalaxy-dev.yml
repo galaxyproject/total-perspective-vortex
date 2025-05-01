@@ -4,10 +4,10 @@ global:
 tools:
   default:
     cores: 1
-    mem: cores * 3 # note, some clusters will tolerate more than this
+    mem: cores * 3 if cores else 1  # note, some clusters will tolerate more than this
     env: {}
     params:
-      nativeSpecification: "--nodes=1 --ntasks={cores} --ntasks-per-node={cores} --mem={mem*1024}"
+      nativeSpecification: "--nodes=1 --ntasks={cores} --ntasks-per-node={cores} --mem={mem*1024 if mem else 1024}"
     scheduling:
       prefer:
       accept:
