@@ -44,7 +44,7 @@ class TPVDryRunner:
     def from_params(
         job_conf: str,
         user_email: Optional[str] = None,
-        tool_name: Optional[str] = None,
+        tool_id: Optional[str] = None,
         roles: Optional[List[str]] = None,
         history_tags: Optional[List[str]] = None,
         tpv_confs: Optional[str] = None,
@@ -60,10 +60,10 @@ class TPVDryRunner:
                 user = mock_galaxy.User("gargravarr", "gargravarr@vortex.org")
             user.roles = [mock_galaxy.Role(role_name) for role_name in roles]
 
-        if tool_name:
+        if tool_id:
             tool = mock_galaxy.Tool(
-                tool_name,
-                version=tool_name.split("/")[-1] if "/" in tool_name else None,
+                tool_id,
+                version=tool_id.split("/")[-1] if "/" in tool_id else None,
             )
         else:
             tool = None

@@ -61,7 +61,7 @@ def tpv_format_config_file(args: Any) -> int:
 def tpv_dry_run_config_files(args: Any) -> None:
     dry_runner = TPVDryRunner.from_params(
         user_email=args.user,
-        tool_name=args.tool,
+        tool_id=args.tool,
         job_conf=args.job_conf,
         tpv_confs=args.config,
         roles=args.roles,
