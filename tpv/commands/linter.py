@@ -1,6 +1,8 @@
 import logging
 import re
-from typing import List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
+
+from pydantic import BaseModel
 
 from tpv.commands import mypychecker
 from tpv.core.entities import Entity
@@ -13,6 +15,7 @@ log = logging.getLogger(__name__)
 # T101: default inheritance not marked abstract
 # T102: entity specifies cores without memory
 # T103: mypy error
+# T104: unexpected field
 
 
 class TPVLintError(Exception):
@@ -52,10 +55,44 @@ class TPVConfigLinter(object):
         if self.loader is None:
             self.load_config()
         if self.loader is not None:  # satisfy mypy
+            self.lint_extra_fields(self.loader)
             self.lint_code(self.loader)
             self.lint_tools(self.loader)
             self.lint_destinations(self.loader)
             self.print_errors_and_warnings()
+
+    def lint_extra_fields(self, loader: TPVConfigLoader) -> None:
+        self.check_for_extra_fields_recurse(loader.config, "")
+
+    def check_for_extra_fields_recurse(
+        self,
+        obj: Any,
+        path: str,
+    ) -> None:
+        if isinstance(obj, BaseModel):
+            # Check if there are extra fields
+            extras = getattr(obj, "__pydantic_extra__", None)
+            if extras:
+                for key in extras:
+                    self.add_warning(
+                        "T104",
+                        f"Unexpected field '{path}.{key}' - make sure the field is nested"
+                        " correctly or manually silence warning",
+                    )
+
+            # Recurse into fields
+            for field_name, value in obj:
+                if field_name == "__pydantic_extra__":
+                    continue  # already handled
+                self.check_for_extra_fields_recurse(value, f"{path}.{field_name}")
+
+        elif isinstance(obj, list):
+            for idx, item in enumerate(obj):
+                self.check_for_extra_fields_recurse(item, f"{path}.{str(idx)}")
+
+        elif isinstance(obj, dict):
+            for key, value in obj.items():
+                self.check_for_extra_fields_recurse(value, f"{path}.{str(key)}")
 
     def lint_code(self, loader: TPVConfigLoader) -> None:
         """

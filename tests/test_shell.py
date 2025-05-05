@@ -240,12 +240,15 @@ class TPVShellTestCase(unittest.TestCase):
         )
         # not the most robust method to isolate whether there's any other breakage, but easier than splitting things
         # out to lots of tests
-        count = sum(
-            1
+        error_lines = [
+            line
             for line in output.splitlines()
             if ": error:" in line and ": note:" not in line
-        )
-        assert count == 5, "Expected only 5 errors but found: {count}"
+        ]
+        count = len(error_lines)
+        assert (
+            count == 5
+        ), f"Expected only 5 errors but found: {count} in lines: {error_lines}"
 
     def test_lint_types_silence_warnings(self):
         tpv_config = os.path.join(

@@ -19,7 +19,7 @@ from typing import (
 )
 
 from galaxy import util as galaxy_util
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, Field, model_validator
 from pydantic.json_schema import SkipJsonSchema
 
 # xref: https://github.com/python/mypy/issues/12664
@@ -105,6 +105,9 @@ class SchedulingTags(BaseModel):
     prefer: Optional[List[str]] = Field(default_factory=lambda: list())
     accept: Optional[List[str]] = Field(default_factory=lambda: list())
     reject: Optional[List[str]] = Field(default_factory=lambda: list())
+
+    class Config:
+        extra = "allow"
 
     @model_validator(mode="after")
     def check_duplicates(self) -> Self:
@@ -250,6 +253,7 @@ class SchedulingTags(BaseModel):
 class Entity(BaseModel):
     class Config:
         arbitrary_types_allowed = True
+        extra = "allow"
 
     merge_order: ClassVar[int] = 0
     # assign a dummy value for now, so pydantic does not treat this as a required field
@@ -300,14 +304,15 @@ class Entity(BaseModel):
         # compile properties and check for errors
         if evaluator:
             for name, value in self:
-                field = self.model_fields[name]
-                if field.metadata and field.metadata[0]:
-                    prop = field.metadata[0]
-                    if isinstance(prop, TPVFieldMetadata):
-                        if prop.complex_property:
-                            evaluator.compile_complex_property(value)
-                        else:
-                            evaluator.compile_code_block(value)
+                if name not in (self.__pydantic_extra__ or {}):  # ignore extra fields
+                    field = self.model_fields[name]
+                    if field.metadata and field.metadata[0]:
+                        prop = field.metadata[0]
+                        if isinstance(prop, TPVFieldMetadata):
+                            if prop.complex_property:
+                                evaluator.compile_complex_property(value)
+                            else:
+                                evaluator.compile_code_block(value)
 
     def __deepcopy__(self, memo: dict[int, Any] | None = None) -> Self:
         # satisfy mypy by ensuring memo is never None
@@ -783,12 +788,18 @@ class Destination(EntityWithRules):
 
 
 class GlobalConfig(BaseModel):
+    class Config:
+        extra = "allow"
+
     default_inherits: Optional[str] = None
     context: Dict[str, Any] = Field(default_factory=lambda: dict())
 
 
 class TPVConfig(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    class Config:
+        arbitrary_types_allowed = True
+        extra = "allow"
+
     global_config: GlobalConfig = Field(alias="global", default_factory=GlobalConfig)
     evaluator: SkipJsonSchema[Optional[TPVCodeEvaluator]] = Field(
         exclude=True, default=None
