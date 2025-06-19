@@ -81,9 +81,7 @@ class TPVConfigLinter(object):
                     )
 
             # Recurse into fields
-            for field_name, value in obj:
-                if field_name == "__pydantic_extra__":
-                    continue  # already handled
+            for field_name, value in obj.model_fields.items():
                 self.check_for_extra_fields_recurse(value, f"{path}.{field_name}")
 
         elif isinstance(obj, list):

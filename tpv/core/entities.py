@@ -303,16 +303,15 @@ class Entity(BaseModel):
     def precompile_properties(self, evaluator: TPVCodeEvaluator) -> None:
         # compile properties and check for errors
         if evaluator:
-            for name, value in self:
-                if name not in (self.__pydantic_extra__ or {}):  # ignore extra fields
-                    field = self.model_fields[name]
-                    if field.metadata and field.metadata[0]:
-                        prop = field.metadata[0]
-                        if isinstance(prop, TPVFieldMetadata):
-                            if prop.complex_property:
-                                evaluator.compile_complex_property(value)
-                            else:
-                                evaluator.compile_code_block(value)
+            for field_name, field in self.__class__.model_fields.items():
+                value = getattr(self, field_name)
+                if field.metadata and field.metadata[0]:
+                    prop = field.metadata[0]
+                    if isinstance(prop, TPVFieldMetadata):
+                        if prop.complex_property:
+                            evaluator.compile_complex_property(value)
+                        else:
+                            evaluator.compile_code_block(value)
 
     def __deepcopy__(self, memo: dict[int, Any] | None = None) -> Self:
         # satisfy mypy by ensuring memo is never None
