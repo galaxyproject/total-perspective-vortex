@@ -240,12 +240,15 @@ class TPVShellTestCase(unittest.TestCase):
         )
         # not the most robust method to isolate whether there's any other breakage, but easier than splitting things
         # out to lots of tests
-        count = sum(
-            1
+        error_lines = [
+            line
             for line in output.splitlines()
             if ": error:" in line and ": note:" not in line
-        )
-        assert count == 5, "Expected only 5 errors but found: {count}"
+        ]
+        count = len(error_lines)
+        assert (
+            count == 5
+        ), f"Expected only 5 errors but found: {count} in lines: {error_lines}"
 
     def test_lint_types_silence_warnings(self):
         tpv_config = os.path.join(
@@ -280,6 +283,23 @@ class TPVShellTestCase(unittest.TestCase):
         self.assertFalse(
             "T102: The tool named:" in output,
             f"T102 warnings should be suppressed by --ignore but output was: {output}",
+        )
+
+    def test_lint_warn_unknown_fields(self):
+        tpv_config = os.path.join(
+            os.path.dirname(__file__), "fixtures/linter/linter-warn-unknown-fields.yml"
+        )
+        output = self.call_shell_command("tpv", "-vv", "lint", tpv_config)
+        self.assertTrue(
+            "T104: Unexpected field '.destinations.local.if'" in output,
+            f"Expected T104 warning for incorrectly nested if in '.destinations.local.if' but output was: {output}",
+        )
+        output = self.call_shell_command(
+            "tpv", "-vv", "lint", "--ignore=T104", tpv_config
+        )
+        self.assertFalse(
+            "T104: Unexpected field '.destinations.local.if'" in output,
+            f"T104 warnings should be suppressed by --ignore but output was: {output}",
         )
 
     def test_warn_if_default_inherits_not_marked_abstract(self):

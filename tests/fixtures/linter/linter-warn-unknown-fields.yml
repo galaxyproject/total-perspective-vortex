@@ -1,0 +1,23 @@
+global:
+  default_inherits: default
+
+tools:
+  default:
+    abstract: true
+    cores: 2
+    mem: 4
+    params:
+      native_spec: "--mem {mem} --cores {cores} --gpus {gpus}"
+
+destinations:
+  local:
+    runner: local
+    max_accepted_cores: 4
+    max_accepted_mem: 16
+    # noqa: T104
+    unknown: "test field"
+    # The following if must be nested under a rules block, and therefore, should trigger warning.
+    if: user and user.preferences.get('extra_user_preferences')
+    scheduling:
+      prefer:
+        - general
