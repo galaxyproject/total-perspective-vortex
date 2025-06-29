@@ -81,7 +81,8 @@ class TPVConfigLinter(object):
                     )
 
             # Recurse into fields
-            for field_name, value in obj.model_fields.items():
+            for field_name, _ in obj.model_fields.items():
+                value = getattr(obj, field_name)
                 self.check_for_extra_fields_recurse(value, f"{path}.{field_name}")
 
         elif isinstance(obj, list):
