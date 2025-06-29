@@ -289,10 +289,17 @@ class TPVShellTestCase(unittest.TestCase):
         tpv_config = os.path.join(
             os.path.dirname(__file__), "fixtures/linter/linter-warn-unknown-fields.yml"
         )
-        output = self.call_shell_command("tpv", "-vvvv", "lint", tpv_config)
+        output = self.call_shell_command("tpv", "-vv", "lint", tpv_config)
         self.assertTrue(
             "T104: Unexpected field '.destinations.local.if'" in output,
             f"Expected T104 warning for incorrectly nested if in '.destinations.local.if' but output was: {output}",
+        )
+        output = self.call_shell_command(
+            "tpv", "-vv", "lint", "--ignore=T104", tpv_config
+        )
+        self.assertFalse(
+            "T104: Unexpected field '.destinations.local.if'" in output,
+            f"T104 warnings should be suppressed by --ignore but output was: {output}",
         )
 
     def test_warn_if_default_inherits_not_marked_abstract(self):
