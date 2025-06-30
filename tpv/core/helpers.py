@@ -130,7 +130,9 @@ def tag_values_match(
     )
 
 
-def __compare_tool_versions(versionA: Optional[str], versionB: Optional[str], comparator: Callable[[Any, Any], bool]) -> Optional[bool]:
+def __compare_tool_versions(
+    versionA: Optional[str], versionB: Optional[str], comparator: Callable[[Any, Any], bool]
+) -> Optional[bool]:
     if versionA is None or versionB is None:
         return None
     return comparator(parse_version(versionA), parse_version(versionB))
