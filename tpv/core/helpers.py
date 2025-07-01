@@ -131,7 +131,9 @@ def tag_values_match(
 
 
 def __compare_tool_versions(
-    versionA: Optional[str], versionB: Optional[str], comparator: Callable[[Any, Any], bool]
+    versionA: Optional[str],
+    versionB: Optional[str],
+    comparator: Callable[[Any, Any], bool],
 ) -> Optional[bool]:
     if versionA is None or versionB is None:
         return None
@@ -143,7 +145,7 @@ def tool_version_eq(tool: GalaxyTool, version: Optional[str]) -> Optional[bool]:
 
 
 def tool_version_lte(tool: GalaxyTool, version: Optional[str]) -> Optional[bool]:
-    return __compare_tool_versions(tool.version, version, operator.lte)
+    return __compare_tool_versions(tool.version, version, operator.le)
 
 
 def tool_version_lt(tool: GalaxyTool, version: Optional[str]) -> Optional[bool]:
@@ -151,7 +153,7 @@ def tool_version_lt(tool: GalaxyTool, version: Optional[str]) -> Optional[bool]:
 
 
 def tool_version_gte(tool: GalaxyTool, version: Optional[str]) -> Optional[bool]:
-    return __compare_tool_versions(tool.version, version, operator.gte)
+    return __compare_tool_versions(tool.version, version, operator.ge)
 
 
 def tool_version_gt(tool: GalaxyTool, version: Optional[str]) -> Optional[bool]:
