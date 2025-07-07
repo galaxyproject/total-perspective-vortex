@@ -5,9 +5,10 @@ except ImportError:
     # If Galaxy is < 23.1 you need to have `packaging` in <= 21.3
     from packaging.version import parse as parse_version
 
+import operator
 import random
 from functools import reduce
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from galaxy import model
 from galaxy.app import UniverseApplication
@@ -129,24 +130,34 @@ def tag_values_match(
     )
 
 
-def tool_version_eq(tool: GalaxyTool, version: str) -> bool:
-    return parse_version(tool.version) == parse_version(version)
+def __compare_tool_versions(
+    versionA: Optional[str],
+    versionB: Optional[str],
+    comparator: Callable[[Any, Any], bool],
+) -> Optional[bool]:
+    if versionA is None or versionB is None:
+        return None
+    return comparator(parse_version(versionA), parse_version(versionB))
 
 
-def tool_version_lte(tool: GalaxyTool, version: str) -> bool:
-    return parse_version(tool.version) <= parse_version(version)
+def tool_version_eq(tool: GalaxyTool, version: Optional[str]) -> Optional[bool]:
+    return __compare_tool_versions(tool.version, version, operator.eq)
 
 
-def tool_version_lt(tool: GalaxyTool, version: str) -> bool:
-    return parse_version(tool.version) < parse_version(version)
+def tool_version_lte(tool: GalaxyTool, version: Optional[str]) -> Optional[bool]:
+    return __compare_tool_versions(tool.version, version, operator.le)
 
 
-def tool_version_gte(tool: GalaxyTool, version: str) -> bool:
-    return parse_version(tool.version) >= parse_version(version)
+def tool_version_lt(tool: GalaxyTool, version: Optional[str]) -> Optional[bool]:
+    return __compare_tool_versions(tool.version, version, operator.lt)
 
 
-def tool_version_gt(tool: GalaxyTool, version: str) -> bool:
-    return parse_version(tool.version) > parse_version(version)
+def tool_version_gte(tool: GalaxyTool, version: Optional[str]) -> Optional[bool]:
+    return __compare_tool_versions(tool.version, version, operator.ge)
+
+
+def tool_version_gt(tool: GalaxyTool, version: Optional[str]) -> Optional[bool]:
+    return __compare_tool_versions(tool.version, version, operator.gt)
 
 
 def get_dataset_attributes(
