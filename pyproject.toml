@@ -37,8 +37,6 @@ test = [
   "responses",
   "tox>=2.9.1",
   "coverage>=4.4.1",
-  "flake8>=3.4.1",
-  "flake8-import-order>=0.13"
 ]
 dev = [
   "total-perspective-vortex[test]",
@@ -53,13 +51,6 @@ tpv = "tpv.commands.shell:main"
 Homepage = "https://github.com/galaxyproject/total-perspective-vortex"
 Documentation = "https://total-perspective-vortex.readthedocs.io"
 
-[tool.flake8]
-max-line-length = 120
-max-complexity = 15
-exclude = [".git", "__pycache__"]
-import-order-style = "smarkets"
-application-import-names = ["tpv"]
-
 [tool.coverage.run]
 branch = true
 source = ["tpv"]
@@ -69,10 +60,10 @@ relative_files = true
 universal = true
 
 [tool.black]
-line-length = 88
+line-length = 120
 
 [tool.isort]
-line_length = 88
+line_length = 120
 profile = "black"
 
 [tool.mypy]
