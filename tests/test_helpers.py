@@ -15,9 +15,7 @@ class TestHelpers(unittest.TestCase):
         job.add_input_dataset(
             mock_galaxy.DatasetAssociation(
                 "test",
-                mock_galaxy.Dataset(
-                    "test.txt", file_size=7 * 1024**3, object_store_id="files1"
-                ),
+                mock_galaxy.Dataset("test.txt", file_size=7 * 1024**3, object_store_id="files1"),
             )
         )
         dataset_attributes = get_dataset_attributes(job.input_datasets)

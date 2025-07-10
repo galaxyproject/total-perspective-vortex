@@ -10,17 +10,11 @@ class TestMapperUser(unittest.TestCase):
 
     @staticmethod
     def _map_to_destination(tool, user, tpv_config_path=None):
-        galaxy_app = mock_galaxy.App(
-            job_conf=os.path.join(os.path.dirname(__file__), "fixtures/job_conf.yml")
-        )
+        galaxy_app = mock_galaxy.App(job_conf=os.path.join(os.path.dirname(__file__), "fixtures/job_conf.yml"))
         job = mock_galaxy.Job()
-        tpv_config = tpv_config_path or os.path.join(
-            os.path.dirname(__file__), "fixtures/mapping-user.yml"
-        )
+        tpv_config = tpv_config_path or os.path.join(os.path.dirname(__file__), "fixtures/mapping-user.yml")
         gateway.ACTIVE_DESTINATION_MAPPERS = {}
-        return gateway.map_tool_to_destination(
-            galaxy_app, job, tool, user, tpv_config_files=[tpv_config]
-        )
+        return gateway.map_tool_to_destination(galaxy_app, job, tool, user, tpv_config_files=[tpv_config])
 
     def test_map_default_user(self):
         tool = mock_galaxy.Tool("bwa")
@@ -47,12 +41,8 @@ class TestMapperUser(unittest.TestCase):
         tool = mock_galaxy.Tool("bwa")
         user = mock_galaxy.User("infinitely", "improbable@vortex.org")
 
-        config = os.path.join(
-            os.path.dirname(__file__), "fixtures/mapping-user-invalid-tags.yml"
-        )
-        with self.assertRaisesRegex(
-            Exception, r"Duplicate tags found: 'pulsar' in \['require', 'reject'\]"
-        ):
+        config = os.path.join(os.path.dirname(__file__), "fixtures/mapping-user-invalid-tags.yml")
+        with self.assertRaisesRegex(Exception, r"Duplicate tags found: 'pulsar' in \['require', 'reject'\]"):
             self._map_to_destination(tool, user, tpv_config_path=config)
 
     def test_map_user_by_regex(self):
@@ -94,9 +84,7 @@ class TestMapperUser(unittest.TestCase):
         destination = self._map_to_destination(tool, user)
         self.assertEqual(destination.id, "special_resource_environment")
         # should use the lower of the two core and special_resource_environment values for this user
-        self.assertEqual(
-            destination.params["native_spec"], "--mem 16 --cores 2 --gpus 2"
-        )
+        self.assertEqual(destination.params["native_spec"], "--mem 16 --cores 2 --gpus 2")
 
     def test_tool_above_max_resources_for_user(self):
         tool = mock_galaxy.Tool("tool_above_max_resources")
@@ -105,6 +93,4 @@ class TestMapperUser(unittest.TestCase):
         destination = self._map_to_destination(tool, user)
         self.assertEqual(destination.id, "special_resource_environment")
         # should use the lower of the two core and mem values for this user
-        self.assertEqual(
-            destination.params["native_spec"], "--mem 32 --cores 4 --gpus 3"
-        )
+        self.assertEqual(destination.params["native_spec"], "--mem 32 --cores 4 --gpus 3")

@@ -41,9 +41,7 @@ class TPVShellTestCase(unittest.TestCase):
         return run_python_script(main, list(args))
 
     def test_lint_no_errors_non_verbose(self):
-        tpv_config = os.path.join(
-            os.path.dirname(__file__), "fixtures/scenario-usegalaxy-dev.yml"
-        )
+        tpv_config = os.path.join(os.path.dirname(__file__), "fixtures/scenario-usegalaxy-dev.yml")
         output = self.call_shell_command("tpv", "lint", tpv_config)
         self.assertTrue(
             "lint successful" in output,
@@ -51,9 +49,7 @@ class TPVShellTestCase(unittest.TestCase):
         )
 
     def test_lint_no_errors_verbose(self):
-        tpv_config = os.path.join(
-            os.path.dirname(__file__), "fixtures/scenario-usegalaxy-dev.yml"
-        )
+        tpv_config = os.path.join(os.path.dirname(__file__), "fixtures/scenario-usegalaxy-dev.yml")
         output = self.call_shell_command("tpv", "-vvvv", "lint", tpv_config)
         self.assertTrue(
             "lint successful" in output,
@@ -61,38 +57,24 @@ class TPVShellTestCase(unittest.TestCase):
         )
 
     def test_lint_syntax_error(self):
-        tpv_config = os.path.join(
-            os.path.dirname(__file__), "fixtures/mapping-syntax-error.yml"
-        )
+        tpv_config = os.path.join(os.path.dirname(__file__), "fixtures/mapping-syntax-error.yml")
         output = self.call_shell_command("tpv", "lint", tpv_config)
-        self.assertTrue(
-            "lint failed" in output, f"Expected lint to fail but output was: {output}"
-        )
-        self.assertTrue(
-            "oops syntax!" in output, f"Expected lint to fail but output was: {output}"
-        )
+        self.assertTrue("lint failed" in output, f"Expected lint to fail but output was: {output}")
+        self.assertTrue("oops syntax!" in output, f"Expected lint to fail but output was: {output}")
 
     def test_lint_invalid_regex(self):
-        tpv_config = os.path.join(
-            os.path.dirname(__file__), "fixtures/linter/linter-invalid-regex.yml"
-        )
+        tpv_config = os.path.join(os.path.dirname(__file__), "fixtures/linter/linter-invalid-regex.yml")
         output = self.call_shell_command("tpv", "lint", tpv_config)
-        self.assertTrue(
-            "lint failed" in output, f"Expected lint to fail but output was: {output}"
-        )
+        self.assertTrue("lint failed" in output, f"Expected lint to fail but output was: {output}")
         self.assertTrue(
             "Failed to compile regex: bwa" in output,
             f"Expected lint to fail but output was: {output}",
         )
 
     def test_lint_no_runner_defined(self):
-        tpv_config = os.path.join(
-            os.path.dirname(__file__), "fixtures/linter/linter-no-runner-defined.yml"
-        )
+        tpv_config = os.path.join(os.path.dirname(__file__), "fixtures/linter/linter-no-runner-defined.yml")
         output = self.call_shell_command("tpv", "-vv", "lint", tpv_config)
-        self.assertTrue(
-            "lint failed" in output, f"Expected lint to fail but output was: {output}"
-        )
+        self.assertTrue("lint failed" in output, f"Expected lint to fail but output was: {output}")
         self.assertTrue(
             "Destination 'local'" in output,
             f"Expected absence of runner param to be reported for destination local but output was: {output}",
@@ -108,13 +90,9 @@ class TPVShellTestCase(unittest.TestCase):
         )
 
     def test_lint_destination_defines_cores_instead_of_accepted_cores(self):
-        tpv_config = os.path.join(
-            os.path.dirname(__file__), "fixtures/linter/linter-legacy-destinations.yml"
-        )
+        tpv_config = os.path.join(os.path.dirname(__file__), "fixtures/linter/linter-legacy-destinations.yml")
         output = self.call_shell_command("tpv", "-vv", "lint", tpv_config)
-        self.assertTrue(
-            "lint failed" in output, f"Expected lint to fail but output was: {output}"
-        )
+        self.assertTrue("lint failed" in output, f"Expected lint to fail but output was: {output}")
         self.assertTrue(
             "The destination named: local_with_mem" in output,
             f"Expected an errors when cores, mem or gpu are defined on a destination but output was: {output}",
@@ -154,8 +132,7 @@ class TPVShellTestCase(unittest.TestCase):
         )
         output = self.call_shell_command("tpv", "-vv", "lint", tpv_config)
         self.assertTrue(
-            'error: Module "tpv.core.entities" has no attribute "TagSetManager"'
-            in output,
+            'error: Module "tpv.core.entities" has no attribute "TagSetManager"' in output,
             f'Expected error: Module "tpv.core.entities" has no attribute "TagSetManager": {output}',
         )
         self.assertTrue(
@@ -163,8 +140,7 @@ class TPVShellTestCase(unittest.TestCase):
             f'Too many arguments for "Tag" but output was: {output}',
         )
         self.assertTrue(
-            'Item "None" of "User | None" has no attribute "extra_preferences"'
-            in output,
+            'Item "None" of "User | None" has no attribute "extra_preferences"' in output,
             f'Expected Item "None" of "User | None" has no attribute "extra_preferences" but output was: {output}',
         )
 
@@ -186,18 +162,14 @@ class TPVShellTestCase(unittest.TestCase):
             "expected temporary file to have been deleted",
         )
 
-        output = self.call_shell_command(
-            "tpv", "-vv", "lint", "--preserve-temp-code", tpv_config
-        )
+        output = self.call_shell_command("tpv", "-vv", "lint", "--preserve-temp-code", tpv_config)
         match = re.search(pattern, output)
         self.assertTrue(
             match and match.group(1),
             "expected temp file name to be identified in output: {output}",
         )
         temp_file_name = match.group(1)
-        self.assertTrue(
-            os.path.exists(temp_file_name), "expected temporary file to exist"
-        )
+        self.assertTrue(os.path.exists(temp_file_name), "expected temporary file to exist")
         with open(temp_file_name, "r") as f:
             first_line = f.readline().strip()
             self.assertTrue(
@@ -223,8 +195,7 @@ class TPVShellTestCase(unittest.TestCase):
             f"check_invalid_float_assignment_generates_errors but saw: {output}",
         )
         self.assertTrue(
-            'No overload variant of "__and__" of "bool" matches argument type "str"'
-            in output,
+            'No overload variant of "__and__" of "bool" matches argument type "str"' in output,
             'Expected No overload variant of "__and__" of "bool" matches argument type "str" due to '
             f"check_invalid_bool_assignment_generates_errors but saw: {output}",
         )
@@ -240,20 +211,12 @@ class TPVShellTestCase(unittest.TestCase):
         )
         # not the most robust method to isolate whether there's any other breakage, but easier than splitting things
         # out to lots of tests
-        error_lines = [
-            line
-            for line in output.splitlines()
-            if ": error:" in line and ": note:" not in line
-        ]
+        error_lines = [line for line in output.splitlines() if ": error:" in line and ": note:" not in line]
         count = len(error_lines)
-        assert (
-            count == 5
-        ), f"Expected only 5 errors but found: {count} in lines: {error_lines}"
+        assert count == 5, f"Expected only 5 errors but found: {count} in lines: {error_lines}"
 
     def test_lint_types_silence_warnings(self):
-        tpv_config = os.path.join(
-            os.path.dirname(__file__), "fixtures/linter/linter-types-context-vars.yml"
-        )
+        tpv_config = os.path.join(os.path.dirname(__file__), "fixtures/linter/linter-types-context-vars.yml")
         output = self.call_shell_command("tpv", "lint", tpv_config)
         self.assertTrue(
             "T103" not in output,
@@ -261,9 +224,7 @@ class TPVShellTestCase(unittest.TestCase):
         )
 
     def test_lint_warnings(self):
-        tpv_config = os.path.join(
-            os.path.dirname(__file__), "fixtures/linter/linter-warnings.yml"
-        )
+        tpv_config = os.path.join(os.path.dirname(__file__), "fixtures/linter/linter-warnings.yml")
         output = self.call_shell_command("tpv", "-vv", "lint", tpv_config)
         self.assertTrue(
             "T102: The tool named: cores-no-mem-1 sets `cores`" in output,
@@ -277,26 +238,20 @@ class TPVShellTestCase(unittest.TestCase):
             "T102: The tool named: cores-no-mem-3 sets `cores`" in output,
             f"T102 warning for cores-no-mem-3 should be suppressed by noqa but output was: {output}",
         )
-        output = self.call_shell_command(
-            "tpv", "-vv", "lint", "--ignore=T102", tpv_config
-        )
+        output = self.call_shell_command("tpv", "-vv", "lint", "--ignore=T102", tpv_config)
         self.assertFalse(
             "T102: The tool named:" in output,
             f"T102 warnings should be suppressed by --ignore but output was: {output}",
         )
 
     def test_lint_warn_unknown_fields(self):
-        tpv_config = os.path.join(
-            os.path.dirname(__file__), "fixtures/linter/linter-warn-unknown-fields.yml"
-        )
+        tpv_config = os.path.join(os.path.dirname(__file__), "fixtures/linter/linter-warn-unknown-fields.yml")
         output = self.call_shell_command("tpv", "-vv", "lint", tpv_config)
         self.assertTrue(
             "T104: Unexpected field '.destinations.local.if'" in output,
             f"Expected T104 warning for incorrectly nested if in '.destinations.local.if' but output was: {output}",
         )
-        output = self.call_shell_command(
-            "tpv", "-vv", "lint", "--ignore=T104", tpv_config
-        )
+        output = self.call_shell_command("tpv", "-vv", "lint", "--ignore=T104", tpv_config)
         self.assertFalse(
             "T104: Unexpected field '.destinations.local.if'" in output,
             f"T104 warnings should be suppressed by --ignore but output was: {output}",
@@ -309,22 +264,18 @@ class TPVShellTestCase(unittest.TestCase):
         )
         output = self.call_shell_command("tpv", "-vvvv", "lint", tpv_config)
         self.assertTrue(
-            "WARNING" in output
-            and "The tool named: default is marked globally as" in output,
+            "WARNING" in output and "The tool named: default is marked globally as" in output,
             f"Expected a warning when the default abstract class for a tool is not marked abstract but output "
             f"was: {output}",
         )
         self.assertTrue(
-            "WARNING" in output
-            and "The destination named: default is marked globally as" in output,
+            "WARNING" in output and "The destination named: default is marked globally as" in output,
             f"Expected a warning when the default abstract class for a tool is not marked abstract but output "
             f"was: {output}",
         )
 
     def test_format_basic(self):
-        tpv_config = os.path.join(
-            os.path.dirname(__file__), "fixtures/formatter/formatter-basic.yml"
-        )
+        tpv_config = os.path.join(os.path.dirname(__file__), "fixtures/formatter/formatter-basic.yml")
         with open(tpv_config) as f:
             before_formatting = yaml.safe_load(f)
 
@@ -341,22 +292,14 @@ class TPVShellTestCase(unittest.TestCase):
         )
 
         # keys should be in expected order
-        self.assertEqual(
-            list(before_formatting.keys()), ["global", "destinations", "users", "tools"]
-        )
-        self.assertEqual(
-            list(after_formatting.keys()), ["global", "tools", "users", "destinations"]
-        )
+        self.assertEqual(list(before_formatting.keys()), ["global", "destinations", "users", "tools"])
+        self.assertEqual(list(after_formatting.keys()), ["global", "tools", "users", "destinations"])
 
         # default inherits should be first
         self.assertEqual(list(before_formatting["tools"]).index("base_default"), 3)
         self.assertEqual(list(after_formatting["tools"]).index("base_default"), 0)
-        self.assertEqual(
-            list(before_formatting["destinations"]).index("base_default"), 2
-        )
-        self.assertEqual(
-            list(after_formatting["destinations"]).index("base_default"), 0
-        )
+        self.assertEqual(list(before_formatting["destinations"]).index("base_default"), 2)
+        self.assertEqual(list(after_formatting["destinations"]).index("base_default"), 0)
 
         # scheduling tags should be in expected order
         self.assertEqual(
@@ -399,9 +342,7 @@ class TPVShellTestCase(unittest.TestCase):
         )
 
     def test_format_rules(self):
-        tpv_config = os.path.join(
-            os.path.dirname(__file__), "fixtures/formatter/formatter-basic.yml"
-        )
+        tpv_config = os.path.join(os.path.dirname(__file__), "fixtures/formatter/formatter-basic.yml")
         with open(tpv_config) as f:
             before_formatting = yaml.safe_load(f)
 
@@ -409,18 +350,10 @@ class TPVShellTestCase(unittest.TestCase):
         after_formatting = yaml.safe_load(output)
 
         # rules should remain in original order
-        self.assertEqual(
-            before_formatting["tools"][".*hifiasm.*"]["rules"][0]["id"], "my_rule_2"
-        )
-        self.assertEqual(
-            after_formatting["tools"][".*hifiasm.*"]["rules"][0]["id"], "my_rule_2"
-        )
-        self.assertEqual(
-            before_formatting["tools"][".*hifiasm.*"]["rules"][1]["id"], "my_rule_1"
-        )
-        self.assertEqual(
-            after_formatting["tools"][".*hifiasm.*"]["rules"][1]["id"], "my_rule_1"
-        )
+        self.assertEqual(before_formatting["tools"][".*hifiasm.*"]["rules"][0]["id"], "my_rule_2")
+        self.assertEqual(after_formatting["tools"][".*hifiasm.*"]["rules"][0]["id"], "my_rule_2")
+        self.assertEqual(before_formatting["tools"][".*hifiasm.*"]["rules"][1]["id"], "my_rule_1")
+        self.assertEqual(after_formatting["tools"][".*hifiasm.*"]["rules"][1]["id"], "my_rule_1")
 
         # rule elements should be in expected order
         self.assertEqual(
@@ -434,43 +367,27 @@ class TPVShellTestCase(unittest.TestCase):
 
         # scheduling tags within rules should be in expected order
         self.assertEqual(
-            list(
-                before_formatting["tools"][".*hifiasm.*"]["rules"][0][
-                    "scheduling"
-                ].keys()
-            ),
+            list(before_formatting["tools"][".*hifiasm.*"]["rules"][0]["scheduling"].keys()),
             ["accept", "prefer", "reject", "require"],
         )
         self.assertEqual(
-            list(
-                after_formatting["tools"][".*hifiasm.*"]["rules"][0][
-                    "scheduling"
-                ].keys()
-            ),
+            list(after_formatting["tools"][".*hifiasm.*"]["rules"][0]["scheduling"].keys()),
             ["require", "prefer", "accept", "reject"],
         )
 
         # context var order should not be changed
         self.assertEqual(
-            list(
-                before_formatting["tools"][".*hifiasm.*"]["rules"][0]["context"].keys()
-            ),
+            list(before_formatting["tools"][".*hifiasm.*"]["rules"][0]["context"].keys()),
             ["myvar", "anothervar"],
         )
         self.assertEqual(
-            list(
-                before_formatting["tools"][".*hifiasm.*"]["rules"][0]["context"].keys()
-            ),
-            list(
-                after_formatting["tools"][".*hifiasm.*"]["rules"][0]["context"].keys()
-            ),
+            list(before_formatting["tools"][".*hifiasm.*"]["rules"][0]["context"].keys()),
+            list(after_formatting["tools"][".*hifiasm.*"]["rules"][0]["context"].keys()),
         )
 
         # params order should not be changed
         self.assertEqual(
-            list(
-                before_formatting["tools"][".*hifiasm.*"]["rules"][0]["params"].keys()
-            ),
+            list(before_formatting["tools"][".*hifiasm.*"]["rules"][0]["params"].keys()),
             ["MY_PARAM2", "MY_PARAM1"],
         )
         self.assertEqual(
@@ -489,9 +406,7 @@ class TPVShellTestCase(unittest.TestCase):
         )
 
     def test_format_error(self):
-        tpv_config = os.path.join(
-            os.path.dirname(__file__), "fixtures/file-does-not-exist.yml"
-        )
+        tpv_config = os.path.join(os.path.dirname(__file__), "fixtures/file-does-not-exist.yml")
         output = self.call_shell_command("tpv", "format", tpv_config)
         self.assertTrue(
             "format failed" in output,
@@ -514,9 +429,7 @@ class TPVShellTestCase(unittest.TestCase):
         self.assertEqual(output, expected_output)
 
     def test_format_lengthy_key_handling(self):
-        tpv_config = os.path.join(
-            os.path.dirname(__file__), "fixtures/formatter/formatter-long-key-input.yml"
-        )
+        tpv_config = os.path.join(os.path.dirname(__file__), "fixtures/formatter/formatter-long-key-input.yml")
         output = self.call_shell_command("tpv", "format", tpv_config)
         with open(
             os.path.join(
@@ -546,16 +459,12 @@ class TPVShellTestCase(unittest.TestCase):
     def test_dry_run_tpv_config_from_job_conf_default_tool(self):
         job_config = "fixtures/job_conf_dry_run.yml"
         output = self.call_shell_command("tpv", "dry-run", "--job-conf", job_config)
-        self.assertTrue(
-            "id: local" in output, f"Expected 'id: local' destination\n{output}"
-        )
+        self.assertTrue("id: local" in output, f"Expected 'id: local' destination\n{output}")
 
     @pytest.mark.usefixtures("chdir_tests")
     def test_dry_run_tpv_config_from_job_conf_pulsar_tool(self):
         job_config = "fixtures/job_conf_dry_run.yml"
-        output = self.call_shell_command(
-            "tpv", "dry-run", "--job-conf", job_config, "--tool", "bwa"
-        )
+        output = self.call_shell_command("tpv", "dry-run", "--job-conf", job_config, "--tool", "bwa")
         self.assertTrue(
             "id: k8s_environment" in output,
             f"Expected 'id: k8s_environment' destination\n{output}",
@@ -591,24 +500,14 @@ class TPVShellTestCase(unittest.TestCase):
         )
 
     def test_dry_run_input_size_piddling(self):
-        job_config = os.path.join(
-            os.path.dirname(__file__), "fixtures/job_conf_dry_run.yml"
-        )
-        tpv_config = os.path.join(
-            os.path.dirname(__file__), "fixtures/mapping-rules.yml"
-        )
+        job_config = os.path.join(os.path.dirname(__file__), "fixtures/job_conf_dry_run.yml")
+        tpv_config = os.path.join(os.path.dirname(__file__), "fixtures/mapping-rules.yml")
         with self.assertRaises(JobMappingException):
-            self.call_shell_command(
-                "tpv", "dry-run", "--job-conf", job_config, tpv_config
-            )
+            self.call_shell_command("tpv", "dry-run", "--job-conf", job_config, tpv_config)
 
     def test_dry_run_conditional_input_size_ok(self):
-        job_config = os.path.join(
-            os.path.dirname(__file__), "fixtures/job_conf_dry_run.yml"
-        )
-        tpv_config = os.path.join(
-            os.path.dirname(__file__), "fixtures/mapping-rules.yml"
-        )
+        job_config = os.path.join(os.path.dirname(__file__), "fixtures/job_conf_dry_run.yml")
+        tpv_config = os.path.join(os.path.dirname(__file__), "fixtures/mapping-rules.yml")
         output = self.call_shell_command(
             "tpv",
             "dry-run",
@@ -626,12 +525,8 @@ class TPVShellTestCase(unittest.TestCase):
         )
 
     def test_dry_run_conditional_input_size_too_big(self):
-        job_config = os.path.join(
-            os.path.dirname(__file__), "fixtures/job_conf_dry_run.yml"
-        )
-        tpv_config = os.path.join(
-            os.path.dirname(__file__), "fixtures/mapping-rules.yml"
-        )
+        job_config = os.path.join(os.path.dirname(__file__), "fixtures/job_conf_dry_run.yml")
+        tpv_config = os.path.join(os.path.dirname(__file__), "fixtures/mapping-rules.yml")
         with self.assertRaises(JobMappingException):
             self.call_shell_command(
                 "tpv",
@@ -646,12 +541,8 @@ class TPVShellTestCase(unittest.TestCase):
             )
 
     def test_dry_run_user_email(self):
-        job_config = os.path.join(
-            os.path.dirname(__file__), "fixtures/job_conf_dry_run.yml"
-        )
-        tpv_config = os.path.join(
-            os.path.dirname(__file__), "fixtures/mapping-rules.yml"
-        )
+        job_config = os.path.join(os.path.dirname(__file__), "fixtures/job_conf_dry_run.yml")
+        tpv_config = os.path.join(os.path.dirname(__file__), "fixtures/mapping-rules.yml")
         output = self.call_shell_command(
             "tpv",
             "dry-run",
@@ -669,12 +560,8 @@ class TPVShellTestCase(unittest.TestCase):
         )
 
     def test_dry_run_tool_with_version(self):
-        job_config = os.path.join(
-            os.path.dirname(__file__), "fixtures/job_conf_dry_run.yml"
-        )
-        tpv_config = os.path.join(
-            os.path.dirname(__file__), "fixtures/mapping-rules.yml"
-        )
+        job_config = os.path.join(os.path.dirname(__file__), "fixtures/job_conf_dry_run.yml")
+        tpv_config = os.path.join(os.path.dirname(__file__), "fixtures/mapping-rules.yml")
         output = self.call_shell_command(
             "tpv",
             "dry-run",
@@ -694,12 +581,8 @@ class TPVShellTestCase(unittest.TestCase):
         )
 
     def test_dry_run_with_a_role(self):
-        job_config = os.path.join(
-            os.path.dirname(__file__), "fixtures/job_conf_dry_run.yml"
-        )
-        tpv_config = os.path.join(
-            os.path.dirname(__file__), "fixtures/mapping-rules.yml"
-        )
+        job_config = os.path.join(os.path.dirname(__file__), "fixtures/job_conf_dry_run.yml")
+        tpv_config = os.path.join(os.path.dirname(__file__), "fixtures/mapping-rules.yml")
         output = self.call_shell_command(
             "tpv",
             "dry-run",
@@ -721,12 +604,8 @@ class TPVShellTestCase(unittest.TestCase):
         )
 
     def test_dry_run_with_history_tag(self):
-        job_config = os.path.join(
-            os.path.dirname(__file__), "fixtures/job_conf_dry_run.yml"
-        )
-        tpv_config = os.path.join(
-            os.path.dirname(__file__), "fixtures/mapping-rules.yml"
-        )
+        job_config = os.path.join(os.path.dirname(__file__), "fixtures/job_conf_dry_run.yml")
+        tpv_config = os.path.join(os.path.dirname(__file__), "fixtures/mapping-rules.yml")
         output = self.call_shell_command(
             "tpv",
             "dry-run",

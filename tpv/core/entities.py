@@ -55,9 +55,7 @@ class TPVFieldMetadata:
 FieldCopierType = Callable[["Entity", "Entity", str], Any]
 
 
-def default_field_copier(
-    entity1: "Entity", entity2: "Entity", property_name: str
-) -> Any:
+def default_field_copier(entity1: "Entity", entity2: "Entity", property_name: str) -> Any:
     # if property_name in entity1.model_fields_set
     return (
         getattr(
@@ -69,9 +67,7 @@ def default_field_copier(
     )
 
 
-def default_dict_copier(
-    entity1: "Entity", entity2: "Entity", property_name: str
-) -> Any:
+def default_dict_copier(entity1: "Entity", entity2: "Entity", property_name: str) -> Any:
     new_dict = copy.deepcopy(getattr(entity2, property_name)) or {}
     new_dict.update(copy.deepcopy(getattr(entity1, property_name)) or {})
     return new_dict
@@ -121,15 +117,11 @@ class SchedulingTags(BaseModel):
                 tag_occurrences[tag].append(field)
 
         # Identify duplicates
-        duplicates = {
-            tag: fields for tag, fields in tag_occurrences.items() if len(fields) > 1
-        }
+        duplicates = {tag: fields for tag, fields in tag_occurrences.items() if len(fields) > 1}
 
         # Build the detailed error message
         if duplicates:
-            details = "; ".join(
-                [f"'{tag}' in {fields}" for tag, fields in duplicates.items()]
-            )
+            details = "; ".join([f"'{tag}' in {fields}" for tag, fields in duplicates.items()])
             raise ValueError(f"Duplicate tags found: {details}")
 
         return self
@@ -144,9 +136,7 @@ class SchedulingTags(BaseModel):
         )
 
     def all_tag_values(self) -> Iterable[str]:
-        return itertools.chain(
-            self.require or [], self.prefer or [], self.accept or [], self.reject or []
-        )
+        return itertools.chain(self.require or [], self.prefer or [], self.accept or [], self.reject or [])
 
     def filter(
         self,
@@ -194,9 +184,7 @@ class SchedulingTags(BaseModel):
         self_rejected = set(self.reject or [])
         other_rejected = set(other.reject or [])
 
-        if self_required.intersection(other_rejected) or self_rejected.intersection(
-            other_required
-        ):
+        if self_required.intersection(other_rejected) or self_rejected.intersection(other_required):
             return False
         return True
 
@@ -242,11 +230,7 @@ class SchedulingTags(BaseModel):
                 if tag.value == o.value
             )
             # penalize tags that don't exist in the other
-            - sum(
-                int(tag.tag_type)
-                for tag in self.tags
-                if tag.value not in other.all_tag_values()
-            )
+            - sum(int(tag.tag_type) for tag in self.tags if tag.value not in other.all_tag_values())
         )
 
 
@@ -270,23 +254,13 @@ class Entity(BaseModel):
     max_cores: Annotated[Optional[int | float | str], TPVFieldMetadata()] = None
     max_mem: Annotated[Optional[int | float | str], TPVFieldMetadata()] = None
     max_gpus: Annotated[Optional[int | str], TPVFieldMetadata()] = None
-    env: Annotated[
-        Optional[List[Dict[str, str]]], TPVFieldMetadata(complex_property=True)
-    ] = None
-    params: Annotated[
-        Optional[Dict[str, Any]], TPVFieldMetadata(complex_property=True)
-    ] = None
-    resubmit: Annotated[Dict[str, str], TPVFieldMetadata(complex_property=True)] = (
-        Field(default_factory=lambda: dict())
-    )
-    rank: Annotated[
-        Optional[str], TPVFieldMetadata(return_type="List[Destination]")
-    ] = None
+    env: Annotated[Optional[List[Dict[str, str]]], TPVFieldMetadata(complex_property=True)] = None
+    params: Annotated[Optional[Dict[str, Any]], TPVFieldMetadata(complex_property=True)] = None
+    resubmit: Annotated[Dict[str, str], TPVFieldMetadata(complex_property=True)] = Field(default_factory=lambda: dict())
+    rank: Annotated[Optional[str], TPVFieldMetadata(return_type="List[Destination]")] = None
     context: Optional[Dict[str, Any]] = Field(default_factory=lambda: dict())
     # evaluator is always assigned, so ignore the warning about default being None
-    evaluator: SkipJsonSchema[TPVCodeEvaluator] = Field(
-        exclude=True, default=cast(TPVCodeEvaluator, None)
-    )
+    evaluator: SkipJsonSchema[TPVCodeEvaluator] = Field(exclude=True, default=cast(TPVCodeEvaluator, None))
     tpv_tags: SchedulingTags = Field(alias="scheduling", default_factory=SchedulingTags)
     no_qa_codes: SkipJsonSchema[List[str]] = Field(default_factory=lambda: list())
 
@@ -339,14 +313,11 @@ class Entity(BaseModel):
         return values
 
     @staticmethod
-    def merge_env_list(
-        original: list[dict[str, str]], replace: list[dict[str, str]]
-    ) -> List[Dict[str, str]]:
+    def merge_env_list(original: list[dict[str, str]], replace: list[dict[str, str]]) -> List[Dict[str, str]]:
         for i, original_elem in enumerate(original):
             for j, replace_elem in enumerate(replace):
                 if (
-                    "name" in replace_elem
-                    and original_elem.get("name") == replace_elem["name"]
+                    "name" in replace_elem and original_elem.get("name") == replace_elem["name"]
                 ) or original_elem == replace_elem:
                     original[i] = replace.pop(j)
                     break
@@ -391,17 +362,11 @@ class Entity(BaseModel):
                 copy.deepcopy(self.env or []),
             ),
         )
-        self.override_single_property(
-            new_entity, self, entity, "params", field_copier=default_dict_copier
-        )
-        self.override_single_property(
-            new_entity, self, entity, "resubmit", field_copier=default_dict_copier
-        )
+        self.override_single_property(new_entity, self, entity, "params", field_copier=default_dict_copier)
+        self.override_single_property(new_entity, self, entity, "resubmit", field_copier=default_dict_copier)
         self.override_single_property(new_entity, self, entity, "rank")
         self.override_single_property(new_entity, self, entity, "inherits")
-        self.override_single_property(
-            new_entity, self, entity, "context", field_copier=default_dict_copier
-        )
+        self.override_single_property(new_entity, self, entity, "context", field_copier=default_dict_copier)
         return new_entity
 
     def inherit(self, entity: Self) -> Self:
@@ -433,9 +398,7 @@ class Entity(BaseModel):
         :return:
         """
         new_entity = self.override(entity)
-        new_entity.id = (
-            f"{type(self).__name__}: {self.id}, {type(entity).__name__}: {entity.id}"
-        )
+        new_entity.id = f"{type(self).__name__}: {self.id}, {type(entity).__name__}: {entity.id}"
         new_entity.tpv_tags = entity.tpv_tags.combine(self.tpv_tags)
         return new_entity
 
@@ -443,64 +406,40 @@ class Entity(BaseModel):
         new_entity = copy.deepcopy(self)
         context.update(self.context or {})
         if self.min_gpus is not None:
-            new_entity.min_gpus = self.evaluator.eval_code_block(
-                str(self.min_gpus), context
-            )
+            new_entity.min_gpus = self.evaluator.eval_code_block(str(self.min_gpus), context)
             context["min_gpus"] = new_entity.min_gpus
         if self.min_cores is not None:
-            new_entity.min_cores = self.evaluator.eval_code_block(
-                str(self.min_cores), context
-            )
+            new_entity.min_cores = self.evaluator.eval_code_block(str(self.min_cores), context)
             context["min_cores"] = new_entity.min_cores
         if self.min_mem is not None:
-            new_entity.min_mem = self.evaluator.eval_code_block(
-                str(self.min_mem), context
-            )
+            new_entity.min_mem = self.evaluator.eval_code_block(str(self.min_mem), context)
             context["min_mem"] = new_entity.min_mem
         if self.max_gpus is not None:
-            new_entity.max_gpus = self.evaluator.eval_code_block(
-                str(self.max_gpus), context
-            )
+            new_entity.max_gpus = self.evaluator.eval_code_block(str(self.max_gpus), context)
             context["max_gpus"] = new_entity.max_gpus
         if self.max_cores is not None:
-            new_entity.max_cores = self.evaluator.eval_code_block(
-                str(self.max_cores), context
-            )
+            new_entity.max_cores = self.evaluator.eval_code_block(str(self.max_cores), context)
             context["max_cores"] = new_entity.max_cores
         if self.max_mem is not None:
-            new_entity.max_mem = self.evaluator.eval_code_block(
-                str(self.max_mem), context
-            )
+            new_entity.max_mem = self.evaluator.eval_code_block(str(self.max_mem), context)
             context["max_mem"] = new_entity.max_mem
         if self.gpus is not None:
             new_entity.gpus = self.evaluator.eval_code_block(str(self.gpus), context)
             # clamp gpus
             new_entity.gpus = max(new_entity.min_gpus or 0, new_entity.gpus or 0)
-            new_entity.gpus = (
-                min(new_entity.max_gpus, new_entity.gpus)
-                if new_entity.max_gpus
-                else new_entity.gpus
-            )
+            new_entity.gpus = min(new_entity.max_gpus, new_entity.gpus) if new_entity.max_gpus else new_entity.gpus
             context["gpus"] = new_entity.gpus
         if self.cores is not None:
             new_entity.cores = self.evaluator.eval_code_block(str(self.cores), context)
             # clamp cores
             new_entity.cores = max(new_entity.min_cores or 0, new_entity.cores or 0)
-            new_entity.cores = (
-                min(new_entity.max_cores, new_entity.cores)
-                if new_entity.max_cores
-                else new_entity.cores
-            )
+            new_entity.cores = min(new_entity.max_cores, new_entity.cores) if new_entity.max_cores else new_entity.cores
             context["cores"] = new_entity.cores
         if self.mem is not None:
             new_entity.mem = self.evaluator.eval_code_block(str(self.mem), context)
             # clamp mem
             new_entity.mem = max(new_entity.min_mem or 0, new_entity.mem or 0)
-            new_entity.mem = (
-                min(new_entity.max_mem, new_entity.mem or 0)
-                if new_entity.max_mem
-                else new_entity.mem
-            )
+            new_entity.mem = min(new_entity.max_mem, new_entity.mem or 0) if new_entity.max_mem else new_entity.mem
             context["mem"] = new_entity.mem
         return new_entity
 
@@ -517,35 +456,21 @@ class Entity(BaseModel):
             new_entity.env = self.evaluator.evaluate_complex_property(self.env, context)
             context["env"] = new_entity.env
         if self.params:
-            new_entity.params = self.evaluator.evaluate_complex_property(
-                self.params, context
-            )
+            new_entity.params = self.evaluator.evaluate_complex_property(self.params, context)
             context["params"] = new_entity.params
         if self.resubmit:
-            new_entity.resubmit = self.evaluator.evaluate_complex_property(
-                self.resubmit, context
-            )
+            new_entity.resubmit = self.evaluator.evaluate_complex_property(self.resubmit, context)
             context["resubmit"] = new_entity.resubmit
         return new_entity
 
-    def rank_destinations(
-        self, destinations: List["Destination"], context: Dict[str, Any]
-    ) -> List["Destination"]:
+    def rank_destinations(self, destinations: List["Destination"], context: Dict[str, Any]) -> List["Destination"]:
         if self.rank:
-            log.debug(
-                f"Ranking destinations: {destinations} for entity: {self} using custom"
-                " function"
-            )
+            log.debug(f"Ranking destinations: {destinations} for entity: {self} using custom" " function")
             context["candidate_destinations"] = destinations
-            return cast(
-                List["Destination"], self.evaluator.eval_code_block(self.rank, context)
-            )
+            return cast(List["Destination"], self.evaluator.eval_code_block(self.rank, context))
         else:
             # Sort destinations by priority
-            log.debug(
-                f"Ranking destinations: {destinations} for entity: {self} using default"
-                " ranker"
-            )
+            log.debug(f"Ranking destinations: {destinations} for entity: {self} using default" " ranker")
             return sorted(destinations, key=lambda d: d.score(self), reverse=True)
 
     def should_skip_qa(self, code: str) -> bool:
@@ -672,12 +597,8 @@ class Destination(EntityWithRules):
     dest_name: Optional[str] = Field(alias="destination_name_override", default=None)
     # tpv_tags track what tags the entity being scheduled requested, while tpv_dest_tags track what the destination
     # supports. When serializing a Destination, we don't need tpv_tags, only tpv_dest_tags.
-    tpv_tags: SkipJsonSchema[SchedulingTags] = Field(
-        exclude=True, default_factory=SchedulingTags
-    )
-    tpv_dest_tags: SchedulingTags = Field(
-        alias="scheduling", default_factory=SchedulingTags
-    )
+    tpv_tags: SkipJsonSchema[SchedulingTags] = Field(exclude=True, default_factory=SchedulingTags)
+    tpv_dest_tags: SchedulingTags = Field(alias="scheduling", default_factory=SchedulingTags)
     handler_tags: Annotated[List[str], TPVFieldMetadata(complex_property=True)] = Field(
         alias="tags", default_factory=lambda: list()
     )
@@ -702,14 +623,10 @@ class Destination(EntityWithRules):
     def evaluate(self, context: Dict[str, Any]) -> Self:
         new_entity = super(Destination, self).evaluate(context)
         if self.dest_name is not None:
-            new_entity.dest_name = self.evaluator.eval_code_block(
-                self.dest_name, context, as_f_string=True
-            )
+            new_entity.dest_name = self.evaluator.eval_code_block(self.dest_name, context, as_f_string=True)
             context["dest_name"] = new_entity.dest_name
         if self.handler_tags is not None:
-            new_entity.handler_tags = self.evaluator.evaluate_complex_property(
-                self.handler_tags, context
-            )
+            new_entity.handler_tags = self.evaluator.evaluate_complex_property(self.handler_tags, context)
             context["handler_tags"] = new_entity.handler_tags
         return new_entity
 
@@ -742,11 +659,7 @@ class Destination(EntityWithRules):
             and self.max_accepted_cores < float(entity.cores)
         ):
             return False
-        if (
-            self.max_accepted_mem is not None
-            and entity.mem is not None
-            and self.max_accepted_mem < float(entity.mem)
-        ):
+        if self.max_accepted_mem is not None and entity.mem is not None and self.max_accepted_mem < float(entity.mem):
             return False
         if (
             self.max_accepted_gpus is not None
@@ -760,11 +673,7 @@ class Destination(EntityWithRules):
             and self.min_accepted_cores > float(entity.cores)
         ):
             return False
-        if (
-            self.min_accepted_mem is not None
-            and entity.mem is not None
-            and self.min_accepted_mem > float(entity.mem)
-        ):
+        if self.min_accepted_mem is not None and entity.mem is not None and self.min_accepted_mem > float(entity.mem):
             return False
         if (
             self.min_accepted_gpus is not None
@@ -800,9 +709,7 @@ class TPVConfig(BaseModel):
         extra = "allow"
 
     global_config: GlobalConfig = Field(alias="global", default_factory=GlobalConfig)
-    evaluator: SkipJsonSchema[Optional[TPVCodeEvaluator]] = Field(
-        exclude=True, default=None
-    )
+    evaluator: SkipJsonSchema[Optional[TPVCodeEvaluator]] = Field(exclude=True, default=None)
     tools: Dict[str, Tool] = Field(default_factory=lambda: dict())
     users: Dict[str, User] = Field(default_factory=lambda: dict())
     roles: Dict[str, Role] = Field(default_factory=lambda: dict())
@@ -838,11 +745,7 @@ class TPVConfig(BaseModel):
             if match:
                 codes = match.group(1)
                 # Return a set of codes or None if `# noqa` with no codes
-                return (
-                    set(code.strip() for code in codes.split(","))
-                    if codes
-                    else set(("noqa",))
-                )
+                return set(code.strip() for code in codes.split(",")) if codes else set(("noqa",))
         return set()
 
     @staticmethod
@@ -868,9 +771,7 @@ class TPVConfig(BaseModel):
 
             # If we see any comment tokens, store them in "no_qa_codes"
             if comments and len(comments) == 4 and comments[3]:
-                no_qa_codes = TPVConfig.get_noqa_codes(
-                    [x.value.strip() for x in comments[3]]
-                )
+                no_qa_codes = TPVConfig.get_noqa_codes([x.value.strip() for x in comments[3]])
 
                 # If child_value is a dict, put comment_data under a "no_qa_codes" key
                 # that your sub-models can handle. If child_value is not a dict,

@@ -9,17 +9,11 @@ class TestParamsSpecific(unittest.TestCase):
 
     @staticmethod
     def _map_to_destination(tool, user):
-        galaxy_app = mock_galaxy.App(
-            job_conf=os.path.join(os.path.dirname(__file__), "fixtures/job_conf.yml")
-        )
+        galaxy_app = mock_galaxy.App(job_conf=os.path.join(os.path.dirname(__file__), "fixtures/job_conf.yml"))
         job = mock_galaxy.Job()
-        tpv_config = os.path.join(
-            os.path.dirname(__file__), "fixtures/mapping-params-specific.yml"
-        )
+        tpv_config = os.path.join(os.path.dirname(__file__), "fixtures/mapping-params-specific.yml")
         gateway.ACTIVE_DESTINATION_MAPPERS = {}
-        return gateway.map_tool_to_destination(
-            galaxy_app, job, tool, user, tpv_config_files=[tpv_config]
-        )
+        return gateway.map_tool_to_destination(galaxy_app, job, tool, user, tpv_config_files=[tpv_config])
 
     def test_default_does_not_inherit_descendant_params(self):
         tool = mock_galaxy.Tool("bwa")

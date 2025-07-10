@@ -48,17 +48,11 @@ class App:
 
 
 class User:
-    def __init__(
-        self, username: str, email: str, roles: List[str] = [], id: Optional[int] = None
-    ):
+    def __init__(self, username: str, email: str, roles: List[str] = [], id: Optional[int] = None):
         self.username = username
         self.email = email
         self.roles = [Role(name) for name in roles]
-        self.id = (
-            id
-            or int(hashlib.sha256(f"{self.username}".encode("utf-8")).hexdigest(), 16)
-            % 1000000
-        )
+        self.id = id or int(hashlib.sha256(f"{self.username}".encode("utf-8")).hexdigest(), 16) % 1000000
 
     def all_roles(self) -> List[Role]:
         """
@@ -71,9 +65,7 @@ class User:
 class Dataset:
     counter = 0
 
-    def __init__(
-        self, file_name: str, file_size: int, object_store_id: Optional[str] = None
-    ):
+    def __init__(self, file_name: str, file_size: int, object_store_id: Optional[str] = None):
         self.id = self.counter
         self.counter += 1
         self.file_name = file_name
@@ -105,9 +97,7 @@ class Job:
         self.history: Optional[History] = None
 
     def add_input_dataset(self, dataset_association: DatasetAssociation) -> None:
-        self.input_datasets.append(
-            JobToInputDatasetAssociation(dataset_association.name, dataset_association)
-        )
+        self.input_datasets.append(JobToInputDatasetAssociation(dataset_association.name, dataset_association))
 
     def get_param_values(self, app: App) -> Dict[str, Any]:
         return self.param_values

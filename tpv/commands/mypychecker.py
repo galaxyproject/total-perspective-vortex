@@ -42,12 +42,7 @@ def get_serializable_type_str(return_type: Any) -> str:
             return return_type.__name__.replace("NoneType", "None")
 
     # Fallback: prettify the string output
-    return (
-        str(return_type)
-        .replace("NoneType", "None")
-        .replace("<class '", "")
-        .replace("'>", "")
-    )
+    return str(return_type).replace("NoneType", "None").replace("<class '", "").replace("'>", "")
 
 
 def get_return_type_str(field_info: FieldInfo, value: Any) -> str:
@@ -55,29 +50,19 @@ def get_return_type_str(field_info: FieldInfo, value: Any) -> str:
     Attempt to convert the field's annotation into a nice string for a function return.
     Example: Annotated[Optional[int], TPVFieldMetadata(...)] -> Optional[int]
     """
-    annotation = (
-        field_info.annotation
-    )  # e.g. Annotated[Optional[int], TPVFieldMetadata()]
+    annotation = field_info.annotation  # e.g. Annotated[Optional[int], TPVFieldMetadata()]
     origin = get_origin(annotation)
     args = get_args(annotation)
 
     # If a return type is explicitly defined on the Entity field, use that.
     metadata_list = getattr(field_info, "metadata", [])
     return_type: Any
-    if any(
-        isinstance(m, TPVFieldMetadata) and m.return_type is not None
-        for m in metadata_list
-    ):
+    if any(isinstance(m, TPVFieldMetadata) and m.return_type is not None for m in metadata_list):
         return_type = [
-            m.return_type
-            for m in metadata_list
-            if isinstance(m, TPVFieldMetadata) and m.return_type is not None
+            m.return_type for m in metadata_list if isinstance(m, TPVFieldMetadata) and m.return_type is not None
         ][0]
     # if it's a complex_type (e.g. env, params), use the leaf value to infer type (usually string)
-    elif any(
-        isinstance(m, TPVFieldMetadata) and getattr(m, "complex_property", False)
-        for m in metadata_list
-    ):
+    elif any(isinstance(m, TPVFieldMetadata) and getattr(m, "complex_property", False) for m in metadata_list):
         return_type = type(value)
     # If it's Annotated[<something>, <metadata>], args[0] is the underlying type
     elif origin is type(Annotated[Any, []]):  # or: if origin is Annotated:
@@ -112,32 +97,16 @@ def gather_all_evaluable_code(
 
     # Gather from top-level groups
     for tool_id, tool in loader.config.tools.items():
-        code_blocks.extend(
-            gather_fields_from_entity(
-                loader, context_vars_container, tool, f"tool_{tool_id}"
-            )
-        )
+        code_blocks.extend(gather_fields_from_entity(loader, context_vars_container, tool, f"tool_{tool_id}"))
 
     for user_id, user in loader.config.users.items():
-        code_blocks.extend(
-            gather_fields_from_entity(
-                loader, context_vars_container, user, f"user_{user_id}"
-            )
-        )
+        code_blocks.extend(gather_fields_from_entity(loader, context_vars_container, user, f"user_{user_id}"))
 
     for role_id, role in loader.config.roles.items():
-        code_blocks.extend(
-            gather_fields_from_entity(
-                loader, context_vars_container, role, f"role_{role_id}"
-            )
-        )
+        code_blocks.extend(gather_fields_from_entity(loader, context_vars_container, role, f"role_{role_id}"))
 
     for dest_id, dest in loader.config.destinations.items():
-        code_blocks.extend(
-            gather_fields_from_entity(
-                loader, context_vars_container, dest, f"dest_{dest_id}"
-            )
-        )
+        code_blocks.extend(gather_fields_from_entity(loader, context_vars_container, dest, f"dest_{dest_id}"))
 
     context_vars_serializable = {
         key: render_optional_union([get_serializable_type_str(typ) for typ in val])
@@ -185,18 +154,14 @@ def gather_fields_from_entity(
                 # Find out if it's "complex" from the actual metadata
                 # e.g., the first item or check specifically for `complex_property=True`
                 is_complex = any(
-                    getattr(m, "complex_property", False)
-                    for m in metadata_list
-                    if isinstance(m, TPVFieldMetadata)
+                    getattr(m, "complex_property", False) for m in metadata_list if isinstance(m, TPVFieldMetadata)
                 )
 
                 eval_as_f_string = (
                     True
                     if is_complex
                     else any(
-                        getattr(m, "eval_as_f_string", False)
-                        for m in metadata_list
-                        if isinstance(m, TPVFieldMetadata)
+                        getattr(m, "eval_as_f_string", False) for m in metadata_list if isinstance(m, TPVFieldMetadata)
                     )
                 )
 
@@ -209,36 +174,24 @@ def gather_fields_from_entity(
                     code_snippets.append(
                         {
                             "func_name": safe_name,
-                            "code": (
-                                f"f'''{value}'''".replace("\n", "")
-                                if eval_as_f_string
-                                else value
-                            ),
+                            "code": (f"f'''{value}'''".replace("\n", "") if eval_as_f_string else value),
                             "return_type": return_type,
                         }
                     )
 
                 if is_complex:
-                    loader.process_complex_property(
-                        field_name, value, {}, lambda n, v, c: add_code_block(n, v)
-                    )
+                    loader.process_complex_property(field_name, value, {}, lambda n, v, c: add_code_block(n, v))
                 else:
                     add_code_block(field_name, value)
 
     if hasattr(entity, "rules"):
         for rule_id, rule in entity.rules.items():
-            code_snippets.extend(
-                gather_fields_from_entity(
-                    loader, context_vars_container, rule, f"{path}_{rule_id}"
-                )
-            )
+            code_snippets.extend(gather_fields_from_entity(loader, context_vars_container, rule, f"{path}_{rule_id}"))
 
     return code_snippets
 
 
-def type_check_code(
-    loader: TPVConfigLoader, preserve_temp_code: bool
-) -> tuple[int, List[str], str]:
+def type_check_code(loader: TPVConfigLoader, preserve_temp_code: bool) -> tuple[int, List[str], str]:
     """
     1) Gather all evaluable code blocks from the loaded TPVConfig.
     2) Render them to a single .py file using Jinja2.
@@ -257,9 +210,7 @@ def type_check_code(
     rendered_code = template.render(context_vars=context_vars, code_blocks=code_blocks)
 
     # 3. Write the rendered code to a temp file and run mypy
-    with tempfile.NamedTemporaryFile(
-        "w", suffix=".py", delete=not preserve_temp_code
-    ) as tmp_file:
+    with tempfile.NamedTemporaryFile("w", suffix=".py", delete=not preserve_temp_code) as tmp_file:
         tmp_filename = tmp_file.name
         tmp_file.write(rendered_code)
         tmp_file.flush()

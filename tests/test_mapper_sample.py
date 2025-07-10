@@ -18,13 +18,9 @@ class TestMapperSample(unittest.TestCase):
         )
         job = mock_galaxy.Job()
         user = mock_galaxy.User("gargravarr", "fairycake@vortex.org")
-        tpv_config = os.path.join(
-            os.path.dirname(__file__), "fixtures/mapping-sample.yml"
-        )
+        tpv_config = os.path.join(os.path.dirname(__file__), "fixtures/mapping-sample.yml")
         gateway.ACTIVE_DESTINATION_MAPPERS = {}
-        return gateway.map_tool_to_destination(
-            galaxy_app, job, tool, user, tpv_config_files=[tpv_config]
-        )
+        return gateway.map_tool_to_destination(galaxy_app, job, tool, user, tpv_config_files=[tpv_config])
 
     @parameterized.expand(
         [
