@@ -33,12 +33,8 @@ class EntityToDestinationMapper(object):
         self.destinations = self.config.destinations
         self.default_inherits = self.config.global_config.default_inherits
         self.global_context = self.config.global_config.context
-        self.lookup_tool_regex = functools.lru_cache(maxsize=None)(
-            self.__compile_tool_regex
-        )
-        self.inherit_matching_entities = functools.lru_cache(maxsize=None)(
-            self.__inherit_matching_entities
-        )
+        self.lookup_tool_regex = functools.lru_cache(maxsize=None)(self.__compile_tool_regex)
+        self.inherit_matching_entities = functools.lru_cache(maxsize=None)(self.__inherit_matching_entities)
 
     def __compile_tool_regex(self, key: str) -> re.Pattern[str]:
         try:
@@ -47,9 +43,7 @@ class EntityToDestinationMapper(object):
             log.error(f"Failed to compile regex: {key}")
             raise
 
-    def _find_entities_matching_id(
-        self, entity_list: dict[str, EntityType], entity_name: str
-    ) -> List[EntityType]:
+    def _find_entities_matching_id(self, entity_list: dict[str, EntityType], entity_name: str) -> List[EntityType]:
         default_inherits = self.__get_default_inherits(entity_list)
         if default_inherits:
             matches = [default_inherits]
@@ -68,9 +62,7 @@ class EntityToDestinationMapper(object):
                     matches.append(match)
         return matches
 
-    def __inherit_matching_entities(
-        self, entity_type: str, entity_name: str
-    ) -> Optional[EntityWithRules]:
+    def __inherit_matching_entities(self, entity_type: str, entity_name: str) -> Optional[EntityWithRules]:
         entity_list: Dict[str, EntityWithRules] = getattr(self.config, entity_type)
         matches = self._find_entities_matching_id(entity_list, entity_name)
         if matches:
@@ -78,24 +70,17 @@ class EntityToDestinationMapper(object):
         else:
             return None
 
-    def __get_default_inherits(
-        self, entity_list: Mapping[str, EntityType]
-    ) -> Optional[EntityType]:
+    def __get_default_inherits(self, entity_list: Mapping[str, EntityType]) -> Optional[EntityType]:
         if self.default_inherits:
             default_match = entity_list.get(self.default_inherits)
             if default_match:
                 return default_match
         return None
 
-    def __apply_default_destination_inheritance(
-        self, entity_list: Dict[str, Destination]
-    ) -> List[Destination]:
+    def __apply_default_destination_inheritance(self, entity_list: Dict[str, Destination]) -> List[Destination]:
         default_inherits = self.__get_default_inherits(entity_list)
         if default_inherits:
-            return [
-                self.inherit_entities([default_inherits, entity])
-                for entity in entity_list.values()
-            ]
+            return [self.inherit_entities([default_inherits, entity]) for entity in entity_list.values()]
         else:
             return list(entity_list.values())
 
@@ -105,9 +90,7 @@ class EntityToDestinationMapper(object):
     def combine_entities(self, entities: List[EntityType]) -> EntityType:
         return functools.reduce(lambda a, b: b.combine(a), entities)
 
-    def rank(
-        self, entity: Entity, destinations: List[Destination], context: Dict[str, Any]
-    ) -> List[Destination]:
+    def rank(self, entity: Entity, destinations: List[Destination], context: Dict[str, Any]) -> List[Destination]:
         return entity.rank_destinations(destinations, context)
 
     def match_and_rank_destinations(
@@ -135,9 +118,7 @@ class EntityToDestinationMapper(object):
             resubmit=list(destination.resubmit.values()),
         )  # type: ignore[no-untyped-call]
 
-    def _find_matching_entities(
-        self, tool: GalaxyTool, user: Optional[GalaxyUser]
-    ) -> List[EntityWithRules]:
+    def _find_matching_entities(self, tool: GalaxyTool, user: Optional[GalaxyUser]) -> List[EntityWithRules]:
         tool_entity = self.inherit_matching_entities("tools", tool.id)
         if not tool_entity:
             tool_entity = Tool(evaluator=self.loader, id=tool.id or "unknown_tool_id")
@@ -214,18 +195,14 @@ class EntityToDestinationMapper(object):
         evaluated_entity = self.match_combine_evaluate_entities(context, tool, user)
 
         # 3. Match and rank destinations that best match the combined entity
-        ranked_dest_entities = self.match_and_rank_destinations(
-            evaluated_entity, self.destinations, context
-        )
+        ranked_dest_entities = self.match_and_rank_destinations(evaluated_entity, self.destinations, context)
 
         # 4. Fully combine entity with matching destinations
         if ranked_dest_entities:
             wait_exception_raised = False
             for d in ranked_dest_entities:
                 try:  # An exception here signifies that a destination rule did not match
-                    dest_combined_entity = d.combine(
-                        cast(Destination, evaluated_entity)
-                    )
+                    dest_combined_entity = d.combine(cast(Destination, evaluated_entity))
                     evaluated_destination = dest_combined_entity.evaluate(context)
                     # 5. Return the top-ranked destination that evaluates successfully
                     return self.to_galaxy_destination(evaluated_destination)

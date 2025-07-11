@@ -1,7 +1,6 @@
 """Total Perspective Vortex library setup."""
 
-# Current version of the library
-__version__ = "3.0.0"
+from importlib.metadata import PackageNotFoundError, version
 
 
 def get_version() -> str:
@@ -11,4 +10,7 @@ def get_version() -> str:
     :rtype: ``string``
     :return:  Library version (e.g., "1.0.0").
     """
-    return __version__
+    try:
+        return version("total-perspective-vortex")
+    except PackageNotFoundError:
+        return "unknown"

@@ -32,17 +32,13 @@ class TPVCodeEvaluator(abc.ABC):
             return func(prop_name, prop_val, context)
         elif isinstance(prop_val, dict):
             evaluated_props_dict = {
-                key: self.process_complex_property(
-                    f"{prop_name}_{key}", childprop, context, func
-                )
+                key: self.process_complex_property(f"{prop_name}_{key}", childprop, context, func)
                 for key, childprop in prop_val.items()
             }
             return evaluated_props_dict
         elif isinstance(prop_val, list):
             evaluated_props_list = [
-                self.process_complex_property(
-                    f"{prop_name}_{idx}", childprop, context, func
-                )
+                self.process_complex_property(f"{prop_name}_{idx}", childprop, context, func)
                 for idx, childprop in enumerate(prop_val)
             ]
             return evaluated_props_list

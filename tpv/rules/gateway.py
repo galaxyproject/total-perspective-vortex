@@ -25,9 +25,7 @@ WATCHERS_BY_CONFIG_FILE: dict[str, Any] = {}
 REFERRERS_BY_CONFIG_FILE: dict[str, dict[str, JOB_YAML_CONFIG_TYPE]] = defaultdict(dict)
 
 
-def load_destination_mapper(
-    tpv_configs: JOB_YAML_CONFIG_TYPE, reload: bool = False
-) -> EntityToDestinationMapper:
+def load_destination_mapper(tpv_configs: JOB_YAML_CONFIG_TYPE, reload: bool = False) -> EntityToDestinationMapper:
     tpv_config_list: List[Any] = listify(tpv_configs)
     log.info(f"{'re' if reload else ''}loading tpv rules from: {tpv_configs}")
     loader = None
@@ -50,9 +48,7 @@ def setup_destination_mapper(
         if isinstance(tpv_config, str) and os.path.isfile(tpv_config):
             # adjust for tempfile handling on Darwin
             tpv_config_real_path = os.path.realpath(tpv_config)
-            log.info(
-                f"Watching for changes in file: {tpv_config_real_path} via referrer: {referrer}"
-            )
+            log.info(f"Watching for changes in file: {tpv_config_real_path} via referrer: {referrer}")
             # there can't be two watchers on the same file
             watcher = WATCHERS_BY_CONFIG_FILE.get(tpv_config_real_path)
             if not watcher:
@@ -63,12 +59,8 @@ def setup_destination_mapper(
             def reload_destination_mapper(path: Optional[str]) -> None:
                 # reload all config files when one file changes to preserve order of loading the files
                 # watchdog on darwin notifies only once per file, so reload all mappers that refer to this file
-                for referrer, config_files in REFERRERS_BY_CONFIG_FILE[
-                    tpv_config_real_path
-                ].items():
-                    ACTIVE_DESTINATION_MAPPERS[referrer] = load_destination_mapper(
-                        config_files, reload=True
-                    )
+                for referrer, config_files in REFERRERS_BY_CONFIG_FILE[tpv_config_real_path].items():
+                    ACTIVE_DESTINATION_MAPPERS[referrer] = load_destination_mapper(config_files, reload=True)
 
             WATCHERS_BY_CONFIG_FILE[tpv_config_real_path] = watcher
             REFERRERS_BY_CONFIG_FILE[tpv_config_real_path][referrer] = tpv_configs
@@ -108,14 +100,10 @@ def map_tool_to_destination(
     workflow_invocation_uuid: Optional[str] = None,
 ) -> JobDestination:
     if tpv_configs and tpv_config_files:
-        raise ValueError(
-            "Only one of tpv_configs or tpv_config_files can be specified in execution environment."
-        )
+        raise ValueError("Only one of tpv_configs or tpv_config_files can be specified in execution environment.")
     resolved_tpv_configs = cast(JOB_YAML_CONFIG_TYPE, tpv_configs or tpv_config_files)
     if not resolved_tpv_configs:
-        raise ValueError(
-            "One of tpv_configs or tpv_config_files must be specified in execution environment."
-        )
+        raise ValueError("One of tpv_configs or tpv_config_files must be specified in execution environment.")
     destination_mapper = lock_and_load_mapper(app, referrer, resolved_tpv_configs)
     return destination_mapper.map_to_destination(
         app, tool, user, job, job_wrapper, resource_params, workflow_invocation_uuid

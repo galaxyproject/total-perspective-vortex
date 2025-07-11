@@ -11,41 +11,25 @@ class TestMapperDestinations(unittest.TestCase):
 
     @staticmethod
     def _map_to_destination(tool, user, datasets, tpv_config_paths):
-        galaxy_app = mock_galaxy.App(
-            job_conf=os.path.join(os.path.dirname(__file__), "fixtures/job_conf.yml")
-        )
+        galaxy_app = mock_galaxy.App(job_conf=os.path.join(os.path.dirname(__file__), "fixtures/job_conf.yml"))
         job = mock_galaxy.Job()
         for d in datasets:
             job.add_input_dataset(d)
         gateway.ACTIVE_DESTINATION_MAPPERS = {}
-        return gateway.map_tool_to_destination(
-            galaxy_app, job, tool, user, tpv_config_files=tpv_config_paths
-        )
+        return gateway.map_tool_to_destination(galaxy_app, job, tool, user, tpv_config_files=tpv_config_paths)
 
     def test_destination_no_rule_match(self):
         tool = mock_galaxy.Tool("bwa")
         user = mock_galaxy.User("ford", "prefect@vortex.org")
 
-        config = os.path.join(
-            os.path.dirname(__file__), "fixtures/mapping-destinations.yml"
-        )
+        config = os.path.join(os.path.dirname(__file__), "fixtures/mapping-destinations.yml")
 
         # an intermediate file size should compute correct values
-        datasets = [
-            mock_galaxy.DatasetAssociation(
-                "test", mock_galaxy.Dataset("test.txt", file_size=7 * 1024**3)
-            )
-        ]
-        destination = self._map_to_destination(
-            tool, user, datasets, tpv_config_paths=[config]
-        )
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=7 * 1024**3))]
+        destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
         self.assertEqual(destination.id, "k8s_environment")
         self.assertEqual(
-            [
-                env["value"]
-                for env in destination.env
-                if env["name"] == "TEST_JOB_SLOTS"
-            ],
+            [env["value"] for env in destination.env if env["name"] == "TEST_JOB_SLOTS"],
             ["2"],
         )
         self.assertEqual(
@@ -53,11 +37,7 @@ class TestMapperDestinations(unittest.TestCase):
             ["first"],
         )
         self.assertEqual(
-            [
-                env["value"]
-                for env in destination.env
-                if env["name"] == "DOCKER_ENABLED"
-            ],
+            [env["value"] for env in destination.env if env["name"] == "DOCKER_ENABLED"],
             ["true"],
         )
         self.assertEqual(destination.params["memory_requests"], "6")
@@ -66,34 +46,18 @@ class TestMapperDestinations(unittest.TestCase):
         tool = mock_galaxy.Tool("bwa")
         user = mock_galaxy.User("ford", "prefect@vortex.org")
 
-        config = os.path.join(
-            os.path.dirname(__file__), "fixtures/mapping-destinations.yml"
-        )
+        config = os.path.join(os.path.dirname(__file__), "fixtures/mapping-destinations.yml")
 
         # an intermediate file size should compute correct values
-        datasets = [
-            mock_galaxy.DatasetAssociation(
-                "test", mock_galaxy.Dataset("test.txt", file_size=12 * 1024**3)
-            )
-        ]
-        destination = self._map_to_destination(
-            tool, user, datasets, tpv_config_paths=[config]
-        )
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=12 * 1024**3))]
+        destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
         self.assertEqual(destination.id, "another_k8s_environment")
         self.assertEqual(
-            [
-                env["value"]
-                for env in destination.env
-                if env["name"] == "TEST_JOB_SLOTS"
-            ],
+            [env["value"] for env in destination.env if env["name"] == "TEST_JOB_SLOTS"],
             ["2"],
         )
         self.assertEqual(
-            [
-                env["value"]
-                for env in destination.env
-                if env["name"] == "TEST_ENTITY_PRIORITY"
-            ],
+            [env["value"] for env in destination.env if env["name"] == "TEST_ENTITY_PRIORITY"],
             ["4"],
         )
         self.assertEqual(
@@ -101,11 +65,7 @@ class TestMapperDestinations(unittest.TestCase):
             ["second"],
         )
         self.assertEqual(
-            [
-                env["value"]
-                for env in destination.env
-                if env["name"] == "DOCKER_ENABLED"
-            ],
+            [env["value"] for env in destination.env if env["name"] == "DOCKER_ENABLED"],
             [],
         )
         self.assertEqual(destination.params["memory_requests"], "12")
@@ -114,61 +74,33 @@ class TestMapperDestinations(unittest.TestCase):
         tool = mock_galaxy.Tool("bwa")
         user = mock_galaxy.User("ford", "prefect@vortex.org")
 
-        config = os.path.join(
-            os.path.dirname(__file__), "fixtures/mapping-destinations.yml"
-        )
+        config = os.path.join(os.path.dirname(__file__), "fixtures/mapping-destinations.yml")
 
         # an intermediate file size should compute correct values
-        datasets = [
-            mock_galaxy.DatasetAssociation(
-                "test", mock_galaxy.Dataset("test.txt", file_size=22 * 1024**3)
-            )
-        ]
-        with self.assertRaisesRegex(
-            JobMappingException, "No destinations are available to fulfill request: bwa"
-        ):
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=22 * 1024**3))]
+        with self.assertRaisesRegex(JobMappingException, "No destinations are available to fulfill request: bwa"):
             self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
 
     def test_destination_inheritance(self):
         tool = mock_galaxy.Tool("inheritance_test_tool")
         user = mock_galaxy.User("ford", "prefect@vortex.org")
 
-        config = os.path.join(
-            os.path.dirname(__file__), "fixtures/mapping-destinations.yml"
-        )
+        config = os.path.join(os.path.dirname(__file__), "fixtures/mapping-destinations.yml")
 
         # an intermediate file size should compute correct values
-        datasets = [
-            mock_galaxy.DatasetAssociation(
-                "test", mock_galaxy.Dataset("test.txt", file_size=12 * 1024**3)
-            )
-        ]
-        destination = self._map_to_destination(
-            tool, user, datasets, tpv_config_paths=[config]
-        )
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=12 * 1024**3))]
+        destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
         self.assertEqual(destination.id, "inherited_k8s_environment")
         self.assertEqual(
-            [
-                env["value"]
-                for env in destination.env
-                if env["name"] == "TEST_JOB_SLOTS"
-            ],
+            [env["value"] for env in destination.env if env["name"] == "TEST_JOB_SLOTS"],
             ["2"],
         )
         self.assertEqual(
-            [
-                env["value"]
-                for env in destination.env
-                if env["name"] == "TEST_ENTITY_PRIORITY"
-            ],
+            [env["value"] for env in destination.env if env["name"] == "TEST_ENTITY_PRIORITY"],
             ["4"],
         )
         self.assertEqual(
-            [
-                env["value"]
-                for env in destination.env
-                if env["name"] == "TEST_ENTITY_GPUS"
-            ],
+            [env["value"] for env in destination.env if env["name"] == "TEST_ENTITY_GPUS"],
             ["0"],
         )
         self.assertEqual(
@@ -176,11 +108,7 @@ class TestMapperDestinations(unittest.TestCase):
             ["third"],
         )
         self.assertEqual(
-            [
-                env["value"]
-                for env in destination.env
-                if env["name"] == "DOCKER_ENABLED"
-            ],
+            [env["value"] for env in destination.env if env["name"] == "DOCKER_ENABLED"],
             [],
         )
         self.assertEqual(destination.params["memory_requests"], "18")
@@ -189,59 +117,35 @@ class TestMapperDestinations(unittest.TestCase):
         tool = mock_galaxy.Tool("three_core_test_tool")
         user = mock_galaxy.User("tricia", "tmcmillan@vortex.org")
 
-        config = os.path.join(
-            os.path.dirname(__file__), "fixtures/mapping-destinations.yml"
-        )
+        config = os.path.join(os.path.dirname(__file__), "fixtures/mapping-destinations.yml")
 
-        datasets = [
-            mock_galaxy.DatasetAssociation(
-                "test", mock_galaxy.Dataset("test.txt", file_size=12 * 1024**3)
-            )
-        ]
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=12 * 1024**3))]
         from galaxy.jobs.mapper import JobNotReadyException
 
         with self.assertRaises(JobNotReadyException):
-            destination = self._map_to_destination(
-                tool, user, datasets, tpv_config_paths=[config]
-            )
+            destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
             print(destination)
 
     def test_custom_destination_naming(self):
         tool = mock_galaxy.Tool("custom_tool")
         user = mock_galaxy.User("ford", "prefect@vortex.org")
 
-        config = os.path.join(
-            os.path.dirname(__file__), "fixtures/mapping-destinations.yml"
-        )
+        config = os.path.join(os.path.dirname(__file__), "fixtures/mapping-destinations.yml")
 
         # an intermediate file size should compute correct values
-        datasets = [
-            mock_galaxy.DatasetAssociation(
-                "test", mock_galaxy.Dataset("test.txt", file_size=12 * 1024**3)
-            )
-        ]
-        destination = self._map_to_destination(
-            tool, user, datasets, tpv_config_paths=[config]
-        )
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=12 * 1024**3))]
+        destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
         self.assertEqual(destination.id, "my-dest-with-2-cores-6-mem")
 
     def test_destination_with_handler_tags(self):
         tool = mock_galaxy.Tool("tool_with_handler_tags")
         user = mock_galaxy.User("ford", "prefect@vortex.org")
 
-        config = os.path.join(
-            os.path.dirname(__file__), "fixtures/mapping-destinations.yml"
-        )
+        config = os.path.join(os.path.dirname(__file__), "fixtures/mapping-destinations.yml")
 
         # an intermediate file size should compute correct values
-        datasets = [
-            mock_galaxy.DatasetAssociation(
-                "test", mock_galaxy.Dataset("test.txt", file_size=12 * 1024**3)
-            )
-        ]
-        destination = self._map_to_destination(
-            tool, user, datasets, tpv_config_paths=[config]
-        )
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=12 * 1024**3))]
+        destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
         self.assertEqual(destination.id, "destination_with_handler_tags")
         self.assertEqual(destination.tags, ["registered_user_concurrent_jobs_20"])
 
@@ -249,16 +153,10 @@ class TestMapperDestinations(unittest.TestCase):
         tool = mock_galaxy.Tool("tool_matching_abstract_dest")
         user = mock_galaxy.User("ford", "prefect@vortex.org")
 
-        config = os.path.join(
-            os.path.dirname(__file__), "fixtures/mapping-destinations.yml"
-        )
+        config = os.path.join(os.path.dirname(__file__), "fixtures/mapping-destinations.yml")
 
         # an intermediate file size should compute correct values
-        datasets = [
-            mock_galaxy.DatasetAssociation(
-                "test", mock_galaxy.Dataset("test.txt", file_size=12 * 1024**3)
-            )
-        ]
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=12 * 1024**3))]
         with self.assertRaises(JobMappingException):
             self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
 
@@ -266,53 +164,33 @@ class TestMapperDestinations(unittest.TestCase):
         tool = mock_galaxy.Tool("tool_matching_abstract_inherited_dest")
         user = mock_galaxy.User("ford", "prefect@vortex.org")
 
-        config = os.path.join(
-            os.path.dirname(__file__), "fixtures/mapping-destinations.yml"
-        )
+        config = os.path.join(os.path.dirname(__file__), "fixtures/mapping-destinations.yml")
 
         # an intermediate file size should compute correct values
-        datasets = [
-            mock_galaxy.DatasetAssociation(
-                "test", mock_galaxy.Dataset("test.txt", file_size=12 * 1024**3)
-            )
-        ]
-        destination = self._map_to_destination(
-            tool, user, datasets, tpv_config_paths=[config]
-        )
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=12 * 1024**3))]
+        destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
         self.assertEqual(destination.id, "my_concrete_destination")
 
     def test_accepted_cpus_honoured(self):
         user = mock_galaxy.User("toolmatchuser", "toolmatchuser@vortex.org")
-        config = os.path.join(
-            os.path.dirname(__file__), "fixtures/mapping-destinations.yml"
-        )
-        datasets = [
-            mock_galaxy.DatasetAssociation(
-                "test", mock_galaxy.Dataset("test.txt", file_size=12 * 1024**3)
-            )
-        ]
+        config = os.path.join(os.path.dirname(__file__), "fixtures/mapping-destinations.yml")
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=12 * 1024**3))]
 
         # First tool should not match
         tool = mock_galaxy.Tool("tool_for_testing_cpu_acceptance_non_match")
-        destination = self._map_to_destination(
-            tool, user, datasets, tpv_config_paths=[config]
-        )
+        destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
         self.assertEqual(destination.id, "destination_without_min_cpu_accepted")
 
         # second tool should match the min requirements for the destination
         tool = mock_galaxy.Tool("tool_for_testing_cpu_acceptance_match")
-        destination = self._map_to_destination(
-            tool, user, datasets, tpv_config_paths=[config]
-        )
+        destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
         self.assertEqual(destination.id, "destination_with_min_cpu_accepted")
 
         # third tool requesting zero cpus should match either:
         # - destination_without_min_cpu_accepted
         # - destination_zero_max_cpu_accepted
         tool = mock_galaxy.Tool("tool_for_testing_cpu_acceptance_zero")
-        destination = self._map_to_destination(
-            tool, user, datasets, tpv_config_paths=[config]
-        )
+        destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
         self.assertIn(
             destination.id,
             {
@@ -323,36 +201,24 @@ class TestMapperDestinations(unittest.TestCase):
 
     def test_accepted_gpus_honoured(self):
         user = mock_galaxy.User("toolmatchuser", "toolmatchuser@vortex.org")
-        config = os.path.join(
-            os.path.dirname(__file__), "fixtures/mapping-destinations.yml"
-        )
-        datasets = [
-            mock_galaxy.DatasetAssociation(
-                "test", mock_galaxy.Dataset("test.txt", file_size=12 * 1024**3)
-            )
-        ]
+        config = os.path.join(os.path.dirname(__file__), "fixtures/mapping-destinations.yml")
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=12 * 1024**3))]
 
         # First tool should not match
         tool = mock_galaxy.Tool("tool_for_testing_gpu_acceptance_non_match")
-        destination = self._map_to_destination(
-            tool, user, datasets, tpv_config_paths=[config]
-        )
+        destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
         self.assertEqual(destination.id, "destination_without_min_gpu_accepted")
 
         # second tool should match the min requirements for the destination
         tool = mock_galaxy.Tool("tool_for_testing_gpu_acceptance_match")
-        destination = self._map_to_destination(
-            tool, user, datasets, tpv_config_paths=[config]
-        )
+        destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
         self.assertEqual(destination.id, "destination_with_min_gpu_accepted")
 
         # third tool requesting zero gpus should match either:
         # - destination_without_min_gpu_accepted
         # - destination_zero_max_gpu_accepted
         tool = mock_galaxy.Tool("tool_for_testing_gpu_acceptance_zero")
-        destination = self._map_to_destination(
-            tool, user, datasets, tpv_config_paths=[config]
-        )
+        destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
         self.assertIn(
             destination.id,
             {
@@ -363,36 +229,24 @@ class TestMapperDestinations(unittest.TestCase):
 
     def test_accepted_mem_honoured(self):
         user = mock_galaxy.User("toolmatchuser", "toolmatchuser@vortex.org")
-        config = os.path.join(
-            os.path.dirname(__file__), "fixtures/mapping-destinations.yml"
-        )
-        datasets = [
-            mock_galaxy.DatasetAssociation(
-                "test", mock_galaxy.Dataset("test.txt", file_size=12 * 1024**3)
-            )
-        ]
+        config = os.path.join(os.path.dirname(__file__), "fixtures/mapping-destinations.yml")
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=12 * 1024**3))]
 
         # First tool should not match
         tool = mock_galaxy.Tool("tool_for_testing_mem_acceptance_non_match")
-        destination = self._map_to_destination(
-            tool, user, datasets, tpv_config_paths=[config]
-        )
+        destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
         self.assertEqual(destination.id, "destination_without_min_mem_accepted")
 
         # second tool should match the min requirements for the destination
         tool = mock_galaxy.Tool("tool_for_testing_mem_acceptance_match")
-        destination = self._map_to_destination(
-            tool, user, datasets, tpv_config_paths=[config]
-        )
+        destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
         self.assertEqual(destination.id, "destination_with_min_mem_accepted")
 
         # third tool requesting zero mem should match either:
         # - destination_without_min_mem_accepted
         # - destination_zero_max_mem_accepted
         tool = mock_galaxy.Tool("tool_for_testing_mem_acceptance_zero")
-        destination = self._map_to_destination(
-            tool, user, datasets, tpv_config_paths=[config]
-        )
+        destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
         self.assertIn(
             destination.id,
             {
@@ -404,19 +258,11 @@ class TestMapperDestinations(unittest.TestCase):
     def test_user_map_to_destination_accepting_offline(self):
         user = mock_galaxy.User("albo", "pulsar_canberra_user@act.au")
 
-        config = os.path.join(
-            os.path.dirname(__file__), "fixtures/mapping-destinations.yml"
-        )
+        config = os.path.join(os.path.dirname(__file__), "fixtures/mapping-destinations.yml")
 
         tool = mock_galaxy.Tool("toolshed_hifiasm")
-        datasets = [
-            mock_galaxy.DatasetAssociation(
-                "test", mock_galaxy.Dataset("test.txt", file_size=12 * 1024**3)
-            )
-        ]
-        destination = self._map_to_destination(
-            tool, user, datasets, tpv_config_paths=[config]
-        )
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=12 * 1024**3))]
+        destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
         self.assertEqual(destination.id, "pulsar-canberra")
 
     def test_destination_clamping(self):
@@ -425,19 +271,11 @@ class TestMapperDestinations(unittest.TestCase):
         """
         user = mock_galaxy.User("albo", "pulsar_canberra_user@act.au")
 
-        config = os.path.join(
-            os.path.dirname(__file__), "fixtures/mapping-destinations.yml"
-        )
+        config = os.path.join(os.path.dirname(__file__), "fixtures/mapping-destinations.yml")
 
         tool = mock_galaxy.Tool("tool_for_testing_resource_clamping")
-        datasets = [
-            mock_galaxy.DatasetAssociation(
-                "test", mock_galaxy.Dataset("test.txt", file_size=12 * 1024**3)
-            )
-        ]
-        destination = self._map_to_destination(
-            tool, user, datasets, tpv_config_paths=[config]
-        )
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=12 * 1024**3))]
+        destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config])
         self.assertEqual(destination.id, "clamped_destination")
         self.assertEqual(
             [env["value"] for env in destination.env if env["name"] == "MY_DEST_ENV"],

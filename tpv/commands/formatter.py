@@ -33,9 +33,7 @@ class TPVConfigFormatter(object):
         return sort_criteria
 
     @staticmethod
-    def multi_level_dict_sorter(
-        dict_to_sort: Dict[str, Any], sort_order: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def multi_level_dict_sorter(dict_to_sort: Dict[str, Any], sort_order: Dict[str, Any]) -> Dict[str, Any]:
         """
         Sorts a dict by given criteria, placing the given keys first.
         For example:
@@ -93,9 +91,7 @@ class TPVConfigFormatter(object):
         elif isinstance(dict_to_sort, CommentedSeq):
             rval = CommentedSeq()
             for item in dict_to_sort:
-                sorted_item = TPVConfigFormatter.multi_level_dict_sorter(
-                    item, sort_order.get("*", [])
-                )
+                sorted_item = TPVConfigFormatter.multi_level_dict_sorter(item, sort_order.get("*", []))
                 rval.append(sorted_item)
             rval.ca.items.update(dict_to_sort.ca.items)
             return rval
@@ -103,9 +99,7 @@ class TPVConfigFormatter(object):
             return dict_to_sort
 
     def format(self) -> Dict[str, Any]:
-        default_inherits = (
-            self.yaml_dict.get("global", {}).get("default_inherits") or "default"
-        )
+        default_inherits = self.yaml_dict.get("global", {}).get("default_inherits") or "default"
 
         basic_entity_sort_order: Dict[str, Any] = {
             "id": {},

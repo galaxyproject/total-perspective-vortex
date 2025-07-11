@@ -26,9 +26,7 @@ class TPVDryRunner:
         else:
             self.tpv_config_files = self.galaxy_app.job_config.get_destination(  # type: ignore[no-untyped-call]
                 "tpv_dispatcher"
-            ).params[
-                "tpv_config_files"
-            ]
+            ).params["tpv_config_files"]
 
     def run(self) -> JobDestination:
         gateway.ACTIVE_DESTINATION_MAPPERS = {}
@@ -76,9 +74,5 @@ class TPVDryRunner:
             job.add_input_dataset(dataset)
         job.history = mock_galaxy.History()
         if history_tags:
-            job.history.tags = [
-                mock_galaxy.HistoryTag(tag_name) for tag_name in history_tags
-            ]
-        return TPVDryRunner(
-            job_conf=job_conf, tpv_confs=tpv_confs, user=user, tool=tool, job=job
-        )
+            job.history.tags = [mock_galaxy.HistoryTag(tag_name) for tag_name in history_tags]
+        return TPVDryRunner(job_conf=job_conf, tpv_confs=tpv_confs, user=user, tool=tool, job=job)

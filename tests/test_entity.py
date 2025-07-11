@@ -11,18 +11,12 @@ class TestEntity(unittest.TestCase):
 
     @staticmethod
     def _map_to_destination(app, job, tool, user, referrer="tpv_dispatcher"):
-        tpv_config = os.path.join(
-            os.path.dirname(__file__), "fixtures/mapping-rule-argument-based.yml"
-        )
-        return gateway.map_tool_to_destination(
-            app, job, tool, user, tpv_config_files=[tpv_config], referrer=referrer
-        )
+        tpv_config = os.path.join(os.path.dirname(__file__), "fixtures/mapping-rule-argument-based.yml")
+        return gateway.map_tool_to_destination(app, job, tool, user, tpv_config_files=[tpv_config], referrer=referrer)
 
     # issue: https://github.com/galaxyproject/total-perspective-vortex/issues/53
     def test_all_entities_refer_to_same_loader(self):
-        app = mock_galaxy.App(
-            job_conf=os.path.join(os.path.dirname(__file__), "fixtures/job_conf.yml")
-        )
+        app = mock_galaxy.App(job_conf=os.path.join(os.path.dirname(__file__), "fixtures/job_conf.yml"))
         job = mock_galaxy.Job()
 
         tool = mock_galaxy.Tool("bwa")
@@ -36,17 +30,15 @@ class TestEntity(unittest.TestCase):
 
         context = {"app": app, "job": job}
         # make sure we are still referring to the same loader after evaluation
-        evaluated_entity = gateway.ACTIVE_DESTINATION_MAPPERS[
-            "tpv_dispatcher"
-        ].match_combine_evaluate_entities(context, tool, user)
+        evaluated_entity = gateway.ACTIVE_DESTINATION_MAPPERS["tpv_dispatcher"].match_combine_evaluate_entities(
+            context, tool, user
+        )
         assert evaluated_entity.evaluator == original_evaluator
         for rule in evaluated_entity.rules:
             assert rule.evaluator == original_evaluator
 
     def test_each_referrer_has_unique_mapper(self):
-        app = mock_galaxy.App(
-            job_conf=os.path.join(os.path.dirname(__file__), "fixtures/job_conf.yml")
-        )
+        app = mock_galaxy.App(job_conf=os.path.join(os.path.dirname(__file__), "fixtures/job_conf.yml"))
         job = mock_galaxy.Job()
 
         tool = mock_galaxy.Tool("bwa")
@@ -63,9 +55,7 @@ class TestEntity(unittest.TestCase):
         )
 
     def test_destination_to_dict(self):
-        tpv_config = os.path.join(
-            os.path.dirname(__file__), "fixtures/mapping-rule-argument-based.yml"
-        )
+        tpv_config = os.path.join(os.path.dirname(__file__), "fixtures/mapping-rule-argument-based.yml")
         loader = TPVConfigLoader.from_url_or_path(tpv_config)
 
         # create a destination
@@ -73,16 +63,12 @@ class TestEntity(unittest.TestCase):
         # serialize the destination
         serialized_destination = destination.dict()
         # deserialize the same destination
-        deserialized_destination = Destination(
-            evaluator=loader, **serialized_destination
-        )
+        deserialized_destination = Destination(evaluator=loader, **serialized_destination)
         # make sure the deserialized destination is the same as the original
         self.assertEqual(deserialized_destination, destination)
 
     def test_tool_to_dict(self):
-        tpv_config = os.path.join(
-            os.path.dirname(__file__), "fixtures/mapping-rule-argument-based.yml"
-        )
+        tpv_config = os.path.join(os.path.dirname(__file__), "fixtures/mapping-rule-argument-based.yml")
         loader = TPVConfigLoader.from_url_or_path(tpv_config)
 
         # create a tool
@@ -107,9 +93,7 @@ class TestEntity(unittest.TestCase):
         self.assertNotEqual(tag1, "hello")
 
     def test_tag_filter(self):
-        tpv_config = os.path.join(
-            os.path.dirname(__file__), "fixtures/mapping-rule-argument-based.yml"
-        )
+        tpv_config = os.path.join(os.path.dirname(__file__), "fixtures/mapping-rule-argument-based.yml")
         loader = TPVConfigLoader.from_url_or_path(tpv_config)
 
         # create a destination
@@ -124,9 +108,7 @@ class TestEntity(unittest.TestCase):
         assert tag.value == "pulsar"
 
         # tags should also be matchable by a list of tag types
-        tag = list(
-            destination.tpv_dest_tags.filter(tag_type=[TagType.ACCEPT, TagType.REQUIRE])
-        )[0]
+        tag = list(destination.tpv_dest_tags.filter(tag_type=[TagType.ACCEPT, TagType.REQUIRE]))[0]
         assert tag.tag_type == TagType.REQUIRE
         assert tag.value == "pulsar"
 
@@ -136,17 +118,9 @@ class TestEntity(unittest.TestCase):
         assert tag.value == "pulsar"
 
         # tags should also be matchable by both tag type and tag value
-        tag = list(
-            destination.tpv_dest_tags.filter(
-                tag_type=[TagType.REQUIRE], tag_value="pulsar"
-            )
-        )[0]
+        tag = list(destination.tpv_dest_tags.filter(tag_type=[TagType.REQUIRE], tag_value="pulsar"))[0]
         assert tag.tag_type == TagType.REQUIRE
         assert tag.value == "pulsar"
 
         # tag should not match if either tag_type or tag_value mismatches
-        assert not list(
-            destination.tpv_dest_tags.filter(
-                tag_type=[TagType.ACCEPT], tag_value="pulsar"
-            )
-        )
+        assert not list(destination.tpv_dest_tags.filter(tag_type=[TagType.ACCEPT], tag_value="pulsar"))

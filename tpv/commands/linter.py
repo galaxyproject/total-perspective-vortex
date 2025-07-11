@@ -24,9 +24,7 @@ class TPVLintError(Exception):
 
 class TPVConfigLinter(object):
 
-    def __init__(
-        self, url_or_path: str, ignore: Optional[List[str]], preserve_temp_code: bool
-    ):
+    def __init__(self, url_or_path: str, ignore: Optional[List[str]], preserve_temp_code: bool):
         self.url_or_path: str = url_or_path
         self.ignore: List[str] = ignore or []
         self.preserve_temp_code = preserve_temp_code
@@ -39,9 +37,7 @@ class TPVConfigLinter(object):
             self.loader = TPVConfigLoader.from_url_or_path(self.url_or_path)
         except Exception as e:
             log.error(f"Linting failed due to syntax errors in yaml file: {e}")
-            raise TPVLintError(
-                "Linting failed due to syntax errors in yaml file: "
-            ) from e
+            raise TPVLintError("Linting failed due to syntax errors in yaml file: ") from e
 
     def add_warning(self, code: str, message: str) -> None:
         if code not in self.ignore:
@@ -98,9 +94,7 @@ class TPVConfigLinter(object):
         Gather code blocks from the loader, render them into a .py file with Jinja2,
         run mypy, record errors if any.
         """
-        exit_code, errors, _ = mypychecker.type_check_code(
-            loader, self.preserve_temp_code
-        )
+        exit_code, errors, _ = mypychecker.type_check_code(loader, self.preserve_temp_code)
         if exit_code != 0:
             for err in errors:
                 self.add_warning("T103", err)
@@ -163,9 +157,7 @@ class TPVConfigLinter(object):
         if self.errors:
             for e in self.errors:
                 log.error(e)
-            raise TPVLintError(
-                f"The following errors occurred during linting: {self.errors}"
-            )
+            raise TPVLintError(f"The following errors occurred during linting: {self.errors}")
 
     @staticmethod
     def from_url_or_path(
@@ -173,6 +165,4 @@ class TPVConfigLinter(object):
         ignore: Optional[List[str]] = None,
         preserve_temp_code: bool = False,
     ) -> "TPVConfigLinter":
-        return TPVConfigLinter(
-            url_or_path, ignore=ignore, preserve_temp_code=preserve_temp_code
-        )
+        return TPVConfigLinter(url_or_path, ignore=ignore, preserve_temp_code=preserve_temp_code)

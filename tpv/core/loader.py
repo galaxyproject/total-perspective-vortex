@@ -23,12 +23,10 @@ class InvalidParentException(Exception):
 
 class TPVConfigLoader(TPVCodeEvaluator):
 
-    def __init__(
-        self, tpv_config: Dict[Any, Any], parent: TPVConfigLoader | None = None
-    ):
-        self._cached_compile_code_block: Callable[
-            [str, bool, bool], tuple[CodeType, CodeType | None]
-        ] = functools.lru_cache(maxsize=None)(self.__compile_code_block)
+    def __init__(self, tpv_config: Dict[Any, Any], parent: TPVConfigLoader | None = None):
+        self._cached_compile_code_block: Callable[[str, bool, bool], tuple[CodeType, CodeType | None]] = (
+            functools.lru_cache(maxsize=None)(self.__compile_code_block)
+        )
         tpv_config["evaluator"] = self
         self.config = TPVConfig.model_validate(tpv_config)
         if parent:
@@ -55,9 +53,7 @@ class TPVConfigLoader(TPVCodeEvaluator):
             last_stmt = block.body.pop()
             assert isinstance(last_stmt, ast.Expr)
             last = ast.Expression(last_stmt.value)
-            return compile(block, "<string>", mode="exec"), compile(
-                last, "<string>", mode="eval"
-            )
+            return compile(block, "<string>", mode="exec"), compile(last, "<string>", mode="eval")
 
     # https://stackoverflow.com/a/39381428
     def eval_code_block(
@@ -67,20 +63,14 @@ class TPVConfigLoader(TPVCodeEvaluator):
         as_f_string: bool = False,
         exec_only: bool = False,
     ) -> Any:
-        exec_block, eval_block = self.compile_code_block(
-            code, as_f_string=as_f_string, exec_only=exec_only
-        )
+        exec_block, eval_block = self.compile_code_block(code, as_f_string=as_f_string, exec_only=exec_only)
         locals = dict(globals())
         locals.update(context)
         locals.update(
             {
                 "helpers": helpers,
                 # Don't unnecessarily compute input_size unless it's referred to
-                "input_size": (
-                    helpers.input_size(context["job"])
-                    if "input_size" in str(code)
-                    else 0
-                ),
+                "input_size": (helpers.input_size(context["job"]) if "input_size" in str(code) else 0),
             }
         )
         exec(exec_block, locals)
@@ -90,19 +80,14 @@ class TPVConfigLoader(TPVCodeEvaluator):
             return None
 
     @staticmethod
-    def process_inheritance(
-        entity_list: Dict[str, EntityType], entity: EntityType
-    ) -> EntityType:
+    def process_inheritance(entity_list: Dict[str, EntityType], entity: EntityType) -> EntityType:
         if entity.inherits:
             parent_entity = entity_list.get(entity.inherits)
             if not parent_entity:
                 raise InvalidParentException(
-                    f"The specified parent: {entity.inherits} for"
-                    f" entity: {entity} does not exist"
+                    f"The specified parent: {entity.inherits} for" f" entity: {entity} does not exist"
                 )
-            return entity.inherit(
-                TPVConfigLoader.process_inheritance(entity_list, parent_entity)
-            )
+            return entity.inherit(TPVConfigLoader.process_inheritance(entity_list, parent_entity))
         # do not process default inheritance here, only at runtime, as multiple can cause default inheritance
         # to override later matches.
         return entity
@@ -121,8 +106,7 @@ class TPVConfigLoader(TPVCodeEvaluator):
     def inherit_globals(self, parent_globals: GlobalConfig) -> None:
         if parent_globals:
             self.config.global_config.default_inherits = (
-                self.config.global_config.default_inherits
-                or parent_globals.default_inherits
+                self.config.global_config.default_inherits or parent_globals.default_inherits
             )
             merged_context = dict(parent_globals.context or {})
             merged_context.update(self.config.global_config.context)
@@ -138,32 +122,20 @@ class TPVConfigLoader(TPVCodeEvaluator):
                 parent_entity = entities_parent.get(entity.id)
                 del entities_parent[entity.id]
                 # reinsert at the end
-                entities_parent[entity.id] = entity.inherit(
-                    cast(EntityType, parent_entity)
-                )
+                entities_parent[entity.id] = entity.inherit(cast(EntityType, parent_entity))
             else:
                 entities_parent[entity.id] = entity
         return entities_parent
 
     def merge_config(self, parent_config: TPVConfig) -> None:
         self.inherit_globals(parent_config.global_config)
-        self.config.tools = self.inherit_parent_entities(
-            parent_config.tools, self.config.tools
-        )
-        self.config.users = self.inherit_parent_entities(
-            parent_config.users, self.config.users
-        )
-        self.config.roles = self.inherit_parent_entities(
-            parent_config.roles, self.config.roles
-        )
-        self.config.destinations = self.inherit_parent_entities(
-            parent_config.destinations, self.config.destinations
-        )
+        self.config.tools = self.inherit_parent_entities(parent_config.tools, self.config.tools)
+        self.config.users = self.inherit_parent_entities(parent_config.users, self.config.users)
+        self.config.roles = self.inherit_parent_entities(parent_config.roles, self.config.roles)
+        self.config.destinations = self.inherit_parent_entities(parent_config.destinations, self.config.destinations)
 
     @staticmethod
-    def from_url_or_path(
-        url_or_path: str, parent: TPVConfigLoader | None = None
-    ) -> TPVConfigLoader:
+    def from_url_or_path(url_or_path: str, parent: TPVConfigLoader | None = None) -> TPVConfigLoader:
         tpv_config = util.load_yaml_from_url_or_path(url_or_path)
         try:
             return TPVConfigLoader(tpv_config, parent=parent)

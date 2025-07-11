@@ -1,0 +1,70 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "total-perspective-vortex"
+description = "A library for routing entities (jobs, users or groups) to destinations in Galaxy"
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+authors = [
+    {name = "Galaxy Contributors"},
+]
+maintainers = [
+    {name = "Galaxy Committers", email = "galaxy-committers@lists.galaxyproject.org"}
+]
+version = "3.0.0"
+dependencies = [
+    "cachetools>=3.1.0",
+    "watchdog",
+    "requests",
+    "ruamel.yaml",
+    "mypy",
+    "jinja2",
+    "types-requests",
+]
+
+[project.optional-dependencies]
+cli = [
+  # include base dependencies: https://github.com/pypa/pip/issues/10393
+  "total-perspective-vortex",
+  "galaxy-app"
+]
+test = [
+  "total-perspective-vortex[cli]",
+  "pytest",
+  "responses",
+  "tox>=2.9.1",
+  "coverage>=4.4.1",
+]
+dev = [
+  "total-perspective-vortex[test]",
+  "sphinx",
+  "sphinx_rtd_theme"
+]
+
+[project.scripts]
+tpv = "tpv.commands.shell:main"
+
+[project.urls]
+Homepage = "https://github.com/galaxyproject/total-perspective-vortex"
+Documentation = "https://total-perspective-vortex.readthedocs.io"
+
+[tool.coverage.run]
+branch = true
+source = ["tpv"]
+relative_files = true
+
+[tool.bdist_wheel]
+universal = true
+
+[tool.black]
+line-length = 120
+
+[tool.isort]
+line_length = 120
+profile = "black"
+
+[tool.mypy]
+strict = true

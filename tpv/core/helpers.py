@@ -35,11 +35,7 @@ def calculate_dataset_total(
     datasets: Optional[List[JobToInputDatasetAssociation]],
 ) -> float:
     if datasets:
-        unique_datasets = {
-            inp_ds.dataset.dataset.id: inp_ds.dataset.dataset
-            for inp_ds in datasets
-            if inp_ds.dataset
-        }
+        unique_datasets = {inp_ds.dataset.dataset.id: inp_ds.dataset.dataset for inp_ds in datasets if inp_ds.dataset}
         return reduce(sum_total, map(get_dataset_size, unique_datasets.values()), 0.0)
     else:
         return 0.0
@@ -68,9 +64,7 @@ def __get_keys_from_dict(dl: Any, keys_list: List[str]) -> None:
             __get_keys_from_dict(x, keys_list)
 
 
-def job_args_match(
-    job: Job, app: UniverseApplication, args: Optional[Dict[str, Any]]
-) -> bool:
+def job_args_match(job: Job, app: UniverseApplication, args: Optional[Dict[str, Any]]) -> bool:
     # Check whether a dictionary of arguments matches a job's parameters.  This code is
     # from galaxyproject/galaxy lib/galaxy/jobs/dynamic_tool_destination.py
     if not args or not isinstance(args, dict):
@@ -98,9 +92,7 @@ def concurrent_job_count_for_tool(
     # Match all tools, regardless of version. For example, a tool id such as "toolshed/repos/iuc/fastqc/0.1.0+galaxy1"
     # is turned into "toolshed/repos/iuc/fastqc/" and a LIKE query is performed on the tool_id column.
     tool_id = tool.id or "unknown_tool_id"
-    tool_id_base = (
-        "/".join(tool_id.split("/")[:-1]) + "/" if "/" in tool_id else tool_id
-    )
+    tool_id_base = "/".join(tool_id.split("/")[:-1]) + "/" if "/" in tool_id else tool_id
     query = app.model.context.query(model.Job.id)
     if user:
         query = query.filter(model.Job.table.c.user_id == user.id)
@@ -112,21 +104,11 @@ def concurrent_job_count_for_tool(
     return query.count()
 
 
-def tag_values_match(
-    entity: Entity, match_tag_values: List[str] = [], exclude_tag_values: List[str] = []
-) -> bool:
+def tag_values_match(entity: Entity, match_tag_values: List[str] = [], exclude_tag_values: List[str] = []) -> bool:
     # Return true if an entity has require/prefer/accept tags in the match_tags_values list
     # and no require/prefer/accept tags in the exclude_tag_values list
-    return all(
-        [
-            any(entity.tpv_tags.filter(tag_value=tag_value))
-            for tag_value in match_tag_values
-        ]
-    ) and not any(
-        [
-            any(entity.tpv_tags.filter(tag_value=tag_value))
-            for tag_value in exclude_tag_values
-        ]
+    return all([any(entity.tpv_tags.filter(tag_value=tag_value)) for tag_value in match_tag_values]) and not any(
+        [any(entity.tpv_tags.filter(tag_value=tag_value)) for tag_value in exclude_tag_values]
     )
 
 

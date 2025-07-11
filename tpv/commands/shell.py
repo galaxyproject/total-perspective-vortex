@@ -31,9 +31,7 @@ def tpv_lint_config_file(args: Any) -> int:
         ignore = []
         if args.ignore is not None:
             ignore = [x.strip() for x in args.ignore.split(",")]
-        tpv_linter = TPVConfigLinter.from_url_or_path(
-            args.config, ignore, args.preserve_temp_code
-        )
+        tpv_linter = TPVConfigLinter.from_url_or_path(args.config, ignore, args.preserve_temp_code)
         tpv_linter.lint()
         log.info("lint successful.")
         return 0
@@ -127,24 +125,16 @@ def create_parser() -> argparse.ArgumentParser:
     dry_run_parser = subparsers.add_parser(
         "dry-run", help="Perform a dry run test of a TPV configuration.", description=""
     )
-    dry_run_parser.add_argument(
-        "--job-conf", type=str, required=True, help="Galaxy job configuration file"
-    )
-    dry_run_parser.add_argument(
-        "--input-size", type=int, help="Input dataset size (in GB)"
-    )
+    dry_run_parser.add_argument("--job-conf", type=str, required=True, help="Galaxy job configuration file")
+    dry_run_parser.add_argument("--input-size", type=int, help="Input dataset size (in GB)")
     dry_run_parser.add_argument(
         "--tool",
         type=str,
         default="_default_",
         help="Test mapping for Galaxy tool with given ID",
     )
-    dry_run_parser.add_argument(
-        "--user", type=str, help="Test mapping for Galaxy user with username or email"
-    )
-    dry_run_parser.add_argument(
-        "--roles", type=str, nargs="+", help="Add one or more Galaxy roles for user"
-    )
+    dry_run_parser.add_argument("--user", type=str, help="Test mapping for Galaxy user with username or email")
+    dry_run_parser.add_argument("--roles", type=str, nargs="+", help="Add one or more Galaxy roles for user")
     dry_run_parser.add_argument(
         "--history-tags",
         type=str,
@@ -168,9 +158,7 @@ def configure_logging(verbosity_count: int) -> None:
         logging.root.removeHandler(handler)
     level = max(4 - verbosity_count, 1) * 10
     # set global logging level
-    logging.basicConfig(
-        stream=sys.stdout, level=level, format="%(levelname)-5s: %(name)s: %(message)s"
-    )
+    logging.basicConfig(stream=sys.stdout, level=level, format="%(levelname)-5s: %(name)s: %(message)s")
     # Set client log level
     if verbosity_count:
         log.setLevel(level)
