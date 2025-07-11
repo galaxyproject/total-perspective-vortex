@@ -1,6 +1,24 @@
 Migration Guide
 ===============
 
+Migrating from v2.x to v3.x
+---------------------------
+
+TPV v3.0.0 introduces some potentially breaking changes that require some manual oversight. Most users will be
+unaffected.
+
+1. A new version of the TPV shared database has been released. Therefore, please update your `job_conf.yml`
+   to point to https://gxy.io/tpv/db-latest.yml if you want to preserve the older behaviour of using the
+   latest version. The previously use https://gxy.io/tpv/db.yml is now an alias for https://gxy.io/tpv/db-v1.yml,
+   and will no longer be updated. Alternatively, you can use https://gxy.io/tpv/db-v2.yml to pin to the latest
+   major version. We recommend this latter option for most users, so you can control the major version upgrade cycle.
+   Refer to release notes in the TPV shared database for more information.
+2. If you programmatically access TPV tags in python code, some breaking changes were made. Specifically, the
+   TagSetManager class has been deprecated and the Tag class - simplified. Users using only yaml scheduling tags
+   are unaffected. To create a a new Tag instance programmatically, a name is no longer required. Simply use
+   pulsar_tag = Tag("mytag", TagType.REQUIRE). The TagSetManager class has been replaced with the SchedulingTags
+   class. Use SchedulingTags(require=[pulsar_tag] to replace. See this `PR 136`_ for additional context.
+
 Migrating from v1.x to v2.x
 ---------------------------
 
@@ -31,3 +49,6 @@ following breaking changes.
 
 5. Any custom Python code that refers to scheduling tags through `entity.tags` should now use `entity.tpv_tags` on
    Tool, User, and Role entities. Destination entities now have the property `entity.tpv_dest_tags`.
+
+
+.. _PR 136: https://github.com/galaxyproject/total-perspective-vortex/pull/136#issuecomment-2348846889

@@ -56,7 +56,7 @@ TPV allows rules to be loaded from remote or local sources.
     function: map_tool_to_destination
     rules_module: tpv.rules
     tpv_config_files:
-      - https://gxy.io/tpv/db.yml
+      - https://gxy.io/tpv/db-latest.yml
       - config/tpv_rules_australia.yml
 
 The config files listed first are overridden by config files listed later. The normal rules of inheritance apply.
