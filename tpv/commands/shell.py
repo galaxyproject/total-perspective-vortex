@@ -105,8 +105,10 @@ def create_parser() -> argparse.ArgumentParser:
     )
     lint_parser.add_argument(
         "config",
+        nargs="*",
         type=str,
-        help="Path to the TPV config file to lint. Can be a local path or http url.",
+        help="Path to the TPV config file to lint. Can be a local path or http url. If more than one file is provided,"
+        " the files are merged in the order specified, with files specified later overriding earlier ones.",
     )
     lint_parser.set_defaults(func=tpv_lint_config_file)
 
