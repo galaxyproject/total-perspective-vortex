@@ -144,7 +144,7 @@ preferred destinations, or to explicitly control which users can execute which t
        scheduling:
          prefer:
            - general
- 
+
      general_pulsar_1:
        runner: pulsar_1
        max_accepted_cores: 8
@@ -501,7 +501,7 @@ as follows:
      function: map_tool_to_destination
      rules_module: tpv.rules
      tpv_config_files:
-       - https://gxy.io/tpv/db.yml
+       - https://gxy.io/tpv/db-latest.yml
        - config/my_local_overrides.yml  # optional
 
 
