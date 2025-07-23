@@ -1,0 +1,15 @@
+global:
+  default_inherits: default
+
+tools:
+  default:
+    abstract: true
+    cores: 2
+    rules:
+    - if: |
+        not user or not any([
+          role for role in user.all_roles() if (
+            role.name in ['Alphafold', 'UoM_Vet_Alphafold', 'pulsar_gpu_test'] and not role.deleted
+        )]) and user.username not in [f'qldgpu{x+1}' for x in range(6)]
+      fail: |
+        This tool is currently being beta-tested on GPUs and your account has not been given access.

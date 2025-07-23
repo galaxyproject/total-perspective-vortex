@@ -64,17 +64,7 @@ def {{ block.func_name }}() -> None:
     {{ block.code|indent(4) }}
 {% else -%}
 def {{ block.func_name }}() -> {{ block.return_type }}:
-    {# This is a normal code snippet. -#}
-    {%- set lines = (block.code|string).strip().split('\n') -%}
-    {%- if lines|length == 1 -%}
-    {# Single-line snippet => just return it -#}
-    return {{ lines[0] }}
-    {% else -%}
-    {# Multi-line => indent each line. Return the last line. -#}
-    {% for line in lines[:-1] -%}
-    {{ line|indent(4) }}
-    {% endfor -%}
-    return {{ lines[-1] }}
-    {% endif %}
+    # add a return to the last statement in the code block
+    {{ block.code|returnify|indent(4) }}
 {% endif -%}
 {% endfor %}

@@ -242,6 +242,14 @@ class TPVShellTestCase(unittest.TestCase):
             f"Expected T103 errors to be suppressed but output was: {output}",
         )
 
+    def test_lint_types_multiline_return(self):
+        tpv_config = os.path.join(os.path.dirname(__file__), "fixtures/linter/linter-types-multiline-return.yml")
+        output = self.call_shell_command("tpv", "-vv", "lint", tpv_config)
+        self.assertFalse(
+            "invalid syntax" in output,
+            f"Expected invalid syntax errors to not be present but output was: {output}",
+        )
+
     def test_lint_warnings(self):
         tpv_config = os.path.join(os.path.dirname(__file__), "fixtures/linter/linter-warnings.yml")
         output = self.call_shell_command("tpv", "-vv", "lint", tpv_config)
