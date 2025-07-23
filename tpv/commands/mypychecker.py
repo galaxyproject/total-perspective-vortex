@@ -1,8 +1,10 @@
+import ast
 import inspect
 import logging
 import os
 import re
 import tempfile
+import textwrap
 from typing import Annotated, Any, Dict, List, Set, Tuple, Type, get_args, get_origin
 
 import mypy.api
@@ -71,6 +73,27 @@ def get_return_type_str(field_info: FieldInfo, value: Any) -> str:
         return_type = annotation
 
     return get_serializable_type_str(return_type)
+
+
+def add_return_to_last_expr(code: str) -> str:
+    """Return code in which the final *expression* is rewritten as a
+    `return …`. Also handle multi-line expressions."""
+    code = str(code)  # make sure type has been converted to string
+    src = textwrap.dedent(code).rstrip()
+    tree = ast.parse(src, mode="exec")
+    if not tree.body or not isinstance(tree.body[-1], ast.Expr):
+        return src  # nothing to transform
+
+    last = tree.body[-1]
+    expr_src = ast.get_source_segment(src, last)
+    # Drop the lines that make up the expression we’re replacing
+    lines = src.splitlines()
+    if last.end_lineno:
+        for i in range(last.lineno - 1, last.end_lineno):
+            lines[i] = ""
+    # Insert the return at the position where the expression started
+    lines.insert(last.lineno - 1, f"return {expr_src}")
+    return "\n".join(l for l in lines if l)
 
 
 def render_optional_union(type_names: List[str]) -> str:
@@ -206,6 +229,7 @@ def type_check_code(loader: TPVConfigLoader, preserve_temp_code: bool) -> tuple[
     # 2. Render with Jinja2
     current_dir = os.path.dirname(os.path.abspath(__file__))
     env = Environment(loader=FileSystemLoader(current_dir))
+    env.filters["returnify"] = add_return_to_last_expr
     template = env.get_template("type_check_template.j2")
     rendered_code = template.render(context_vars=context_vars, code_blocks=code_blocks)
 
