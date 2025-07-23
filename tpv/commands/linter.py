@@ -24,8 +24,8 @@ class TPVLintError(Exception):
 
 class TPVConfigLinter(object):
 
-    def __init__(self, url_or_path: str, ignore: Optional[List[str]], preserve_temp_code: bool):
-        self.url_or_path: str = url_or_path
+    def __init__(self, url_or_path: List[str], ignore: Optional[List[str]], preserve_temp_code: bool):
+        self.url_or_path: List[str] = url_or_path
         self.ignore: List[str] = ignore or []
         self.preserve_temp_code = preserve_temp_code
         self.warnings: List[Tuple[str, str]] = []
@@ -33,11 +33,14 @@ class TPVConfigLinter(object):
         self.loader: Optional[TPVConfigLoader] = None
 
     def load_config(self) -> None:
-        try:
-            self.loader = TPVConfigLoader.from_url_or_path(self.url_or_path)
-        except Exception as e:
-            log.error(f"Linting failed due to syntax errors in yaml file: {e}")
-            raise TPVLintError("Linting failed due to syntax errors in yaml file: ") from e
+        loader = None
+        for tpv_config in self.url_or_path:
+            try:
+                loader = TPVConfigLoader.from_url_or_path(tpv_config, parent=loader)
+                self.loader = loader
+            except Exception as e:
+                log.error(f"Linting failed due to syntax errors in yaml file: {e}")
+                raise TPVLintError("Linting failed due to syntax errors in yaml file: ") from e
 
     def add_warning(self, code: str, message: str) -> None:
         if code not in self.ignore:
@@ -161,7 +164,7 @@ class TPVConfigLinter(object):
 
     @staticmethod
     def from_url_or_path(
-        url_or_path: str,
+        url_or_path: List[str],
         ignore: Optional[List[str]] = None,
         preserve_temp_code: bool = False,
     ) -> "TPVConfigLinter":

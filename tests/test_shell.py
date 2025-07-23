@@ -125,6 +125,25 @@ class TPVShellTestCase(unittest.TestCase):
             f"Expected Name 'mem2' is not defined but output was: {output}",
         )
 
+    def test_lint_multi_file_tpv_config(self):
+        tpv_config_parent = os.path.join(
+            os.path.dirname(__file__),
+            "fixtures/linter/linter-types-undefined-variable-parent.yml",
+        )
+        tpv_config_child = os.path.join(
+            os.path.dirname(__file__),
+            "fixtures/linter/linter-types-undefined-variable.yml",
+        )
+        output = self.call_shell_command("tpv", "-vv", "lint", tpv_config_parent, tpv_config_child)
+        self.assertTrue(
+            'error: Name "something" is not defined' not in output,
+            f"Expected Name 'something' is not defined but output was: {output}",
+        )
+        self.assertTrue(
+            'error: Name "mem2" is not defined' in output,
+            f"Expected Name 'mem2' is not defined but output was: {output}",
+        )
+
     def test_lint_types_legacy_tagset_reference(self):
         tpv_config = os.path.join(
             os.path.dirname(__file__),
