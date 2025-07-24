@@ -1,3 +1,23 @@
+3.0.0 - Jul 24, 2025. (sha 2b0dbf7980a5607538b6195d4b564dd822d71fe9)
+--------------------------------------------------------------------
+* Enhancement for dryrun: add --roles and --history-tags arguments by @cat-bro (PR #142)
+* Fix test by @bernt-matthias (PR #144)
+* Add posibility to load multiple configs from xml job config by @bernt-matthias (PR #143)
+* config file combinations by @bernt-matthias (PR #145)
+* Fix monitoring of rules in OSX tmpdir by @mvdbeek (PR #147)
+* Add pydantic support by @nuwang (PR #136)
+* Reformat codebase by @nuwang (PR #137)
+* Allow loading tpv rules directly from YAML. by @jmchilton (PR #146)
+* Avoid regex, use like in concurrent_job_count_for_tool by @mvdbeek (PR #148)
+* Fix inheritance across config files by @nuwang (PR #150)
+* Add type checking support to linter by @nuwang (PR #151)
+* Add linting support for unexpected fields by @nuwang (PR #152)
+* Wrap tool version comparision in a function that checks for None by @cat-bro (PR #155)
+* Modernize setup to use pyproject.toml by @nuwang (PR #156)
+* Add support for linting multi file tpv configs by @nuwang (PR #158)
+* Fix linting of multi-line return type by @nuwang (PR #160)
+* Update v3 docs by @nuwang (PR #157)
+
 2.5.0 - Dec 17, 2024. (sha d835738f6cb6625e2dac1355bd58ccbc3970598d)
 --------------------------------------------------------------------
 * Fix tests by @nuwang (PR #138)
