@@ -51,6 +51,12 @@ tpv = "tpv.commands.shell:main"
 Homepage = "https://github.com/galaxyproject/total-perspective-vortex"
 Documentation = "https://total-perspective-vortex.readthedocs.io"
 
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.package-data]
+"tpv" = ["**/*.j2"]
+
 [tool.coverage.run]
 branch = true
 source = ["tpv"]
