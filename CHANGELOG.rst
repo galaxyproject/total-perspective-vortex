@@ -1,3 +1,7 @@
+3.0.1 - Aug 7, 2025. (sha 9273d0c5593c6aff3eb88c8ef208195d716458e9)
+--------------------------------------------------------------------
+* Fix jinja template missed in packaging step by @nuwang (PR #162)
+
 3.0.0 - Jul 24, 2025. (sha 2b0dbf7980a5607538b6195d4b564dd822d71fe9)
 --------------------------------------------------------------------
 * Enhancement for dryrun: add --roles and --history-tags arguments by @cat-bro (PR #142)
