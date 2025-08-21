@@ -35,7 +35,6 @@ based on local resource availability.
    topics/installation.rst
    topics/tpv_by_example.rst
    topics/advanced_topics.rst
-   topics/concepts.rst
    topics/inner_workings.rst
    topics/shell_commands.rst
    topics/migration_guide.rst
