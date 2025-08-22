@@ -1,6 +1,6 @@
 import abc
 from types import CodeType
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, Union, Tuple
 
 
 class TPVCodeEvaluator(abc.ABC):
@@ -8,7 +8,7 @@ class TPVCodeEvaluator(abc.ABC):
     @abc.abstractmethod
     def compile_code_block(
         self, code: str, as_f_string: bool = False, exec_only: bool = False
-    ) -> tuple[CodeType, CodeType | None]:
+    ) -> tuple[CodeType, Union[CodeType, None]]:
         pass  # pragma: no cover
 
     @abc.abstractmethod
