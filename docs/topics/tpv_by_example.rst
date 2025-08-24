@@ -338,7 +338,7 @@ Note that the final statement in the rank function must be the list of sorted de
 
 Custom contexts
 ---------------
-In addition to the automatically provided context variables (see :doc:`concepts`), TPV allows you to define arbitrary
+In addition to the automatically provided context variables (see :doc:`inner_workings`), TPV allows you to define arbitrary
 custom variables, which are then available whenever an expression is evaluated. Contexts can be defined both globally
 or at the level of each entity, with entity level context variables overriding global ones.
 
