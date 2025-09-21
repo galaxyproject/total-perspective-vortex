@@ -19,6 +19,7 @@ from .entities import (
     TryNextDestinationOrWait,
 )
 from .loader import TPVConfigLoader
+from .resource_requirements import extract_resource_requirements_from_tool
 
 log = logging.getLogger(__name__)
 
@@ -120,8 +121,23 @@ class EntityToDestinationMapper(object):
 
     def _find_matching_entities(self, tool: GalaxyTool, user: Optional[GalaxyUser]) -> List[EntityWithRules]:
         tool_entity = self.inherit_matching_entities("tools", tool.id)
+
+        # Extract resource requirements from Galaxy tool
+        resource_fields = extract_resource_requirements_from_tool(tool)
+
         if not tool_entity:
-            tool_entity = Tool(evaluator=self.loader, id=tool.id or "unknown_tool_id")
+            # Create new tool entity with resource requirements
+            tool_entity = Tool(evaluator=self.loader, id=tool.id or "unknown_tool_id", **resource_fields)
+        elif resource_fields:
+            # Apply resource requirements to existing tool entity
+            # Create a temporary entity with just the resource fields and combine it
+            resource_tool_entity = Tool(
+                evaluator=self.loader, id=f"{tool.id or 'unknown_tool_id'}_resources", **resource_fields
+            )
+            # This seems wrong ? We're probably overriding everything with the (user defined?) resource requirements,
+            # when at best they should replace the abstract base ?? How would I do that ?
+            assert isinstance(tool_entity, Tool)
+            tool_entity = resource_tool_entity.override(tool_entity)
 
         entity_list: List[EntityWithRules] = [tool_entity]
 
