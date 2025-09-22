@@ -105,8 +105,14 @@ class Job:
 
 # Tool mock and helpers=========================================
 class Tool:
-    def __init__(self, id: str, version: Optional[str] = None):
+    def __init__(
+        self,
+        id: str,
+        version: Optional[str] = None,
+        tool_type: str = "default",
+    ):
         self.id = id
         self.old_id = id
         self.version = version
         self.installed_tool_dependencies: List[Any] = []
+        self.tool_type = tool_type
