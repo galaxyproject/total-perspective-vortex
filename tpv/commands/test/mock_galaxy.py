@@ -117,6 +117,7 @@ class Tool:
         version: Optional[str] = None,
         resource_requirements: Optional[List[ResourceRequirement]] = None,
         dynamic_tool: Optional[DynamicTool] = None,
+        tool_type: str = "default",
     ):
         self.id = id
         self.old_id = id
@@ -124,3 +125,4 @@ class Tool:
         self.installed_tool_dependencies: List[Any] = []
         self.resource_requirements = resource_requirements or []
         self.dynamic_tool = dynamic_tool
+        self.tool_type = tool_type

@@ -612,6 +612,8 @@ class Destination(EntityWithRules):
     handler_tags: Annotated[List[str], TPVFieldMetadata(complex_property=True)] = Field(
         alias="tags", default_factory=lambda: list()
     )
+    accepted_tool_types: Optional[List[str]] = None
+    rejected_tool_types: Optional[List[str]] = ["user_defined"]
 
     def propagate_parent_properties(self, id: str, evaluator: TPVCodeEvaluator) -> None:
         super().propagate_parent_properties(id=id, evaluator=evaluator)
@@ -628,6 +630,8 @@ class Destination(EntityWithRules):
         self.override_single_property(new_entity, self, entity, "max_accepted_mem")
         self.override_single_property(new_entity, self, entity, "max_accepted_gpus")
         self.override_single_property(new_entity, self, entity, "handler_tags")
+        self.override_single_property(new_entity, self, entity, "accepted_tool_types")
+        self.override_single_property(new_entity, self, entity, "rejected_tool_types")
         return new_entity
 
     def evaluate(self, context: Dict[str, Any]) -> Self:
@@ -655,6 +659,7 @@ class Destination(EntityWithRules):
            requested by the entity. If not defined, it is considered a match.
         c. all of the require tags in an entity are present in the destination entity, and none of the reject tags in
            the first entity are present in the second entity.
+        d. the tool_type (if specified) is accepted and not rejected by this destination.
 
         This is used to check compatibility of a final set of combined tool requirements with its destination.
 
@@ -691,6 +696,21 @@ class Destination(EntityWithRules):
             and self.min_accepted_gpus > float(entity.gpus)
         ):
             return False
+
+        # Check tool type and class filtering
+        tool = context.get("tool")
+        if tool:
+            # Get tool type and class (None if not set or not available)
+            tool_type = tool.tool_type
+
+            # Check tool_type filtering
+            if self.accepted_tool_types:
+                if tool_type is None or tool_type not in self.accepted_tool_types:
+                    return False
+            if self.rejected_tool_types and tool_type:
+                if tool_type in self.rejected_tool_types:
+                    return False
+
         return entity.tpv_tags.match(self.tpv_dest_tags)
 
     def score(self, entity: Entity) -> int:
