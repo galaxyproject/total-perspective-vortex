@@ -14,6 +14,7 @@ from .entities import (
     Destination,
     Entity,
     EntityWithRules,
+    SchedulingTags,
     Tool,
     TryNextDestinationOrFail,
     TryNextDestinationOrWait,
@@ -122,6 +123,21 @@ class EntityToDestinationMapper(object):
         tool_entity = self.inherit_matching_entities("tools", tool.id)
         if not tool_entity:
             tool_entity = Tool(evaluator=self.loader, id=tool.id or "unknown_tool_id")
+
+        tool_type_tag = f"tool_type_{tool.tool_type}"
+
+        # Create a new accept list with the tool_type tag, preserving existing tags
+        existing_accept = tool_entity.tpv_tags.accept or []
+        new_accept = existing_accept.copy() if existing_accept else []
+        if tool_type_tag not in new_accept:
+            new_accept.append(tool_type_tag)
+
+        tool_entity.tpv_tags = SchedulingTags(
+            require=tool_entity.tpv_tags.require,
+            prefer=tool_entity.tpv_tags.prefer,
+            accept=new_accept,
+            reject=tool_entity.tpv_tags.reject,
+        )
 
         entity_list: List[EntityWithRules] = [tool_entity]
 
