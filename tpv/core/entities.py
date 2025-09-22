@@ -691,6 +691,12 @@ class Destination(EntityWithRules):
             and self.min_accepted_gpus > float(entity.gpus)
         ):
             return False
+        if (
+            entity.tpv_tags.accept
+            and "tool_type_user_defined" in entity.tpv_tags.accept
+            and not "tool_type_user_defined" in (self.tpv_dest_tags.accept or [])
+        ):
+            return False
         return entity.tpv_tags.match(self.tpv_dest_tags)
 
     def score(self, entity: Entity) -> int:

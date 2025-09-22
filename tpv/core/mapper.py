@@ -15,11 +15,8 @@ from .entities import (
     Destination,
     Entity,
     EntityWithRules,
-<<<<<<< HEAD
     Role,
-=======
     SchedulingTags,
->>>>>>> 74d105c (Inject tool_type tag)
     Tool,
     TryNextDestinationOrFail,
     TryNextDestinationOrWait,
