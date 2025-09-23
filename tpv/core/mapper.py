@@ -139,9 +139,10 @@ class EntityToDestinationMapper(object):
 
     def _find_matching_entities(self, tool: GalaxyTool, user: Optional[GalaxyUser]) -> List[EntityWithRules]:
         # Prefer tool uuid if available, we don't want user defined tools to be able to hijack another tools' rules.
-        # If an admins needs to override resources for a user defined tool ... it shouldn't be a user defined tool,
-        # write it to disk and load it into the toolbox and/or submit it to the tool shed.
-        tool_id = getattr(tool, "uuid", tool.id)
+        tool_id = tool.id
+        tool_uuid = getattr(tool, "uuid", None)
+        if tool_uuid:
+            tool_id = f"{tool.tool_type}-{tool_uuid}"
         tool_entity = self.inherit_matching_entities("tools", tool_id, self._get_default_entity(tool))
 
         if not tool_entity:
