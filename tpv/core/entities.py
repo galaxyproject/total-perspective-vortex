@@ -575,14 +575,6 @@ class EntityWithRules(Entity):
 class Tool(EntityWithRules):
     merge_order: ClassVar[int] = 2
 
-    def __hash__(self) -> int:
-        return hash(self.id)
-
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, Tool):
-            return False
-        return self.id == other.id
-
 
 class Role(EntityWithRules):
     merge_order: ClassVar[int] = 3

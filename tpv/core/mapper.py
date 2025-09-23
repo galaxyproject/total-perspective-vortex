@@ -66,10 +66,10 @@ class EntityToDestinationMapper(object):
         return matches
 
     def __inherit_matching_entities(
-        self, entity_type: str, entity_name: str, default_entity: Optional[EntityType] = None
+        self, entity_type: str, entity_name: str, default_entity: Optional[EntityWithRules] = None
     ) -> Optional[EntityWithRules]:
         entity_list: Dict[str, EntityWithRules] = getattr(self.config, entity_type)
-        matches = self._find_entities_matching_id(entity_list, entity_name, default_entity)
+        matches: List[EntityWithRules] = self._find_entities_matching_id(entity_list, entity_name, default_entity)
         if matches:
             return self.inherit_entities(matches)
         else:
