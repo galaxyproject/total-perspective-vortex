@@ -44,8 +44,10 @@ class EntityToDestinationMapper(object):
             log.error(f"Failed to compile regex: {key}")
             raise
 
-    def _find_entities_matching_id(self, entity_list: dict[str, EntityType], entity_name: str) -> List[EntityType]:
-        default_inherits = self.__get_default_inherits(entity_list)
+    def _find_entities_matching_id(
+        self, entity_list: dict[str, EntityType], entity_name: str, default_entity: Optional[EntityType] = None
+    ) -> List[EntityType]:
+        default_inherits = self.__get_default_inherits(entity_list, default_entity)
         if default_inherits:
             matches = [default_inherits]
         else:
@@ -63,19 +65,27 @@ class EntityToDestinationMapper(object):
                     matches.append(match)
         return matches
 
-    def __inherit_matching_entities(self, entity_type: str, entity_name: str) -> Optional[EntityWithRules]:
+    def __inherit_matching_entities(
+        self, entity_type: str, entity_name: str, default_entity: Optional[Tool] = None
+    ) -> Optional[EntityWithRules]:
         entity_list: Dict[str, EntityWithRules] = getattr(self.config, entity_type)
-        matches = self._find_entities_matching_id(entity_list, entity_name)
+        matches = self._find_entities_matching_id(entity_list, entity_name, default_entity)
         if matches:
             return self.inherit_entities(matches)
         else:
             return None
 
-    def __get_default_inherits(self, entity_list: Mapping[str, EntityType]) -> Optional[EntityType]:
+    def __get_default_inherits(
+        self, entity_list: Mapping[str, EntityType], default_entity: Optional[EntityType] = None
+    ) -> Optional[EntityType]:
         if self.default_inherits:
             default_match = entity_list.get(self.default_inherits)
             if default_match:
+                if default_entity and isinstance(default_match, Tool):
+                    return default_entity.override(default_match)
                 return default_match
+            else:
+                return default_entity
         return None
 
     def __apply_default_destination_inheritance(self, entity_list: Dict[str, Destination]) -> List[Destination]:
@@ -119,25 +129,23 @@ class EntityToDestinationMapper(object):
             resubmit=list(destination.resubmit.values()),
         )  # type: ignore[no-untyped-call]
 
-    def _find_matching_entities(self, tool: GalaxyTool, user: Optional[GalaxyUser]) -> List[EntityWithRules]:
-        tool_entity = self.inherit_matching_entities("tools", tool.id)
-
-        # Extract resource requirements from Galaxy tool
+    def _get_default_entity(self, tool: GalaxyTool) -> Optional[Tool]:
         resource_fields = extract_resource_requirements_from_tool(tool)
+        if resource_fields:
+            return Tool(
+                evaluator=self.loader, id=f"tool_provided_resources_{getattr(tool, 'uuid', tool.id)}", **resource_fields
+            )
+        return None
+
+    def _find_matching_entities(self, tool: GalaxyTool, user: Optional[GalaxyUser]) -> List[EntityWithRules]:
+        # Prefer tool uuid if available, we don't want user defined tools to be able to hijack another tools' rules.
+        # If an admins needs to override resources for a user defined tool ... it shouldn't be a user defined tool,
+        # write it to disk and load it into the toolbox and/or submit it to the tool shed.
+        tool_id = getattr(tool, "uuid", tool.id)
+        tool_entity = self.inherit_matching_entities("tools", tool_id, self._get_default_entity(tool))
 
         if not tool_entity:
-            # Create new tool entity with resource requirements
-            tool_entity = Tool(evaluator=self.loader, id=tool.id or "unknown_tool_id", **resource_fields)
-        elif resource_fields:
-            # Apply resource requirements to existing tool entity
-            # Create a temporary entity with just the resource fields and combine it
-            resource_tool_entity = Tool(
-                evaluator=self.loader, id=f"{tool.id or 'unknown_tool_id'}_resources", **resource_fields
-            )
-            # This seems wrong ? We're probably overriding everything with the (user defined?) resource requirements,
-            # when at best they should replace the abstract base ?? How would I do that ?
-            assert isinstance(tool_entity, Tool)
-            tool_entity = resource_tool_entity.override(tool_entity)
+            tool_entity = Tool(evaluator=self.loader, id=tool.id or "unknown_tool_id")
 
         entity_list: List[EntityWithRules] = [tool_entity]
 
