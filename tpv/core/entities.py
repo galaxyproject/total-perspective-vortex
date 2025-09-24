@@ -268,6 +268,16 @@ class Entity(BaseModel):
         super().__init__(**data)
         self.propagate_parent_properties(id=self.id, evaluator=self.evaluator)
 
+    def __eq__(self, value: Any) -> bool:
+        return (
+            isinstance(value, Entity)
+            and self.id == value.id
+            and self.model_dump_json(serialize_as_any=True) == value.model_dump_json(serialize_as_any=True)
+        )
+
+    def __hash__(self) -> int:
+        return hash(self.model_dump_json(serialize_as_any=True))
+
     def propagate_parent_properties(self, id: str, evaluator: TPVCodeEvaluator) -> None:
         self.id = id
         self.evaluator = evaluator
