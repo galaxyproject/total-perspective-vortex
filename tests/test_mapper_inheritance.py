@@ -1,8 +1,8 @@
 import os
 import unittest
-from unittest.mock import Mock
 
 from galaxy.tool_util.deps.requirements import ResourceRequirement
+
 from tpv.commands.test import mock_galaxy
 from tpv.core.loader import InvalidParentException, TPVConfigLoader
 from tpv.core.resource_requirements import extract_resource_requirements_from_tool
@@ -280,7 +280,19 @@ class TestMapperInheritance(unittest.TestCase):
         ram_min_req = ResourceRequirement("4096", "ram_min")
         ram_max_req = ResourceRequirement("32768", "ram_max")
 
-        tool = mock_galaxy.Tool("test_tool", resource_requirements=[cores_min_req, cores_max_req, ram_min_req, ram_max_req])
+        tool = mock_galaxy.Tool(
+            "test_tool", resource_requirements=[cores_min_req, cores_max_req, ram_min_req, ram_max_req]
+        )
         result = extract_resource_requirements_from_tool(tool)
         expected = {"cores": 2, "max_cores": 8, "mem": 4096, "max_mem": 32768}
         self.assertEqual(result, expected)
+
+    def test_user_defined_tool_correctly_routed(self):
+        tool = mock_galaxy.Tool("user_defined")
+        tool.uuid = "08175037-030a-44c5-8468-c9d36cc29067"
+        tool.tool_type = "user_defined"
+        user = mock_galaxy.User("test_user", "test@test.com")
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=5 * 1024**3))]
+        tpv_config_path = os.path.join(os.path.dirname(__file__), "fixtures/mapping-user-defined.yml")
+        destination = self._map_to_destination(tool, user, datasets, tpv_config_files=[tpv_config_path])
+        assert destination.id == "pulsar_environment"
