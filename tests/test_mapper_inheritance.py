@@ -1,8 +1,11 @@
 import os
 import unittest
+from unittest.mock import Mock
 
+from galaxy.tool_util.deps.requirements import ResourceRequirement
 from tpv.commands.test import mock_galaxy
 from tpv.core.loader import InvalidParentException, TPVConfigLoader
+from tpv.core.resource_requirements import extract_resource_requirements_from_tool
 from tpv.rules import gateway
 
 
@@ -171,3 +174,113 @@ class TestMapperInheritance(unittest.TestCase):
         # create a destination
         destination = loader.config.destinations["k8s_environment"]
         assert destination.inherit(None) == destination
+
+    def test_extract_resource_requirements_from_tool_empty(self):
+        tool = mock_galaxy.Tool("test_tool")
+        result = extract_resource_requirements_from_tool(tool)
+        self.assertEqual(result, {})
+
+    def test_extract_resource_requirements_from_tool_cores(self):
+        cores_req = ResourceRequirement("4", "cores_min")
+
+        tool = mock_galaxy.Tool("test_tool", resource_requirements=[cores_req])
+        result = extract_resource_requirements_from_tool(tool)
+        self.assertEqual(result, {"cores": 4})
+
+    def test_extract_resource_requirements_from_tool_memory(self):
+        mem_req = ResourceRequirement("8192", "ram_min")
+
+        tool = mock_galaxy.Tool("test_tool", resource_requirements=[mem_req])
+        result = extract_resource_requirements_from_tool(tool)
+        self.assertEqual(result, {"mem": 8192})
+
+    def test_extract_resource_requirements_from_tool_gpus(self):
+        gpu_req = ResourceRequirement("2", "cuda_device_count_min")
+
+        tool = mock_galaxy.Tool("test_tool", resource_requirements=[gpu_req])
+        result = extract_resource_requirements_from_tool(tool)
+        self.assertEqual(result, {"gpus": 2})
+
+    def test_extract_resource_requirements_from_tool_multiple(self):
+        cores_req = ResourceRequirement("4", "cores_min")
+        mem_req = ResourceRequirement("16384", "ram_min")
+        gpu_req = ResourceRequirement("1", "cuda_device_count_min")
+
+        tool = mock_galaxy.Tool("test_tool", resource_requirements=[cores_req, mem_req, gpu_req])
+        result = extract_resource_requirements_from_tool(tool)
+        expected = {"cores": 4, "mem": 16384, "gpus": 1}
+        self.assertEqual(result, expected)
+
+    def test_extract_resource_requirements_with_not_implemented_error(self):
+        req = ResourceRequirement("$(4 * 4)", "cores_min")
+
+        tool = mock_galaxy.Tool("test_tool", resource_requirements=[req])
+        result = extract_resource_requirements_from_tool(tool)
+        self.assertEqual(result, {})
+
+    def test_tool_with_resource_requirements_mapping(self):
+        cores_req = ResourceRequirement("4", "cores_min")
+        mem_req = ResourceRequirement("8192", "ram_min")
+
+        tool = mock_galaxy.Tool("test_tool_with_resources", resource_requirements=[cores_req, mem_req])
+        user = mock_galaxy.User("test_user", "test@test.com")
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=5 * 1024**3))]
+
+        destination = self._map_to_destination(tool, user, datasets)
+
+        self.assertIsNotNone(destination)
+
+    def test_tool_uuid_prefix_for_dynamic_tools(self):
+        tool = mock_galaxy.Tool("test_tool")
+        tool.uuid = "12345-67890-abcdef"
+        tool.tool_type = "interactive"
+        user = mock_galaxy.User("test_user", "test@test.com")
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=5 * 1024**3))]
+
+        destination = self._map_to_destination(tool, user, datasets)
+
+        self.assertIsNotNone(destination)
+
+    def test_tool_without_uuid_uses_regular_id(self):
+        tool = mock_galaxy.Tool("hisat")
+        user = mock_galaxy.User("test_user", "test@test.com")
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=5 * 1024**3))]
+
+        destination = self._map_to_destination(tool, user, datasets)
+
+        self.assertEqual(destination.id, "local")
+
+    def test_tool_provided_resource_merging_with_config(self):
+        cores_req = ResourceRequirement("8", "cores_min")
+        mem_req = ResourceRequirement("16384", "ram_min")
+
+        tool = mock_galaxy.Tool("trinity", resource_requirements=[cores_req, mem_req])
+        user = mock_galaxy.User("test_user", "test@test.com")
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=5 * 1024**3))]
+
+        destination = self._map_to_destination(tool, user, datasets)
+
+        self.assertIsNotNone(destination)
+        self.assertEqual(destination.id, "k8s_environment")
+
+    def test_default_entity_creation_with_resource_requirements(self):
+        cores_req = ResourceRequirement("2", "cores_min")
+
+        tool = mock_galaxy.Tool("nonexistent_tool", resource_requirements=[cores_req])
+        user = mock_galaxy.User("test_user", "test@test.com")
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=5 * 1024**3))]
+
+        destination = self._map_to_destination(tool, user, datasets)
+
+        self.assertIsNotNone(destination)
+
+    def test_tool_with_mixed_resource_requirements(self):
+        cores_min_req = ResourceRequirement("2", "cores_min")
+        cores_max_req = ResourceRequirement("8", "cores_max")
+        ram_min_req = ResourceRequirement("4096", "ram_min")
+        ram_max_req = ResourceRequirement("32768", "ram_max")
+
+        tool = mock_galaxy.Tool("test_tool", resource_requirements=[cores_min_req, cores_max_req, ram_min_req, ram_max_req])
+        result = extract_resource_requirements_from_tool(tool)
+        expected = {"cores": 2, "max_cores": 8, "mem": 4096, "max_mem": 32768}
+        self.assertEqual(result, expected)
