@@ -133,16 +133,17 @@ class EntityToDestinationMapper(object):
         resource_fields = extract_resource_requirements_from_tool(tool)
         if resource_fields:
             return Tool(
-                evaluator=self.loader, id=f"tool_provided_resources_{getattr(tool, 'uuid', tool.id)}", **resource_fields
+                evaluator=self.loader,
+                id=f"tool_provided_resources_{getattr(tool.dynamic_tool, 'uuid', tool.id)}",
+                **resource_fields,
             )
         return None
 
     def _find_matching_entities(self, tool: GalaxyTool, user: Optional[GalaxyUser]) -> List[EntityWithRules]:
         # Prefer tool uuid if available, we don't want user defined tools to be able to hijack another tools' rules.
         tool_id = tool.id
-        tool_uuid = getattr(tool, "uuid", None)
-        if tool_uuid:
-            tool_id = f"{tool.tool_type}-{tool_uuid}"
+        if tool.dynamic_tool:
+            tool_id = f"{tool.tool_type}-{tool.dynamic_tool.uuid}"
         tool_entity = self.inherit_matching_entities("tools", tool_id, self._get_default_entity(tool))
 
         if not tool_entity:

@@ -231,8 +231,7 @@ class TestMapperInheritance(unittest.TestCase):
         self.assertIsNotNone(destination)
 
     def test_tool_uuid_prefix_for_dynamic_tools(self):
-        tool = mock_galaxy.Tool("test_tool")
-        tool.uuid = "12345-67890-abcdef"
+        tool = mock_galaxy.Tool("test_tool", dynamic_tool=mock_galaxy.DynamicTool("12345-67890-abcdef"))
         tool.tool_type = "interactive"
         user = mock_galaxy.User("test_user", "test@test.com")
         datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=5 * 1024**3))]
@@ -288,8 +287,7 @@ class TestMapperInheritance(unittest.TestCase):
         self.assertEqual(result, expected)
 
     def test_user_defined_tool_correctly_routed(self):
-        tool = mock_galaxy.Tool("user_defined")
-        tool.uuid = "08175037-030a-44c5-8468-c9d36cc29067"
+        tool = mock_galaxy.Tool("user_defined", mock_galaxy.DynamicTool("08175037-030a-44c5-8468-c9d36cc29067"))
         tool.tool_type = "user_defined"
         user = mock_galaxy.User("test_user", "test@test.com")
         datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=5 * 1024**3))]
