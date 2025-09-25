@@ -82,7 +82,7 @@ class EntityToDestinationMapper(object):
             default_match = entity_list.get(self.default_inherits)
             if default_match:
                 if default_entity and isinstance(default_match, Tool):
-                    return default_entity.override(default_match)
+                    return default_entity.inherit(default_match)
                 return default_match
             else:
                 return default_entity
