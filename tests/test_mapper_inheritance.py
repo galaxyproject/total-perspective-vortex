@@ -261,6 +261,8 @@ class TestMapperInheritance(unittest.TestCase):
 
         self.assertIsNotNone(destination)
         self.assertEqual(destination.id, "k8s_environment")
+        # resource requirements override via tool matching
+        assert destination.params["native_spec"] == "--mem 16 --cores 4 --gpus 3"
 
     def test_default_entity_creation_with_resource_requirements(self):
         cores_req = ResourceRequirement("2", "cores_min")
@@ -272,6 +274,7 @@ class TestMapperInheritance(unittest.TestCase):
         destination = self._map_to_destination(tool, user, datasets)
 
         self.assertIsNotNone(destination)
+        assert destination.params["native_spec"] == "--mem 6.0 --cores 2.0 --gpus 1"
 
     def test_tool_with_mixed_resource_requirements(self):
         cores_min_req = ResourceRequirement("2", "cores_min")
