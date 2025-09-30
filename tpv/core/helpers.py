@@ -8,7 +8,7 @@ except ImportError:
 import operator
 import random
 from functools import reduce
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from galaxy import model
 from galaxy.app import UniverseApplication
@@ -17,6 +17,7 @@ from galaxy.model import User as GalaxyUser
 from galaxy.tools import Tool as GalaxyTool
 
 from tpv.core.entities import Destination, Entity
+from tpv.core.resource_requirements import TPVResourceFieldName, extract_resource_requirements_from_tool
 
 GIGABYTES = 1024.0**3
 
@@ -140,6 +141,11 @@ def tool_version_gte(tool: GalaxyTool, version: Optional[str]) -> Optional[bool]
 
 def tool_version_gt(tool: GalaxyTool, version: Optional[str]) -> Optional[bool]:
     return __compare_tool_versions(tool.version, version, operator.gt)
+
+
+def get_tool_resource_field(tool: GalaxyTool, field_name: TPVResourceFieldName) -> Optional[Union[int, float]]:
+    resource_fields = extract_resource_requirements_from_tool(tool)
+    return resource_fields.get(field_name)
 
 
 def get_dataset_attributes(

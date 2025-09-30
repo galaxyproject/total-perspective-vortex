@@ -3,6 +3,7 @@ import logging
 import re
 from typing import Any, Dict, List, Mapping, Optional, TypeVar, cast
 
+from cachetools import Cache, cached
 from galaxy.app import UniverseApplication
 from galaxy.jobs import JobDestination, JobWrapper
 from galaxy.jobs.mapper import JobNotReadyException
@@ -14,9 +15,11 @@ from .entities import (
     Destination,
     Entity,
     EntityWithRules,
+    Role,
     Tool,
     TryNextDestinationOrFail,
     TryNextDestinationOrWait,
+    User,
 )
 from .loader import TPVConfigLoader
 from .resource_requirements import extract_resource_requirements_from_tool
@@ -35,7 +38,17 @@ class EntityToDestinationMapper(object):
         self.default_inherits = self.config.global_config.default_inherits
         self.global_context = self.config.global_config.context
         self.lookup_tool_regex = functools.lru_cache(maxsize=None)(self.__compile_tool_regex)
-        self.inherit_matching_entities = functools.lru_cache(maxsize=None)(self.__inherit_matching_entities)
+        self._cache_inherit_matching_entities: Any = Cache(maxsize=0)
+
+        def _cache_key_ignore_context(
+            context: Dict[str, Any], entity_type: type[EntityType], entity_field: str, entity_name: str
+        ) -> tuple[type[EntityType], str, str]:
+            # ignore context in the key
+            return (entity_type, entity_field, entity_name)
+
+        self.inherit_matching_entities = cached(self._cache_inherit_matching_entities, key=_cache_key_ignore_context)(
+            self.__inherit_matching_entities
+        )
 
     def __compile_tool_regex(self, key: str) -> re.Pattern[str]:
         try:
@@ -45,13 +58,19 @@ class EntityToDestinationMapper(object):
             raise
 
     def _find_entities_matching_id(
-        self, entity_list: dict[str, EntityType], entity_name: str, default_entity: Optional[EntityType] = None
+        self,
+        context: Mapping[str, Any],
+        entity_list: dict[str, EntityType],
+        entity_name: str,
+        entity_type: type[EntityType],
     ) -> List[EntityType]:
-        default_inherits = self.__get_default_inherits(entity_list, default_entity)
+        matches: List[EntityType] = []
+        env_inherits = self.__get_environment_inherits(entity_type, context)
+        if env_inherits:
+            matches += [env_inherits]
+        default_inherits = self.__get_default_inherits(entity_list)
         if default_inherits:
-            matches = [default_inherits]
-        else:
-            matches = []
+            matches += [default_inherits]
         for key in entity_list.keys():
             if self.lookup_tool_regex(key).match(entity_name):
                 match = entity_list[key]
@@ -66,26 +85,34 @@ class EntityToDestinationMapper(object):
         return matches
 
     def __inherit_matching_entities(
-        self, entity_type: str, entity_name: str, default_entity: Optional[EntityWithRules] = None
-    ) -> Optional[EntityWithRules]:
-        entity_list: Dict[str, EntityWithRules] = getattr(self.config, entity_type)
-        matches: List[EntityWithRules] = self._find_entities_matching_id(entity_list, entity_name, default_entity)
+        self, context: Dict[str, Any], entity_type: type[EntityType], entity_field: str, entity_name: str
+    ) -> Optional[EntityType]:
+        entity_list: Dict[str, EntityType] = getattr(self.config, entity_field)
+        matches: List[EntityType] = self._find_entities_matching_id(context, entity_list, entity_name, entity_type)
         if matches:
             return self.inherit_entities(matches)
         else:
             return None
 
-    def __get_default_inherits(
-        self, entity_list: Mapping[str, EntityType], default_entity: Optional[EntityType] = None
+    def __get_environment_inherits(
+        self, entity_type: type[EntityType], context: Mapping[str, Any]
     ) -> Optional[EntityType]:
+        if issubclass(entity_type, Tool) and context.get("tool"):
+            galaxy_tool: GalaxyTool = context["tool"]
+            resource_fields = extract_resource_requirements_from_tool(galaxy_tool)
+            tpv_tool = Tool(
+                evaluator=self.loader,
+                id=f"tool_provided_resources_{getattr(galaxy_tool.dynamic_tool, 'uuid', galaxy_tool.id)}",
+                **resource_fields,
+            )
+            return cast(Optional[EntityType], tpv_tool)
+        return None
+
+    def __get_default_inherits(self, entity_list: Mapping[str, EntityType]) -> Optional[EntityType]:
         if self.default_inherits:
             default_match = entity_list.get(self.default_inherits)
             if default_match:
-                if default_entity and isinstance(default_match, Tool):
-                    return default_entity.inherit(default_match)
                 return default_match
-            else:
-                return default_entity
         return None
 
     def __apply_default_destination_inheritance(self, entity_list: Dict[str, Destination]) -> List[Destination]:
@@ -129,31 +156,24 @@ class EntityToDestinationMapper(object):
             resubmit=list(destination.resubmit.values()),
         )  # type: ignore[no-untyped-call]
 
-    def _get_default_entity(self, tool: GalaxyTool) -> Optional[Tool]:
-        resource_fields = extract_resource_requirements_from_tool(tool)
-        if resource_fields:
-            return Tool(
-                evaluator=self.loader,
-                id=f"tool_provided_resources_{getattr(tool.dynamic_tool, 'uuid', tool.id)}",
-                **resource_fields,
-            )
-        return None
-
-    def _find_matching_entities(self, tool: GalaxyTool, user: Optional[GalaxyUser]) -> List[EntityWithRules]:
+    def _find_matching_entities(
+        self, context: Dict[str, Any], tool: GalaxyTool, user: Optional[GalaxyUser]
+    ) -> List[EntityWithRules]:
         # Prefer tool uuid if available, we don't want user defined tools to be able to hijack another tools' rules.
-        tool_id = tool.id
         if tool.dynamic_tool:
             tool_id = f"{tool.tool_type}-{tool.dynamic_tool.uuid}"
-        tool_entity = self.inherit_matching_entities("tools", tool_id, self._get_default_entity(tool))
+        else:
+            tool_id = tool.id or "unknown_tool_id"
+        tool_entity = self.inherit_matching_entities(context, Tool, "tools", tool_id)
 
         if not tool_entity:
-            tool_entity = Tool(evaluator=self.loader, id=tool.id or "unknown_tool_id")
+            tool_entity = Tool(evaluator=self.loader, id=tool_id)
 
         entity_list: List[EntityWithRules] = [tool_entity]
 
         if user:
             role_entities = (
-                self.inherit_matching_entities("roles", role.name)
+                self.inherit_matching_entities(context, Role, "roles", role.name)
                 for role in user.all_roles()  # type: ignore[no-untyped-call]
                 if not role.deleted
             )
@@ -163,7 +183,7 @@ class EntityToDestinationMapper(object):
             if user_role_entity:
                 entity_list += [user_role_entity]
 
-            user_entity = self.inherit_matching_entities("users", user.email)
+            user_entity = self.inherit_matching_entities(context, User, "users", user.email)
             if user_entity:
                 entity_list += [user_entity]
 
@@ -173,7 +193,7 @@ class EntityToDestinationMapper(object):
         self, context: Dict[str, Any], tool: GalaxyTool, user: Optional[GalaxyUser]
     ) -> EntityWithRules:
         # 1. Find the entities relevant to this job
-        entity_list = self._find_matching_entities(tool, user)
+        entity_list = self._find_matching_entities(context, tool, user)
 
         # 2. Combine entity requirements
         combined_entity = self.combine_entities(entity_list)

@@ -18,6 +18,8 @@ ResourceType = Literal[
 ]
 VALID_RESOURCE_TYPES = get_args(ResourceType)
 
+TPVResourceFieldName = Literal["cores", "max_cores", "mem", "max_mem", "gpus", "max_gpus"]
+
 
 class TPVResourceFields(TypedDict, total=False):
     """Type definition for TPV entity resource fields that can be extracted from Galaxy tools."""
