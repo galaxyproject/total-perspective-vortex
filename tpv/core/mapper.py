@@ -65,12 +65,12 @@ class EntityToDestinationMapper(object):
         entity_type: type[EntityType],
     ) -> List[EntityType]:
         matches: List[EntityType] = []
-        env_inherits = self.__get_environment_inherits(entity_type, context)
-        if env_inherits:
-            matches += [env_inherits]
         default_inherits = self.__get_default_inherits(entity_list)
         if default_inherits:
             matches += [default_inherits]
+        env_inherits = self.__get_environment_inherits(entity_type, context)
+        if env_inherits:
+            matches += [env_inherits]
         for key in entity_list.keys():
             if self.lookup_tool_regex(key).match(entity_name):
                 match = entity_list[key]
