@@ -1,3 +1,9 @@
+3.1.0 - Sep 30, 2025. (sha bb20c82fd3dbf3c8b42e59956854d732a9f43365)
+--------------------------------------------------------------------
+* Remove the duplicated docs section by @martenson (PR #164)
+* Remove pipe synthax only available from py3.10 by @nagoue (PR #165)
+* Implement basic version of resource requirements by @mvdbeek (PR #166)
+
 3.0.1 - Aug 7, 2025. (sha 9273d0c5593c6aff3eb88c8ef208195d716458e9)
 --------------------------------------------------------------------
 * Fix jinja template missed in packaging step by @nuwang (PR #162)
