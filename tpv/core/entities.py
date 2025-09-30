@@ -429,20 +429,28 @@ class Entity(BaseModel):
         if self.gpus is not None:
             new_entity.gpus = self.evaluator.eval_code_block(str(self.gpus), context)
             # clamp gpus
-            new_entity.gpus = max(new_entity.min_gpus or 0, new_entity.gpus or 0)
-            new_entity.gpus = min(new_entity.max_gpus, new_entity.gpus) if new_entity.max_gpus else new_entity.gpus
+            new_entity.gpus = (
+                max(new_entity.min_gpus or 0, new_entity.gpus or 0) if new_entity.min_gpus else new_entity.gpus
+            )
+            new_entity.gpus = (
+                min(new_entity.max_gpus or 0, new_entity.gpus or 0) if new_entity.max_gpus else new_entity.gpus
+            )
             context["gpus"] = new_entity.gpus
         if self.cores is not None:
             new_entity.cores = self.evaluator.eval_code_block(str(self.cores), context)
             # clamp cores
-            new_entity.cores = max(new_entity.min_cores or 0, new_entity.cores or 0)
-            new_entity.cores = min(new_entity.max_cores, new_entity.cores) if new_entity.max_cores else new_entity.cores
+            new_entity.cores = (
+                max(new_entity.min_cores or 0, new_entity.cores or 0) if new_entity.min_cores else new_entity.cores
+            )
+            new_entity.cores = (
+                min(new_entity.max_cores or 0, new_entity.cores or 0) if new_entity.max_cores else new_entity.cores
+            )
             context["cores"] = new_entity.cores
         if self.mem is not None:
             new_entity.mem = self.evaluator.eval_code_block(str(self.mem), context)
             # clamp mem
-            new_entity.mem = max(new_entity.min_mem or 0, new_entity.mem or 0)
-            new_entity.mem = min(new_entity.max_mem, new_entity.mem or 0) if new_entity.max_mem else new_entity.mem
+            new_entity.mem = max(new_entity.min_mem or 0, new_entity.mem or 0) if new_entity.min_mem else new_entity.mem
+            new_entity.mem = min(new_entity.max_mem or 0, new_entity.mem or 0) if new_entity.max_mem else new_entity.mem
             context["mem"] = new_entity.mem
         return new_entity
 
@@ -577,7 +585,6 @@ class EntityWithRules(Entity):
 
 class Tool(EntityWithRules):
     merge_order: ClassVar[int] = 2
-    pass
 
 
 class Role(EntityWithRules):

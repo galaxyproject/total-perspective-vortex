@@ -1,0 +1,20 @@
+global:
+  default_inherits: default
+
+tools:
+  default:
+    cores: 1
+  user_defined-*:
+    gpus: 2
+    scheduling:
+      require:
+        - support-user-defined-tools
+
+destinations:
+  local:
+    runner: local
+  pulsar_environment:
+    runner: pulsar
+    scheduling:
+      accept:
+        - support-user-defined-tools

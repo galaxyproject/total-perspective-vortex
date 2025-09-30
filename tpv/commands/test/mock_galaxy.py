@@ -5,6 +5,7 @@ from galaxy.job_metrics import JobMetrics
 from galaxy.jobs import JobConfiguration
 from galaxy.model import mapping
 from galaxy.structured_app import MinimalManagerApp
+from galaxy.tool_util.deps.requirements import ResourceRequirement
 from galaxy.util import bunch
 from galaxy.web_stack import ApplicationStack
 
@@ -103,10 +104,23 @@ class Job:
         return self.param_values
 
 
+class DynamicTool:
+    def __init__(self, uuid: str):
+        self.uuid = uuid
+
+
 # Tool mock and helpers=========================================
 class Tool:
-    def __init__(self, id: str, version: Optional[str] = None):
+    def __init__(
+        self,
+        id: str,
+        version: Optional[str] = None,
+        resource_requirements: Optional[List[ResourceRequirement]] = None,
+        dynamic_tool: Optional[DynamicTool] = None,
+    ):
         self.id = id
         self.old_id = id
         self.version = version
         self.installed_tool_dependencies: List[Any] = []
+        self.resource_requirements = resource_requirements or []
+        self.dynamic_tool = dynamic_tool
