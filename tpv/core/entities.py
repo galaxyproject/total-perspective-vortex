@@ -15,6 +15,9 @@ from typing import (
     List,
     Optional,
     Set,
+    Type,
+    TypeVar,
+    Union,
     cast,
 )
 
@@ -48,7 +51,7 @@ class TryNextDestinationOrWait(Exception):
 class TPVFieldMetadata:
     # complex properties are always evaluated as f-strings
     complex_property: bool = False
-    return_type: type | None = None
+    return_type: Union[type, None] = None
     eval_as_f_string: bool = False
 
 
@@ -140,7 +143,7 @@ class SchedulingTags(BaseModel):
 
     def filter(
         self,
-        tag_type: Optional[TagType | list[TagType]] = None,
+        tag_type: Optional[Union[TagType, list[TagType]]] = None,
         tag_value: Optional[str] = None,
     ) -> Iterable[Tag]:
         filtered = self.tags
@@ -245,15 +248,15 @@ class Entity(BaseModel):
     id: str = ""
     abstract: Optional[bool] = False
     inherits: Optional[str] = None
-    cores: Annotated[Optional[int | float | str], TPVFieldMetadata()] = None
-    mem: Annotated[Optional[int | float | str], TPVFieldMetadata()] = None
-    gpus: Annotated[Optional[int | str], TPVFieldMetadata()] = None
-    min_cores: Annotated[Optional[int | float | str], TPVFieldMetadata()] = None
-    min_mem: Annotated[Optional[int | float | str], TPVFieldMetadata()] = None
-    min_gpus: Annotated[Optional[int | str], TPVFieldMetadata()] = None
-    max_cores: Annotated[Optional[int | float | str], TPVFieldMetadata()] = None
-    max_mem: Annotated[Optional[int | float | str], TPVFieldMetadata()] = None
-    max_gpus: Annotated[Optional[int | str], TPVFieldMetadata()] = None
+    cores: Annotated[Optional[Union[int, float, str]], TPVFieldMetadata()] = None
+    mem: Annotated[Optional[Union[int, float, str]], TPVFieldMetadata()] = None
+    gpus: Annotated[Optional[Union[int, str]], TPVFieldMetadata()] = None
+    min_cores: Annotated[Optional[Union[int, float, str]], TPVFieldMetadata()] = None
+    min_mem: Annotated[Optional[Union[int, float, str]], TPVFieldMetadata()] = None
+    min_gpus: Annotated[Optional[Union[int, str]], TPVFieldMetadata()] = None
+    max_cores: Annotated[Optional[Union[int, float, str]], TPVFieldMetadata()] = None
+    max_mem: Annotated[Optional[Union[int, float, str]], TPVFieldMetadata()] = None
+    max_gpus: Annotated[Optional[Union[int, str]], TPVFieldMetadata()] = None
     env: Annotated[Optional[List[Dict[str, str]]], TPVFieldMetadata(complex_property=True)] = None
     params: Annotated[Optional[Dict[str, Any]], TPVFieldMetadata(complex_property=True)] = None
     resubmit: Annotated[Dict[str, str], TPVFieldMetadata(complex_property=True)] = Field(default_factory=lambda: dict())
@@ -287,7 +290,7 @@ class Entity(BaseModel):
                         else:
                             evaluator.compile_code_block(value)
 
-    def __deepcopy__(self, memo: dict[int, Any] | None = None) -> Self:
+    def __deepcopy__(self, memo: Union[dict[int, Any], None] = None) -> Self:
         # satisfy mypy by ensuring memo is never None
         if memo is None:
             memo = {}  # pragma: no cover
@@ -498,7 +501,7 @@ class Entity(BaseModel):
 class Rule(Entity):
     rule_counter: ClassVar[int] = 0
     id: str = Field(default_factory=lambda: Rule.set_default_id())
-    if_condition: Annotated[str | bool, TPVFieldMetadata()] = Field(alias="if")
+    if_condition: Annotated[Union[str, bool], TPVFieldMetadata()] = Field(alias="if")
     execute: Annotated[Optional[str], TPVFieldMetadata(return_type=type(None))] = None
     fail: Annotated[Optional[str], TPVFieldMetadata(eval_as_f_string=True)] = None
 
@@ -595,11 +598,11 @@ class User(EntityWithRules):
 class Destination(EntityWithRules):
     merge_order: ClassVar[int] = 5
     runner: Optional[str] = None
-    max_accepted_cores: Optional[int | float] = None
-    max_accepted_mem: Optional[int | float] = None
+    max_accepted_cores: Optional[Union[int, float]] = None
+    max_accepted_mem: Optional[Union[int, float]] = None
     max_accepted_gpus: Optional[int] = None
-    min_accepted_cores: Optional[int | float] = None
-    min_accepted_mem: Optional[int | float] = None
+    min_accepted_cores: Optional[Union[int, float]] = None
+    min_accepted_mem: Optional[Union[int, float]] = None
     min_accepted_gpus: Optional[int] = None
     dest_name: Optional[str] = Field(alias="destination_name_override", default=None)
     # tpv_tags track what tags the entity being scheduled requested, while tpv_dest_tags track what the destination
