@@ -161,7 +161,7 @@ class TestMapperResourceRequirements(unittest.TestCase):
         destination = self._map_to_destination(tool, user, datasets)
 
         self.assertIsNotNone(destination)
-        assert destination.params["native_spec"] == "--mem 8 --cores 2 --gpus 2"
+        assert destination.params["native_spec"] == "--mem 8 --cores 3 --gpus 2"
 
     def test_user_defined_tool_correctly_routed(self):
         tool = mock_galaxy.Tool("user_defined", mock_galaxy.DynamicTool("08175037-030a-44c5-8468-c9d36cc29067"))
