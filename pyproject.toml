@@ -17,6 +17,7 @@ maintainers = [
 version = "3.0.1"
 dependencies = [
     "cachetools>=3.1.0",
+    "types-cachetools",
     "watchdog",
     "requests",
     "ruamel.yaml",
