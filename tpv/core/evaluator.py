@@ -1,6 +1,6 @@
 import abc
 from types import CodeType
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, Tuple, Union
 
 
 class TPVCodeEvaluator(abc.ABC):
