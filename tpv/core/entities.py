@@ -780,7 +780,13 @@ class TPVConfig(BaseModel):
             child_value = TPVConfig.recursively_extract_comments(value)
 
             # If we see any comment tokens, store them in "no_qa_codes"
-            if comments and len(comments) == 4 and comments[3]:
+            # Only process comments for entity definitions, not for collection keys like 'tools', 'users', etc.
+            if (
+                comments
+                and len(comments) == 4
+                and comments[3]
+                and key not in ("tools", "users", "roles", "destinations", "global")
+            ):
                 no_qa_codes = TPVConfig.get_noqa_codes([x.value.strip() for x in comments[3]])
 
                 # If child_value is a dict, put comment_data under a "no_qa_codes" key
