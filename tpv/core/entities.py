@@ -749,14 +749,14 @@ class TPVConfig(BaseModel):
         return TPVConfig.recursively_extract_comments(data)
 
     @staticmethod
-    def get_noqa_codes(entity_comments: List[str]) -> Set[str]:
+    def get_noqa_codes(entity_comments: List[str]) -> List[str]:
         for comment in entity_comments:
             match = NOQA_RE.match(comment)
             if match:
                 codes = match.group(1)
                 # Return a set of codes or None if `# noqa` with no codes
-                return set(code.strip() for code in codes.split(",")) if codes else set(("noqa",))
-        return set()
+                return list(set(code.strip() for code in codes.split(",")) if codes else set(("noqa",)))
+        return []
 
     @staticmethod
     def recursively_extract_comments(cm: CommentedMap) -> Any:
