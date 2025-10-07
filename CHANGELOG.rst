@@ -1,3 +1,9 @@
+3.1.1 - Oct 7, 2025. (sha 057a391506c535d74be295e32e6249f4e28cb414)
+--------------------------------------------------------------------
+* Match TPVConfig model, return list, not set of strings by @mvdbeek (PR #170)
+* Allow floats in GPU related fields by @mvdbeek (PR #173)
+* Fix comments under tools: key by @mvdbeek (PR #171)
+
 3.1.0 - Sep 30, 2025. (sha bb20c82fd3dbf3c8b42e59956854d732a9f43365)
 --------------------------------------------------------------------
 * Remove the duplicated docs section by @martenson (PR #164)
