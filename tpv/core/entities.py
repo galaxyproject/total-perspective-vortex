@@ -786,7 +786,7 @@ class TPVConfig(BaseModel):
                 # If child_value is a dict, put comment_data under a "no_qa_codes" key
                 # that your sub-models can handle. If child_value is not a dict,
                 # we convert it to a dict so we can attach metadata.
-                if isinstance(child_value, dict):
+                if isinstance(child_value, dict) and no_qa_codes:
                     # no_qa_codes can now be parsed by the Entity model
                     child_value["no_qa_codes"] = no_qa_codes
 
