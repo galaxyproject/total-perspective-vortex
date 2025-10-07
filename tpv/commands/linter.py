@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Optional, Tuple, Union
 
 from pydantic import BaseModel
 
@@ -29,7 +29,7 @@ class TPVConfigLinter(object):
         self.ignore: List[str] = ignore or []
         self.preserve_temp_code = preserve_temp_code
         self.warnings: List[Tuple[str, str]] = []
-        self.errors: List[str | Tuple[str, str]] = []
+        self.errors: List[Union[str, Tuple[str, str]]] = []
         self.loader: Optional[TPVConfigLoader] = None
 
     def load_config(self) -> None:

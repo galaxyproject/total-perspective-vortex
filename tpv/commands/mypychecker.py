@@ -104,8 +104,8 @@ def render_optional_union(type_names: List[str]) -> str:
     elif len(cleaned) == 1:
         return f"Optional[{cleaned[0]}]"
     else:
-        union_part = " | ".join(sorted(cleaned))
-        return f"Optional[{union_part}]"
+        union_part = " , ".join(sorted(cleaned))
+        return f"Optional[Union[{union_part}]]"
 
 
 def gather_all_evaluable_code(
