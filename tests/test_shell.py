@@ -159,8 +159,8 @@ class TPVShellTestCase(unittest.TestCase):
             f'Too many arguments for "Tag" but output was: {output}',
         )
         self.assertTrue(
-            'Item "None" of "User | None" has no attribute "extra_preferences"' in output,
-            f'Expected Item "None" of "User | None" has no attribute "extra_preferences" but output was: {output}',
+            'Item "None" of "Optional[User]" has no attribute "extra_preferences"' in output,
+            f'Expected Item "None" of "Optional[User]" has no attribute "extra_preferences" but output was: {output}',
         )
 
     def test_lint_types_preserve_temp_code(self):
@@ -224,8 +224,8 @@ class TPVShellTestCase(unittest.TestCase):
             f"check_invalid_str_assignment_generates_errors but saw: {output}",
         )
         self.assertTrue(
-            'error: Item "int" of "int | str" has no attribute "capitalize"' in output,
-            'Expected error: Item "int" of "int | str" has no attribute "capitalize" due to '
+            'error: Item "int" of "Union[int, str]" has no attribute "capitalize' in output,
+            'Expected error: Item "int" of "Union[int, str]" has no attribute "capitalize due to '
             f"check_mismatching_inherited_types_expands_possible_types but saw: {output}",
         )
         # not the most robust method to isolate whether there's any other breakage, but easier than splitting things
