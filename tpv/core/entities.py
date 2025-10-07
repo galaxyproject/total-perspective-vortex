@@ -250,13 +250,13 @@ class Entity(BaseModel):
     inherits: Optional[str] = None
     cores: Annotated[Optional[Union[int, float, str]], TPVFieldMetadata()] = None
     mem: Annotated[Optional[Union[int, float, str]], TPVFieldMetadata()] = None
-    gpus: Annotated[Optional[Union[int, str]], TPVFieldMetadata()] = None
+    gpus: Annotated[Optional[Union[int, float, str]], TPVFieldMetadata()] = None
     min_cores: Annotated[Optional[Union[int, float, str]], TPVFieldMetadata()] = None
     min_mem: Annotated[Optional[Union[int, float, str]], TPVFieldMetadata()] = None
-    min_gpus: Annotated[Optional[Union[int, str]], TPVFieldMetadata()] = None
+    min_gpus: Annotated[Optional[Union[int, float, str]], TPVFieldMetadata()] = None
     max_cores: Annotated[Optional[Union[int, float, str]], TPVFieldMetadata()] = None
     max_mem: Annotated[Optional[Union[int, float, str]], TPVFieldMetadata()] = None
-    max_gpus: Annotated[Optional[Union[int, str]], TPVFieldMetadata()] = None
+    max_gpus: Annotated[Optional[Union[int, float, str]], TPVFieldMetadata()] = None
     env: Annotated[Optional[List[Dict[str, str]]], TPVFieldMetadata(complex_property=True)] = None
     params: Annotated[Optional[Dict[str, Any]], TPVFieldMetadata(complex_property=True)] = None
     resubmit: Annotated[Dict[str, str], TPVFieldMetadata(complex_property=True)] = Field(default_factory=lambda: dict())
@@ -600,10 +600,10 @@ class Destination(EntityWithRules):
     runner: Optional[str] = None
     max_accepted_cores: Optional[Union[int, float]] = None
     max_accepted_mem: Optional[Union[int, float]] = None
-    max_accepted_gpus: Optional[int] = None
+    max_accepted_gpus: Optional[Union[int, float]] = None
     min_accepted_cores: Optional[Union[int, float]] = None
     min_accepted_mem: Optional[Union[int, float]] = None
-    min_accepted_gpus: Optional[int] = None
+    min_accepted_gpus: Optional[Union[int, float]] = None
     dest_name: Optional[str] = Field(alias="destination_name_override", default=None)
     # tpv_tags track what tags the entity being scheduled requested, while tpv_dest_tags track what the destination
     # supports. When serializing a Destination, we don't need tpv_tags, only tpv_dest_tags.
