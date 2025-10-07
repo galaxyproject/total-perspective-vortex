@@ -1,7 +1,9 @@
+# top-level comment that should be ignored
 global:
   default_inherits: default
 
 tools:
+  # tool-level comment that should be ignored
   default:
     abstract: true
     cores: 2
@@ -9,6 +11,7 @@ tools:
     params:
       native_spec: "--mem {mem} --cores {cores} --gpus {gpus}"
   mem-no-cores-1:
+    # within-tool comment that should be ignored
     mem: 16
   cores-no-mem-1:
     cores: 8
