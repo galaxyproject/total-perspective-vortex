@@ -1,26 +1,4 @@
 wheel
 parameterized
-galaxy-util
-galaxy-schema
-galaxy-objectstore
-galaxy-files
-galaxy-data
-galaxy-auth
-galaxy-selenium
-galaxy-data
-galaxy-job-execution
-galaxy-job-metrics
-galaxy-tool-util
-galaxy-web-stack
-galaxy-config
-galaxy-web-framework
-pytest-celery # required for the resubmission tests
-galaxy-web-apps
+galaxy
 .[test]
-# The following packages are needed for resubmit integration testing (except galaxy-app)
-galaxy-job-execution
-edam-ontology
-dictobj
-galaxy-test-base
-galaxy-app
-galaxy-test-driver
