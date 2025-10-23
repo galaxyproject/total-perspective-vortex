@@ -104,7 +104,8 @@ def map_tool_to_destination(
     resolved_tpv_configs = cast(JOB_YAML_CONFIG_TYPE, tpv_configs or tpv_config_files)
     if not resolved_tpv_configs:
         raise ValueError("One of tpv_configs or tpv_config_files must be specified in execution environment.")
-    destination_mapper = lock_and_load_mapper(app, referrer.id if referrer else "tpv_dispatcher", resolved_tpv_configs)
+    referrer_id = referrer.id if referrer else None
+    destination_mapper = lock_and_load_mapper(app, referrer_id or "tpv_dispatcher", resolved_tpv_configs)
     return destination_mapper.map_to_destination(
         app, tool, user, job, job_wrapper, resource_params, workflow_invocation_uuid
     )
