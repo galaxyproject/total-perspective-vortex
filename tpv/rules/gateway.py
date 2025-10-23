@@ -19,7 +19,7 @@ log = logging.getLogger(__name__)
 
 JOB_YAML_CONFIG_TYPE = Union[List[Union[str, Dict[str, Any]]], str, Dict[str, Any]]
 
-ACTIVE_DESTINATION_MAPPERS = {}
+ACTIVE_DESTINATION_MAPPERS: dict[str, EntityToDestinationMapper] = {}
 DESTINATION_MAPPER_LOCK = threading.Lock()
 WATCHERS_BY_CONFIG_FILE: dict[str, Any] = {}
 REFERRERS_BY_CONFIG_FILE: dict[str, dict[str, JOB_YAML_CONFIG_TYPE]] = defaultdict(dict)
@@ -92,7 +92,7 @@ def map_tool_to_destination(
     tool: GalaxyTool,
     user: Optional[GalaxyUser],
     # the destination referring to the TPV dynamic destination, usually named "tpv_dispatcher"
-    referrer: str = "tpv_dispatcher",
+    referrer: Optional[JobDestination] = None,
     tpv_config_files: Optional[JOB_YAML_CONFIG_TYPE] = None,
     tpv_configs: Optional[JOB_YAML_CONFIG_TYPE] = None,
     job_wrapper: Optional[JobWrapper] = None,
@@ -104,7 +104,7 @@ def map_tool_to_destination(
     resolved_tpv_configs = cast(JOB_YAML_CONFIG_TYPE, tpv_configs or tpv_config_files)
     if not resolved_tpv_configs:
         raise ValueError("One of tpv_configs or tpv_config_files must be specified in execution environment.")
-    destination_mapper = lock_and_load_mapper(app, referrer, resolved_tpv_configs)
+    destination_mapper = lock_and_load_mapper(app, referrer.id if referrer else "tpv_dispatcher", resolved_tpv_configs)
     return destination_mapper.map_to_destination(
         app, tool, user, job, job_wrapper, resource_params, workflow_invocation_uuid
     )

@@ -4,6 +4,7 @@ import tempfile
 import time
 import unittest
 
+from galaxy.jobs import JobDestination
 from galaxy.jobs.mapper import JobMappingException, JobNotReadyException
 
 from tpv.commands.test import mock_galaxy
@@ -20,7 +21,7 @@ class TestMapperRules(unittest.TestCase):
         param_values=None,
         tpv_config_files=None,
         app=None,
-        referrer="tpv_dispatcher",
+        referrer=None,
         reset_mappers=True,
     ):
         galaxy_app = app or mock_galaxy.App(job_conf=os.path.join(os.path.dirname(__file__), "fixtures/job_conf.yml"))
@@ -33,7 +34,7 @@ class TestMapperRules(unittest.TestCase):
         if reset_mappers:
             gateway.ACTIVE_DESTINATION_MAPPERS = {}
         return gateway.map_tool_to_destination(
-            galaxy_app, job, tool, user, tpv_config_files=tpv_configs, referrer=referrer
+            galaxy_app, job, tool, user, tpv_config_files=tpv_configs, referrer=JobDestination(id="tpv_dispatcher")
         )
 
     def test_map_rule_size_small(self):
@@ -186,7 +187,7 @@ class TestMapperRules(unittest.TestCase):
                 user,
                 datasets,
                 tpv_config_files=[tmp_file.name],
-                referrer="tpv_dispatcher1",
+                referrer=JobDestination(id="tpv_dispatcher1"),
                 reset_mappers=True,
             )
             self.assertEqual(
@@ -198,7 +199,7 @@ class TestMapperRules(unittest.TestCase):
                 user,
                 datasets,
                 tpv_config_files=[tmp_file.name],
-                referrer="tpv_dispatcher2",
+                referrer=JobDestination(id="tpv_dispatcher2"),
                 reset_mappers=False,
             )
             self.assertEqual(
@@ -219,7 +220,7 @@ class TestMapperRules(unittest.TestCase):
                 user,
                 datasets,
                 tpv_config_files=[tmp_file.name],
-                referrer="tpv_dispatcher1",
+                referrer=JobDestination(id="tpv_dispatcher1"),
                 reset_mappers=False,
             )
             self.assertEqual(
@@ -231,7 +232,7 @@ class TestMapperRules(unittest.TestCase):
                 user,
                 datasets,
                 tpv_config_files=[tmp_file.name],
-                referrer="tpv_dispatcher2",
+                referrer=JobDestination(id="tpv_dispatcher2"),
                 reset_mappers=False,
             )
             self.assertEqual(

@@ -1,6 +1,8 @@
 import os
 import unittest
 
+from galaxy.jobs import JobDestination
+
 from tpv.commands.test import mock_galaxy
 from tpv.core.entities import Destination, Tag, TagType, Tool
 from tpv.core.loader import TPVConfigLoader
@@ -10,9 +12,16 @@ from tpv.rules import gateway
 class TestEntity(unittest.TestCase):
 
     @staticmethod
-    def _map_to_destination(app, job, tool, user, referrer="tpv_dispatcher"):
+    def _map_to_destination(app, job, tool, user, referrer=None):
         tpv_config = os.path.join(os.path.dirname(__file__), "fixtures/mapping-rule-argument-based.yml")
-        return gateway.map_tool_to_destination(app, job, tool, user, tpv_config_files=[tpv_config], referrer=referrer)
+        return gateway.map_tool_to_destination(
+            app,
+            job,
+            tool,
+            user,
+            tpv_config_files=[tpv_config],
+            referrer=referrer or JobDestination(id="tpv_dispatcher"),
+        )
 
     # issue: https://github.com/galaxyproject/total-perspective-vortex/issues/53
     def test_all_entities_refer_to_same_loader(self):
@@ -45,8 +54,8 @@ class TestEntity(unittest.TestCase):
         user = mock_galaxy.User("ford", "prefect@vortex.org")
 
         # just map something so the ACTIVE_DESTINATION_MAPPERS is populated
-        self._map_to_destination(app, job, tool, user, referrer="tpv_dispatcher1")
-        self._map_to_destination(app, job, tool, user, referrer="tpv_dispatcher2")
+        self._map_to_destination(app, job, tool, user, referrer=JobDestination(id="tpv_dispatcher1"))
+        self._map_to_destination(app, job, tool, user, referrer=JobDestination(id="tpv_dispatcher2"))
 
         # make sure loaders are unique
         assert (
