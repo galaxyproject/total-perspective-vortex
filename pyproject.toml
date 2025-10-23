@@ -30,7 +30,7 @@ dependencies = [
 cli = [
   # include base dependencies: https://github.com/pypa/pip/issues/10393
   "total-perspective-vortex",
-  "galaxy-app"
+  "galaxy"
 ]
 test = [
   "total-perspective-vortex[cli]",
