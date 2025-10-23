@@ -14,7 +14,7 @@ authors = [
 maintainers = [
     {name = "Galaxy Committers", email = "galaxy-committers@lists.galaxyproject.org"}
 ]
-version = "3.1.1"
+version = "3.1.2"
 dependencies = [
     "cachetools>=3.1.0",
     "types-cachetools",

@@ -1,3 +1,7 @@
+3.1.2 - Oct 29, 2025. (sha 39b49e0f650e10525e66a09b0d6cb6d59beb1eb5)
+--------------------------------------------------------------------
+* Fix invalid referrer type by @nuwang (PR #177)
+
 3.1.1 - Oct 7, 2025. (sha 057a391506c535d74be295e32e6249f4e28cb414)
 --------------------------------------------------------------------
 * Match TPVConfig model, return list, not set of strings by @mvdbeek (PR #170)
