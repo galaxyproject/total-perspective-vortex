@@ -1,6 +1,6 @@
 wheel
 parameterized
 # temporary fastapi pin due to: https://github.com/galaxyproject/galaxy/pull/21156
-fastapi<0.119
+fastapi<0.121
 galaxy
 .[test]
