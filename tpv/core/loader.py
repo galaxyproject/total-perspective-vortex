@@ -118,12 +118,13 @@ class TPVConfigLoader(TPVCodeEvaluator):
         entities_new: Dict[str, EntityType],
     ) -> Dict[str, EntityType]:
         for entity in entities_new.values():
-            if entities_parent.get(entity.id):
+            if entities_parent.get(entity.id) and not entity.inherits:
                 parent_entity = entities_parent.get(entity.id)
                 del entities_parent[entity.id]
-                # reinsert at the end
                 entities_parent[entity.id] = entity.inherit(cast(EntityType, parent_entity))
             else:
+                # If no parent entity or the new entity explicitly declares inheritance, keep
+                # its own inheritance chain intact
                 entities_parent[entity.id] = entity
         return entities_parent
 
