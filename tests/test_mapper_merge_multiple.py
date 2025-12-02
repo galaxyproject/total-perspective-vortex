@@ -156,7 +156,7 @@ class TestMapperMergeMultipleConfigs(unittest.TestCase):
 
         self.assertEqual(destination.id, "k8s_environment")
         # local tool inherits from another local tool and should override the remote definition
-        self.assertEqual(destination.params["native_spec"], "--mem 15 --cores 5")
+        self.assertEqual(destination.params["native_spec"], "--mem 15 --cores 5 --gpus 3")
         self.assertEqual(
             [env["value"] for env in destination.env if env["name"] == "LOCAL_PARENT"],
             ["5"],
@@ -164,4 +164,8 @@ class TestMapperMergeMultipleConfigs(unittest.TestCase):
         self.assertEqual(
             [env["value"] for env in destination.env if env["name"] == "LOCAL_OVERRIDE"],
             ["yes"],
+        )
+        self.assertEqual(
+            [env["value"] for env in destination.env if env["name"] == "REMOTE_MARKER"],
+            ["remote"],
         )

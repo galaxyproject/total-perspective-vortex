@@ -45,6 +45,7 @@ tools:
   remote_tool_inherit_test:
     cores: 2
     mem: 6
+    gpus: 3
     env:
       REMOTE_MARKER: "remote"
     params:

@@ -52,7 +52,7 @@ tools:
     env:
       LOCAL_PARENT: "{cores}"
     params:
-      native_spec: "--mem {mem} --cores {cores}"
+      native_spec: "--mem {mem} --cores {cores} --gpus {gpus}"
     scheduling:
       require:
         - pulsar
@@ -90,7 +90,7 @@ destinations:
     runner: k8s
     max_accepted_cores: 16
     max_accepted_mem: 64
-    max_accepted_gpus: 2
+    max_accepted_gpus: 5
     scheduling:
       prefer:
         - pulsar
