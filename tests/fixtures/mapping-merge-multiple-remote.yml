@@ -42,6 +42,16 @@ tools:
         scheduling:
           require:
             - highmem
+  remote_tool_inherit_test:
+    cores: 2
+    mem: 6
+    env:
+      REMOTE_MARKER: "remote"
+    params:
+      native_spec: "--mem {mem} --cores {cores}"
+    scheduling:
+      require:
+        - pulsar
   toolshed.g2.bx.psu.edu/repos/iuc/disco/.*:
     cores: 8
     mem: 24
