@@ -117,16 +117,38 @@ class TPVConfigLoader(TPVCodeEvaluator):
         entities_parent: Dict[str, EntityType],
         entities_new: Dict[str, EntityType],
     ) -> Dict[str, EntityType]:
+        """
+        Merge parent and new entity mappings. Later definitions override earlier ones.
+        If a new entity declares `inherits`, graft the existing definition as the base
+        of that chain so shared/remote defaults flow through while local parents can
+        still override.
+        """
+        merged_entities = dict(entities_parent)
+
         for entity in entities_new.values():
-            if entities_parent.get(entity.id) and not entity.inherits:
-                parent_entity = entities_parent.get(entity.id)
-                del entities_parent[entity.id]
-                entities_parent[entity.id] = entity.inherit(cast(EntityType, parent_entity))
+            parent_entity = merged_entities.get(entity.id)
+
+            if parent_entity is not None and entity.inherits:
+                root_parent_id = entity.inherits
+                root_parent_entity = entities_new.get(root_parent_id) or merged_entities.get(root_parent_id)
+                if root_parent_entity:
+                    if root_parent_id in merged_entities:
+                        merged_entities.pop(root_parent_id)
+                    merged_entities[root_parent_id] = root_parent_entity.inherit(parent_entity)
+                    if entity.id in merged_entities:
+                        merged_entities.pop(entity.id)
+                    merged_entities[entity.id] = entity
+                    continue
+                else:
+                    entity = entity.inherit(parent_entity)
+
+            if parent_entity is not None:
+                merged_entities.pop(entity.id, None)
+                merged_entities[entity.id] = entity.inherit(parent_entity)
             else:
-                # If no parent entity or the new entity explicitly declares inheritance, keep
-                # its own inheritance chain intact
-                entities_parent[entity.id] = entity
-        return entities_parent
+                merged_entities[entity.id] = entity
+
+        return merged_entities
 
     def merge_config(self, parent_config: TPVConfig) -> None:
         self.inherit_globals(parent_config.global_config)
