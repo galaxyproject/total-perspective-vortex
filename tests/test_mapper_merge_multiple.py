@@ -169,3 +169,37 @@ class TestMapperMergeMultipleConfigs(unittest.TestCase):
             [env["value"] for env in destination.env if env["name"] == "REMOTE_MARKER"],
             ["remote"],
         )
+
+    def test_merge_remote_tool_with_deep_local_inheritance_chain(self):
+        tool = mock_galaxy.Tool("remote_tool_deep")
+        user = mock_galaxy.User("ford", "prefect@vortex.org")
+
+        config_first = os.path.join(os.path.dirname(__file__), "fixtures/mapping-merge-multiple-remote.yml")
+        config_second = os.path.join(os.path.dirname(__file__), "fixtures/mapping-merge-multiple-local.yml")
+
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=7 * 1024**3))]
+        destination = self._map_to_destination(tool, user, datasets, tpv_config_paths=[config_first, config_second])
+
+        self.assertEqual(destination.id, "k8s_environment")
+        # remote is grafted at the base, but local parents still override cores/mem
+        self.assertEqual(destination.params["native_spec"], "--mem 21 --cores 7 --gpus 3")
+        self.assertEqual(
+            [env["value"] for env in destination.env if env["name"] == "TEST_JOB_SLOTS"],
+            ["7"],
+        )
+        self.assertEqual(
+            [env["value"] for env in destination.env if env["name"] == "ROOT_MARKER"],
+            ["7"],
+        )
+        self.assertEqual(
+            [env["value"] for env in destination.env if env["name"] == "MID_MARKER"],
+            ["mid"],
+        )
+        self.assertEqual(
+            [env["value"] for env in destination.env if env["name"] == "LOCAL_DEEP_OVERRIDE"],
+            ["yes"],
+        )
+        self.assertEqual(
+            [env["value"] for env in destination.env if env["name"] == "REMOTE_DEEP"],
+            ["remote"],
+        )
