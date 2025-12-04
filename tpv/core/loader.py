@@ -140,38 +140,17 @@ class TPVConfigLoader(TPVCodeEvaluator):
 
         merged: Dict[str, EntityType] = dict(entities_parent)
 
-        def build_grafted_parent(
-            overriding_entity: EntityType, prior_definition: EntityType, visited: set[str] | None = None
-        ) -> EntityType:
-            """
-            Build an effective parent for the overriding entity by grafting the prior
-            definition (e.g. remote/shared) into the top of the declared inheritance chain.
-            The chain is resolved per child to avoid cross-contamination when multiple
-            children share the same base.
-            """
-            grafted_parent = prior_definition
-            parent_id = overriding_entity.inherits
-            if parent_id:
-                parent_entity = entities_new.get(parent_id) or merged.get(parent_id)
-                if not parent_entity:
-                    raise InvalidParentException(
-                        f"The specified parent: {parent_id} for entity: {overriding_entity.id} does not exist"
-                    )
-                # Delegate cycle detection and full resolution to process_inheritance,
-                # which now raises on cycles/missing parents.
-                resolved_parent = TPVConfigLoader.process_inheritance(
-                    {**merged, **entities_new}, parent_entity, visited or set()
-                )
-                grafted_parent = resolved_parent.inherit(prior_definition)
-            return grafted_parent
-
         for entity in entities_new.values():
             prior_definition = merged.get(entity.id)
 
             if prior_definition:
-                grafted_base = build_grafted_parent(entity, prior_definition)
+                # resolve this entity's inheritance chain
+                resolved_entity = TPVConfigLoader.process_inheritance({**merged, **entities_new}, entity)
                 merged.pop(entity.id, None)  # keep later definitions at the end
-                merged[entity.id] = entity.inherit(grafted_base)
+                # now inherit the parent's definition. Since the prior_definition comes from the earlier loader
+                # (entities_parent), which has already had process_inheritance run during its own load, its
+                # inheritance chain has already been fully resolved.
+                merged[entity.id] = resolved_entity.inherit(prior_definition)
             else:
                 merged[entity.id] = entity
 

@@ -281,6 +281,28 @@ class TestMapperMergeMultipleConfigs(unittest.TestCase):
         self.assertEqual([env["value"] for env in destination.env if env["name"] == "REMOTE_DEEP_TWO"], ["two"])
         self.assertFalse([env for env in destination.env if env["name"] == "REMOTE_DEEP_ONE"])
 
+    def test_remote_prior_with_deep_chain(self):
+        config_first = os.path.join(os.path.dirname(__file__), "fixtures/mapping-merge-multiple-remote.yml")
+        config_second = os.path.join(os.path.dirname(__file__), "fixtures/mapping-merge-multiple-local.yml")
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=7 * 1024**3))]
+
+        tool = mock_galaxy.Tool("remote_prior_child")
+        destination = self._map_to_destination(
+            tool,
+            mock_galaxy.User("ford", "prefect@vortex.org"),
+            datasets,
+            tpv_config_paths=[config_first, config_second],
+        )
+        self.assertEqual(destination.id, "k8s_environment")
+        # local deep chain sets cores/mem, remote contributes gpus and remote markers
+        self.assertEqual(destination.params["native_spec"], "--mem 17.5 --cores 5 --gpus 2")
+        self.assertEqual([env["value"] for env in destination.env if env["name"] == "LOCAL_PRIOR_BASE"], ["base"])
+        self.assertEqual([env["value"] for env in destination.env if env["name"] == "LOCAL_PRIOR_MID"], ["mid"])
+        self.assertEqual([env["value"] for env in destination.env if env["name"] == "LOCAL_PRIOR_LEAF"], ["leaf"])
+        self.assertEqual([env["value"] for env in destination.env if env["name"] == "REMOTE_PRIOR_ROOT"], ["root"])
+        self.assertEqual([env["value"] for env in destination.env if env["name"] == "REMOTE_PRIOR_MID"], ["mid"])
+        self.assertEqual([env["value"] for env in destination.env if env["name"] == "REMOTE_PRIOR_LEAF"], ["leaf"])
+
     def test_missing_local_parent_raises(self):
         tool = mock_galaxy.Tool("remote_missing_parent")
         user = mock_galaxy.User("ford", "prefect@vortex.org")

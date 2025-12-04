@@ -126,6 +126,27 @@ tools:
     scheduling:
       require:
         - pulsar
+  remote_prior_root:
+    cores: 2
+    mem: 4
+    gpus: 1
+    env:
+      REMOTE_PRIOR_ROOT: "root"
+    params:
+      native_spec: "--mem {mem} --cores {cores} --gpus {gpus}"
+  remote_prior_mid:
+    inherits: remote_prior_root
+    mem: cores * 2
+    env:
+      REMOTE_PRIOR_MID: "mid"
+  remote_prior_leaf:
+    inherits: remote_prior_mid
+    mem: cores * 3
+    gpus: 2
+    env:
+      REMOTE_PRIOR_LEAF: "leaf"
+  remote_prior_child:
+    inherits: remote_prior_leaf
   toolshed.g2.bx.psu.edu/repos/iuc/disco/.*:
     cores: 8
     mem: 24
