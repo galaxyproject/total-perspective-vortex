@@ -80,14 +80,24 @@ class TPVConfigLoader(TPVCodeEvaluator):
             return None
 
     @staticmethod
-    def process_inheritance(entity_list: Dict[str, EntityType], entity: EntityType) -> EntityType:
+    def process_inheritance(
+        entity_list: Dict[str, EntityType],
+        entity: EntityType,
+        visited: set[str] | None = None,
+    ) -> EntityType:
+        if visited is None:
+            visited = set()
+
         if entity.inherits:
+            if entity.inherits in visited:
+                raise InvalidParentException(f"Cycle detected in inheritance chain for entity: {entity.id}")
             parent_entity = entity_list.get(entity.inherits)
             if not parent_entity:
                 raise InvalidParentException(
-                    f"The specified parent: {entity.inherits} for" f" entity: {entity} does not exist"
+                    f"The specified parent: {entity.inherits} for entity: {entity.id} does not exist"
                 )
-            return entity.inherit(TPVConfigLoader.process_inheritance(entity_list, parent_entity))
+            visited.add(entity.inherits)
+            return entity.inherit(TPVConfigLoader.process_inheritance(entity_list, parent_entity, visited))
         # do not process default inheritance here, only at runtime, as multiple can cause default inheritance
         # to override later matches.
         return entity
@@ -139,23 +149,21 @@ class TPVConfigLoader(TPVCodeEvaluator):
             The chain is resolved per child to avoid cross-contamination when multiple
             children share the same base.
             """
-            if visited is None:
-                visited = set()
+            grafted_parent = prior_definition
             parent_id = overriding_entity.inherits
-            if not parent_id:
-                return prior_definition
-            if parent_id in visited:
-                raise InvalidParentException(f"Cycle detected in inheritance chain for entity: {overriding_entity.id}")
-
-            parent_entity = entities_new.get(parent_id) or merged.get(parent_id)
-            if not parent_entity:
-                raise InvalidParentException(
-                    f"The specified parent: {parent_id} for entity: {overriding_entity.id} does not exist"
+            if parent_id:
+                parent_entity = entities_new.get(parent_id) or merged.get(parent_id)
+                if not parent_entity:
+                    raise InvalidParentException(
+                        f"The specified parent: {parent_id} for entity: {overriding_entity.id} does not exist"
+                    )
+                # Delegate cycle detection and full resolution to process_inheritance,
+                # which now raises on cycles/missing parents.
+                resolved_parent = TPVConfigLoader.process_inheritance(
+                    {**merged, **entities_new}, parent_entity, visited or set()
                 )
-
-            visited.add(parent_id)
-            grafted_parent = build_grafted_parent(parent_entity, prior_definition, visited)
-            return parent_entity.inherit(grafted_parent)
+                grafted_parent = resolved_parent.inherit(prior_definition)
+            return grafted_parent
 
         for entity in entities_new.values():
             prior_definition = merged.get(entity.id)
