@@ -130,30 +130,28 @@ class TPVConfigLoader(TPVCodeEvaluator):
 
         merged: Dict[str, EntityType] = dict(entities_parent)
 
-        def build_grafted_parent(overriding_entity: EntityType, prior_definition: EntityType) -> EntityType:
+        def build_grafted_parent(
+            overriding_entity: EntityType, prior_definition: EntityType, visited: set[str] | None = None
+        ) -> EntityType:
             """
             Build an effective parent for the overriding entity by grafting the prior
             definition (e.g. remote/shared) into the top of the declared inheritance chain.
             The chain is resolved per child to avoid cross-contamination when multiple
             children share the same base.
             """
-            chain: list[EntityType] = []
+            if visited is None:
+                visited = set()
             parent_id = overriding_entity.inherits
-            visited: set[str] = set()
-            while parent_id and parent_id not in visited:
-                visited.add(parent_id)
-                parent_entity = entities_new.get(parent_id) or merged.get(parent_id)
-                if not parent_entity:
-                    break
-                chain.append(parent_entity)
-                parent_id = parent_entity.inherits
-            if not chain:
+            if not parent_id or parent_id in visited:
                 return prior_definition
-            # chain is from closest parent to root; apply prior_definition at the root
-            grafted = chain[-1].inherit(prior_definition)
-            for parent in reversed(chain[:-1]):
-                grafted = parent.inherit(grafted)
-            return grafted
+
+            parent_entity = entities_new.get(parent_id) or merged.get(parent_id)
+            if not parent_entity:
+                return prior_definition
+
+            visited.add(parent_id)
+            grafted_parent = build_grafted_parent(parent_entity, prior_definition, visited)
+            return parent_entity.inherit(grafted_parent)
 
         for entity in entities_new.values():
             prior_definition = merged.get(entity.id)
