@@ -106,6 +106,26 @@ tools:
     scheduling:
       require:
         - pulsar
+  remote_missing_parent:
+    cores: 2
+    mem: 4
+    env:
+      REMOTE_MISSING: "remote"
+    params:
+      native_spec: "--mem {mem} --cores {cores}"
+    scheduling:
+      require:
+        - pulsar
+  remote_cycle_tool:
+    cores: 2
+    mem: 4
+    env:
+      REMOTE_CYCLE: "remote"
+    params:
+      native_spec: "--mem {mem} --cores {cores}"
+    scheduling:
+      require:
+        - pulsar
   toolshed.g2.bx.psu.edu/repos/iuc/disco/.*:
     cores: 8
     mem: 24

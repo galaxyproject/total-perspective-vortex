@@ -1,0 +1,19 @@
+global:
+  default_inherits: default
+
+tools:
+  default:
+    cores: 2
+    mem: cores * 2
+    env:
+      TEST_JOB_SLOTS: "{cores}"
+    params:
+      native_spec: "--mem {mem} --cores {cores}"
+  remote_cycle_tool:
+    inherits: local_cycle_parent
+  local_cycle_parent:
+    inherits: remote_cycle_tool
+
+destinations:
+  k8s_environment:
+    runner: k8s

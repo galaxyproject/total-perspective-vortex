@@ -142,12 +142,16 @@ class TPVConfigLoader(TPVCodeEvaluator):
             if visited is None:
                 visited = set()
             parent_id = overriding_entity.inherits
-            if not parent_id or parent_id in visited:
+            if not parent_id:
                 return prior_definition
+            if parent_id in visited:
+                raise InvalidParentException(f"Cycle detected in inheritance chain for entity: {overriding_entity.id}")
 
             parent_entity = entities_new.get(parent_id) or merged.get(parent_id)
             if not parent_entity:
-                return prior_definition
+                raise InvalidParentException(
+                    f"The specified parent: {parent_id} for entity: {overriding_entity.id} does not exist"
+                )
 
             visited.add(parent_id)
             grafted_parent = build_grafted_parent(parent_entity, prior_definition, visited)

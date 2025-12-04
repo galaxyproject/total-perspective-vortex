@@ -4,6 +4,7 @@ import unittest
 from galaxy.jobs.mapper import JobMappingException
 
 from tpv.commands.test import mock_galaxy
+from tpv.core.loader import InvalidParentException
 from tpv.rules import gateway
 
 
@@ -279,3 +280,29 @@ class TestMapperMergeMultipleConfigs(unittest.TestCase):
         self.assertEqual([env["value"] for env in destination.env if env["name"] == "LOCAL_DEEP_TWO"], ["yes"])
         self.assertEqual([env["value"] for env in destination.env if env["name"] == "REMOTE_DEEP_TWO"], ["two"])
         self.assertFalse([env for env in destination.env if env["name"] == "REMOTE_DEEP_ONE"])
+
+    def test_missing_local_parent_raises(self):
+        tool = mock_galaxy.Tool("remote_missing_parent")
+        user = mock_galaxy.User("ford", "prefect@vortex.org")
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=7 * 1024**3))]
+
+        config_first = os.path.join(os.path.dirname(__file__), "fixtures/mapping-merge-multiple-remote.yml")
+        config_second = os.path.join(os.path.dirname(__file__), "fixtures/mapping-merge-missing-parent-local.yml")
+
+        with self.assertRaisesRegex(
+            InvalidParentException, "The specified parent: missing_local_parent for entity: remote_missing_parent"
+        ):
+            self._map_to_destination(tool, user, datasets, tpv_config_paths=[config_first, config_second])
+
+    def test_inheritance_cycle_raises(self):
+        tool = mock_galaxy.Tool("remote_cycle_tool")
+        user = mock_galaxy.User("ford", "prefect@vortex.org")
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=7 * 1024**3))]
+
+        config_first = os.path.join(os.path.dirname(__file__), "fixtures/mapping-merge-multiple-remote.yml")
+        config_second = os.path.join(os.path.dirname(__file__), "fixtures/mapping-merge-cycle-local.yml")
+
+        with self.assertRaisesRegex(
+            InvalidParentException, "Cycle detected in inheritance chain for entity: remote_cycle_tool"
+        ):
+            self._map_to_destination(tool, user, datasets, tpv_config_paths=[config_first, config_second])
