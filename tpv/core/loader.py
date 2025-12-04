@@ -118,37 +118,42 @@ class TPVConfigLoader(TPVCodeEvaluator):
         entities_new: Dict[str, EntityType],
     ) -> Dict[str, EntityType]:
         """
-        Merge parent and new entity mappings. Later definitions override earlier ones.
-        If a new entity declares `inherits`, graft the existing definition as the base
-        of that chain so shared/remote defaults flow through while local parents can
-        still override.
+        Merge two entity maps with a clear precedence:
+        1) Later configs override earlier ones.
+        2) If an overriding entity declares `inherits`, graft the earlier definition
+           to the base of that inheritance chain so shared/remote defaults flow through.
         """
-        merged_entities = dict(entities_parent)
+
+        merged: Dict[str, EntityType] = dict(entities_parent)
+
+        def graft_base_into_chain(entity: EntityType, existing: EntityType) -> bool:
+            """Attach an existing definition to the declared parent in the chain."""
+            parent_id = entity.inherits
+            if not parent_id:
+                return False
+            parent_entity = entities_new.get(parent_id) or merged.get(parent_id)
+            if not parent_entity:
+                return False
+            merged[parent_id] = parent_entity.inherit(existing)
+            merged[entity.id] = entity  # keep local; it will resolve inheritance later
+            return True
 
         for entity in entities_new.values():
-            parent_entity = merged_entities.get(entity.id)
+            existing = merged.get(entity.id)
 
-            if parent_entity is not None and entity.inherits:
-                root_parent_id = entity.inherits
-                root_parent_entity = entities_new.get(root_parent_id) or merged_entities.get(root_parent_id)
-                if root_parent_entity:
-                    if root_parent_id in merged_entities:
-                        merged_entities.pop(root_parent_id)
-                    merged_entities[root_parent_id] = root_parent_entity.inherit(parent_entity)
-                    if entity.id in merged_entities:
-                        merged_entities.pop(entity.id)
-                    merged_entities[entity.id] = entity
+            if existing and entity.inherits:
+                if graft_base_into_chain(entity, existing):
                     continue
-                else:
-                    entity = entity.inherit(parent_entity)
+                # fall back to simple merge if we can't graft
+                entity = entity.inherit(existing)
 
-            if parent_entity is not None:
-                merged_entities.pop(entity.id, None)
-                merged_entities[entity.id] = entity.inherit(parent_entity)
+            if existing:
+                merged.pop(entity.id, None)  # keep later definitions at the end
+                merged[entity.id] = entity.inherit(existing)
             else:
-                merged_entities[entity.id] = entity
+                merged[entity.id] = entity
 
-        return merged_entities
+        return merged
 
     def merge_config(self, parent_config: TPVConfig) -> None:
         self.inherit_globals(parent_config.global_config)
