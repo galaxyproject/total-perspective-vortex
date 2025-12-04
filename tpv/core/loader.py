@@ -130,12 +130,9 @@ class TPVConfigLoader(TPVCodeEvaluator):
         """
         Merge two entity maps with a clear precedence:
         1) Later configs override earlier ones.
-        2) If an overriding entity declares `inherits`, graft the earlier definition
-           into the top of that declared chain so shared/remote defaults flow through.
-
-        The actual inheritance resolution happens later in process_entities; here we only
-        splice the prior (e.g. remote/shared) definition into the appropriate ancestor
-        so it becomes the base for the local chain.
+        2) If an overriding entity declares `inherits`, resolve its declared chain
+           and then inherit from the earlier definition so shared/remote defaults
+           sit at lowest precedence.
         """
 
         merged: Dict[str, EntityType] = dict(entities_parent)
@@ -146,7 +143,9 @@ class TPVConfigLoader(TPVCodeEvaluator):
             if prior_definition:
                 # resolve this entity's inheritance chain
                 resolved_entity = TPVConfigLoader.process_inheritance({**merged, **entities_new}, entity)
-                merged.pop(entity.id, None)  # keep later definitions at the end
+                # drop any existing entry so this later definition is reinserted last,
+                # preserving “last config wins” when dict order matters.
+                merged.pop(entity.id, None)
                 # now inherit the parent's definition. Since the prior_definition comes from the earlier loader
                 # (entities_parent), which has already had process_inheritance run during its own load, its
                 # inheritance chain has already been fully resolved.
