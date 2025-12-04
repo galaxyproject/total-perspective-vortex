@@ -326,6 +326,6 @@ class TestMapperMergeMultipleConfigs(unittest.TestCase):
 
         with self.assertRaisesRegex(
             InvalidParentException,
-            r"Cycle detected in inheritance chain for entity: (remote_cycle_tool|local_cycle_parent)",
+            r"Cycle detected in inheritance chain for entity: remote_cycle_tool",
         ):
             self._map_to_destination(tool, user, datasets, tpv_config_paths=[config_first, config_second])
