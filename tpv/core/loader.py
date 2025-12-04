@@ -121,7 +121,11 @@ class TPVConfigLoader(TPVCodeEvaluator):
         Merge two entity maps with a clear precedence:
         1) Later configs override earlier ones.
         2) If an overriding entity declares `inherits`, graft the earlier definition
-           into the base of that declared chain so shared/remote defaults flow through.
+           into the top of that declared chain so shared/remote defaults flow through.
+
+        The actual inheritance resolution happens later in process_entities; here we only
+        splice the prior (e.g. remote/shared) definition into the appropriate ancestor
+        so it becomes the base for the local chain.
         """
 
         merged: Dict[str, EntityType] = dict(entities_parent)
@@ -129,7 +133,7 @@ class TPVConfigLoader(TPVCodeEvaluator):
         def find_chain_root(entity: EntityType) -> EntityType | None:
             """
             Walk the declared inheritance chain in the new/merged config to find
-            the topmost parent we know about.
+            the topmost parent we know about. If a parent is missing, stop.
             """
             parent_id = entity.inherits
             visited: set[str] = set()
@@ -146,29 +150,25 @@ class TPVConfigLoader(TPVCodeEvaluator):
         def graft_base_into_chain(overriding_entity: EntityType, prior_definition: EntityType) -> bool:
             """
             Attach the prior definition (e.g. remote/shared) to the top of the declared
-            inheritance chain so it becomes the base ancestor.
+            inheritance chain so it becomes the base ancestor. The overriding entity is
+            left untouched; recompute_inheritance will later walk the chain.
             """
             root_parent = find_chain_root(overriding_entity)
             if not root_parent:
                 return False
             merged[root_parent.id] = root_parent.inherit(prior_definition)
-            # Keep the overriding entity untouched; inheritance will be resolved later
-            # when we recompute inheritance for the merged config.
-            merged[overriding_entity.id] = overriding_entity
             return True
 
         for entity in entities_new.values():
             prior_definition = merged.get(entity.id)
 
-            if prior_definition and entity.inherits:
-                if graft_base_into_chain(entity, prior_definition):
-                    continue
-                # fall back to simple merge if we can't graft
-                entity = entity.inherit(prior_definition)
-
             if prior_definition:
-                merged.pop(entity.id, None)  # keep later definitions at the end
-                merged[entity.id] = entity.inherit(prior_definition)
+                grafted = graft_base_into_chain(entity, prior_definition)
+                if grafted:
+                    merged[entity.id] = entity
+                else:
+                    merged.pop(entity.id, None)  # keep later definitions at the end
+                    merged[entity.id] = entity.inherit(prior_definition)
             else:
                 merged[entity.id] = entity
 
