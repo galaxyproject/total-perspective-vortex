@@ -242,3 +242,40 @@ class TestMapperMergeMultipleConfigs(unittest.TestCase):
         self.assertEqual([env["value"] for env in destination.env if env["name"] == "CHILD_TWO"], ["local_two"])
         self.assertEqual([env["value"] for env in destination.env if env["name"] == "REMOTE_CHILD_TWO"], ["two"])
         self.assertFalse([env for env in destination.env if env["name"] == "REMOTE_CHILD_ONE"])
+
+    def test_shared_local_base_with_distinct_remote_parents_deep_chain(self):
+        config_first = os.path.join(os.path.dirname(__file__), "fixtures/mapping-merge-multiple-remote.yml")
+        config_second = os.path.join(os.path.dirname(__file__), "fixtures/mapping-merge-multiple-local.yml")
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=7 * 1024**3))]
+
+        tool_one = mock_galaxy.Tool("remote_deep_one")
+        destination = self._map_to_destination(
+            tool_one,
+            mock_galaxy.User("ford", "prefect@vortex.org"),
+            datasets,
+            tpv_config_paths=[config_first, config_second],
+        )
+        self.assertEqual(destination.id, "k8s_environment")
+        self.assertEqual(destination.params["native_spec"], "--mem 15.0 --cores 6 --gpus 1")
+        self.assertEqual([env["value"] for env in destination.env if env["name"] == "BASE_DEEP"], ["base_deep"])
+        self.assertEqual([env["value"] for env in destination.env if env["name"] == "MID_DEEP"], ["mid_deep"])
+        self.assertEqual([env["value"] for env in destination.env if env["name"] == "LEAF_DEEP_ONE"], ["leaf_one"])
+        self.assertEqual([env["value"] for env in destination.env if env["name"] == "LOCAL_DEEP_ONE"], ["yes"])
+        self.assertEqual([env["value"] for env in destination.env if env["name"] == "REMOTE_DEEP_ONE"], ["one"])
+        self.assertFalse([env for env in destination.env if env["name"] == "REMOTE_DEEP_TWO"])
+
+        tool_two = mock_galaxy.Tool("remote_deep_two")
+        destination = self._map_to_destination(
+            tool_two,
+            mock_galaxy.User("ford", "prefect@vortex.org"),
+            datasets,
+            tpv_config_paths=[config_first, config_second],
+        )
+        self.assertEqual(destination.id, "k8s_environment")
+        self.assertEqual(destination.params["native_spec"], "--mem 16.799999999999997 --cores 6 --gpus 2")
+        self.assertEqual([env["value"] for env in destination.env if env["name"] == "BASE_DEEP"], ["base_deep"])
+        self.assertEqual([env["value"] for env in destination.env if env["name"] == "MID_DEEP"], ["mid_deep"])
+        self.assertEqual([env["value"] for env in destination.env if env["name"] == "LEAF_DEEP_TWO"], ["leaf_two"])
+        self.assertEqual([env["value"] for env in destination.env if env["name"] == "LOCAL_DEEP_TWO"], ["yes"])
+        self.assertEqual([env["value"] for env in destination.env if env["name"] == "REMOTE_DEEP_TWO"], ["two"])
+        self.assertFalse([env for env in destination.env if env["name"] == "REMOTE_DEEP_ONE"])

@@ -130,47 +130,38 @@ class TPVConfigLoader(TPVCodeEvaluator):
 
         merged: Dict[str, EntityType] = dict(entities_parent)
 
-        def find_chain_root(entity: EntityType) -> EntityType | None:
+        def build_grafted_parent(overriding_entity: EntityType, prior_definition: EntityType) -> EntityType:
             """
-            Walk the declared inheritance chain in the new/merged config to find
-            the topmost parent we know about. If a parent is missing, stop.
+            Build an effective parent for the overriding entity by grafting the prior
+            definition (e.g. remote/shared) into the top of the declared inheritance chain.
+            The chain is resolved per child to avoid cross-contamination when multiple
+            children share the same base.
             """
-            parent_id = entity.inherits
+            chain: list[EntityType] = []
+            parent_id = overriding_entity.inherits
             visited: set[str] = set()
-            root: EntityType | None = None
             while parent_id and parent_id not in visited:
                 visited.add(parent_id)
                 parent_entity = entities_new.get(parent_id) or merged.get(parent_id)
                 if not parent_entity:
                     break
-                root = parent_entity
+                chain.append(parent_entity)
                 parent_id = parent_entity.inherits
-            return root
-
-        def graft_base_into_chain(overriding_entity: EntityType, prior_definition: EntityType) -> EntityType | None:
-            """
-            Attach the prior definition (e.g. remote/shared) to the top of the declared
-            inheritance chain so it becomes the base ancestor. The overriding entity is
-            left untouched; recompute_inheritance will later walk the chain.
-            """
-            root_parent = find_chain_root(overriding_entity)
-            if not root_parent:
-                return None
-            # Do not mutate the shared root in-place; combine it with the prior definition
-            # for this child only to avoid cross-contamination when multiple children share a base.
-            return root_parent.inherit(prior_definition)
+            if not chain:
+                return prior_definition
+            # chain is from closest parent to root; apply prior_definition at the root
+            grafted = chain[-1].inherit(prior_definition)
+            for parent in reversed(chain[:-1]):
+                grafted = parent.inherit(grafted)
+            return grafted
 
         for entity in entities_new.values():
             prior_definition = merged.get(entity.id)
 
             if prior_definition:
-                grafted_base = graft_base_into_chain(entity, prior_definition)
-                if grafted_base:
-                    # Resolve this child against its grafted base without touching the shared root.
-                    merged[entity.id] = entity.inherit(grafted_base)
-                else:
-                    merged.pop(entity.id, None)  # keep later definitions at the end
-                    merged[entity.id] = entity.inherit(prior_definition)
+                grafted_base = build_grafted_parent(entity, prior_definition)
+                merged.pop(entity.id, None)  # keep later definitions at the end
+                merged[entity.id] = entity.inherit(grafted_base)
             else:
                 merged[entity.id] = entity
 

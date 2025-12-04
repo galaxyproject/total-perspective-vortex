@@ -84,6 +84,28 @@ tools:
     scheduling:
       require:
         - pulsar
+  remote_deep_one:
+    cores: 2
+    mem: 5
+    gpus: 1
+    env:
+      REMOTE_DEEP_ONE: "one"
+    params:
+      native_spec: "--mem {mem} --cores {cores} --gpus {gpus}"
+    scheduling:
+      require:
+        - pulsar
+  remote_deep_two:
+    cores: 3
+    mem: 6
+    gpus: 2
+    env:
+      REMOTE_DEEP_TWO: "two"
+    params:
+      native_spec: "--mem {mem} --cores {cores} --gpus {gpus}"
+    scheduling:
+      require:
+        - pulsar
   toolshed.g2.bx.psu.edu/repos/iuc/disco/.*:
     cores: 8
     mem: 24

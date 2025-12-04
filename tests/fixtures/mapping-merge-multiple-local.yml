@@ -96,6 +96,34 @@ tools:
     mem: cores * 3
     env:
       CHILD_TWO: "local_two"
+  shared_deep_base:
+    cores: 6
+    mem: cores * 2
+    env:
+      BASE_DEEP: "base_deep"
+  local_deep_mid:
+    inherits: shared_deep_base
+    mem: cores * 2.2
+    env:
+      MID_DEEP: "mid_deep"
+  local_deep_leaf_one:
+    inherits: local_deep_mid
+    mem: cores * 2.5
+    env:
+      LEAF_DEEP_ONE: "leaf_one"
+  local_deep_leaf_two:
+    inherits: local_deep_mid
+    mem: cores * 2.8
+    env:
+      LEAF_DEEP_TWO: "leaf_two"
+  remote_deep_one:
+    inherits: local_deep_leaf_one
+    env:
+      LOCAL_DEEP_ONE: "yes"
+  remote_deep_two:
+    inherits: local_deep_leaf_two
+    env:
+      LOCAL_DEEP_TWO: "yes"
   toolshed.g2.bx.psu.edu/repos/iuc/disco/disco/.*:
     env:
       DISCO_MORE_PARAMS: "just another param"
