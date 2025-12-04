@@ -196,6 +196,10 @@ class TestMapperMergeMultipleConfigs(unittest.TestCase):
             ["mid"],
         )
         self.assertEqual(
+            [env["value"] for env in destination.env if env["name"] == "LEAF_MARKER"],
+            ["leaf"],
+        )
+        self.assertEqual(
             [env["value"] for env in destination.env if env["name"] == "LOCAL_DEEP_OVERRIDE"],
             ["yes"],
         )
@@ -203,3 +207,38 @@ class TestMapperMergeMultipleConfigs(unittest.TestCase):
             [env["value"] for env in destination.env if env["name"] == "REMOTE_DEEP"],
             ["remote"],
         )
+
+    def test_shared_local_base_with_distinct_remote_parents(self):
+        config_first = os.path.join(os.path.dirname(__file__), "fixtures/mapping-merge-multiple-remote.yml")
+        config_second = os.path.join(os.path.dirname(__file__), "fixtures/mapping-merge-multiple-local.yml")
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=7 * 1024**3))]
+
+        # First child should graft its matching remote but keep local base overrides
+        tool_one = mock_galaxy.Tool("remote_child_one")
+        destination = self._map_to_destination(
+            tool_one,
+            mock_galaxy.User("ford", "prefect@vortex.org"),
+            datasets,
+            tpv_config_paths=[config_first, config_second],
+        )
+        self.assertEqual(destination.id, "k8s_environment")
+        self.assertEqual(destination.params["native_spec"], "--mem 10.0 --cores 4")
+        self.assertEqual([env["value"] for env in destination.env if env["name"] == "BASE_MARKER"], ["base"])
+        self.assertEqual([env["value"] for env in destination.env if env["name"] == "CHILD_ONE"], ["local_one"])
+        self.assertEqual([env["value"] for env in destination.env if env["name"] == "REMOTE_CHILD_ONE"], ["one"])
+        self.assertFalse([env for env in destination.env if env["name"] == "REMOTE_CHILD_TWO"])
+
+        # Second child should graft its own remote without leaking the first remote
+        tool_two = mock_galaxy.Tool("remote_child_two")
+        destination = self._map_to_destination(
+            tool_two,
+            mock_galaxy.User("ford", "prefect@vortex.org"),
+            datasets,
+            tpv_config_paths=[config_first, config_second],
+        )
+        self.assertEqual(destination.id, "k8s_environment")
+        self.assertEqual(destination.params["native_spec"], "--mem 12 --cores 4")
+        self.assertEqual([env["value"] for env in destination.env if env["name"] == "BASE_MARKER"], ["base"])
+        self.assertEqual([env["value"] for env in destination.env if env["name"] == "CHILD_TWO"], ["local_two"])
+        self.assertEqual([env["value"] for env in destination.env if env["name"] == "REMOTE_CHILD_TWO"], ["two"])
+        self.assertFalse([env for env in destination.env if env["name"] == "REMOTE_CHILD_ONE"])

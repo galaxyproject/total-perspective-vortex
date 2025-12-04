@@ -64,6 +64,26 @@ tools:
     scheduling:
       require:
         - pulsar
+  remote_child_one:
+    cores: 2
+    mem: 5
+    env:
+      REMOTE_CHILD_ONE: "one"
+    params:
+      native_spec: "--mem {mem} --cores {cores}"
+    scheduling:
+      require:
+        - pulsar
+  remote_child_two:
+    cores: 3
+    mem: 7
+    env:
+      REMOTE_CHILD_TWO: "two"
+    params:
+      native_spec: "--mem {mem} --cores {cores}"
+    scheduling:
+      require:
+        - pulsar
   toolshed.g2.bx.psu.edu/repos/iuc/disco/.*:
     cores: 8
     mem: 24

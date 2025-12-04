@@ -147,7 +147,7 @@ class TPVConfigLoader(TPVCodeEvaluator):
                 parent_id = parent_entity.inherits
             return root
 
-        def graft_base_into_chain(overriding_entity: EntityType, prior_definition: EntityType) -> bool:
+        def graft_base_into_chain(overriding_entity: EntityType, prior_definition: EntityType) -> EntityType | None:
             """
             Attach the prior definition (e.g. remote/shared) to the top of the declared
             inheritance chain so it becomes the base ancestor. The overriding entity is
@@ -155,17 +155,19 @@ class TPVConfigLoader(TPVCodeEvaluator):
             """
             root_parent = find_chain_root(overriding_entity)
             if not root_parent:
-                return False
-            merged[root_parent.id] = root_parent.inherit(prior_definition)
-            return True
+                return None
+            # Do not mutate the shared root in-place; combine it with the prior definition
+            # for this child only to avoid cross-contamination when multiple children share a base.
+            return root_parent.inherit(prior_definition)
 
         for entity in entities_new.values():
             prior_definition = merged.get(entity.id)
 
             if prior_definition:
-                grafted = graft_base_into_chain(entity, prior_definition)
-                if grafted:
-                    merged[entity.id] = entity
+                grafted_base = graft_base_into_chain(entity, prior_definition)
+                if grafted_base:
+                    # Resolve this child against its grafted base without touching the shared root.
+                    merged[entity.id] = entity.inherit(grafted_base)
                 else:
                     merged.pop(entity.id, None)  # keep later definitions at the end
                     merged[entity.id] = entity.inherit(prior_definition)
