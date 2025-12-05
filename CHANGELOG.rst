@@ -1,3 +1,8 @@
+3.1.3 - Dec 5, 2025. (sha 88bee97ea678245f38e9aac6a6d9860a2c83132a)
+--------------------------------------------------------------------
+* Bump setuptools minimum version to 77.0.0 by @nsoranzo (PR #178)
+* Fix how inheritance chains are handled between multiple config files by @nuwang (PR #180)
+
 3.1.2 - Oct 29, 2025. (sha 39b49e0f650e10525e66a09b0d6cb6d59beb1eb5)
 --------------------------------------------------------------------
 * Fix invalid referrer type by @nuwang (PR #177)
