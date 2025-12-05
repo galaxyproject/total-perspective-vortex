@@ -80,14 +80,24 @@ class TPVConfigLoader(TPVCodeEvaluator):
             return None
 
     @staticmethod
-    def process_inheritance(entity_list: Dict[str, EntityType], entity: EntityType) -> EntityType:
+    def process_inheritance(
+        entity_list: Dict[str, EntityType],
+        entity: EntityType,
+        visited: set[str] | None = None,
+    ) -> EntityType:
+        if visited is None:
+            visited = set()
+
         if entity.inherits:
+            if entity.inherits in visited:
+                raise InvalidParentException(f"Cycle detected in inheritance chain for entity: {entity.id}")
             parent_entity = entity_list.get(entity.inherits)
             if not parent_entity:
                 raise InvalidParentException(
-                    f"The specified parent: {entity.inherits} for" f" entity: {entity} does not exist"
+                    f"The specified parent: {entity.inherits} for entity: {entity.id} does not exist"
                 )
-            return entity.inherit(TPVConfigLoader.process_inheritance(entity_list, parent_entity))
+            visited.add(entity.inherits)
+            return entity.inherit(TPVConfigLoader.process_inheritance(entity_list, parent_entity, visited))
         # do not process default inheritance here, only at runtime, as multiple can cause default inheritance
         # to override later matches.
         return entity
@@ -117,15 +127,33 @@ class TPVConfigLoader(TPVCodeEvaluator):
         entities_parent: Dict[str, EntityType],
         entities_new: Dict[str, EntityType],
     ) -> Dict[str, EntityType]:
+        """
+        Merge two entity maps with a clear precedence:
+        1) Later configs override earlier ones.
+        2) If an overriding entity declares `inherits`, resolve its declared chain
+           and then inherit from the earlier definition so shared/remote defaults
+           sit at lowest precedence.
+        """
+
+        merged: Dict[str, EntityType] = dict(entities_parent)
+
         for entity in entities_new.values():
-            if entities_parent.get(entity.id):
-                parent_entity = entities_parent.get(entity.id)
-                del entities_parent[entity.id]
-                # reinsert at the end
-                entities_parent[entity.id] = entity.inherit(cast(EntityType, parent_entity))
+            prior_definition = merged.get(entity.id)
+
+            if prior_definition:
+                # resolve this entity's inheritance chain
+                resolved_entity = TPVConfigLoader.process_inheritance({**merged, **entities_new}, entity)
+                # drop any existing entry so this later definition is reinserted last,
+                # preserving “last config wins” when dict order matters.
+                merged.pop(entity.id, None)
+                # now inherit the parent's definition. Since the prior_definition comes from the earlier loader
+                # (entities_parent), which has already had process_inheritance run during its own load, its
+                # inheritance chain has already been fully resolved.
+                merged[entity.id] = resolved_entity.inherit(prior_definition)
             else:
-                entities_parent[entity.id] = entity
-        return entities_parent
+                merged[entity.id] = entity
+
+        return merged
 
     def merge_config(self, parent_config: TPVConfig) -> None:
         self.inherit_globals(parent_config.global_config)

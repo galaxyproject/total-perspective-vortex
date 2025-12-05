@@ -42,6 +42,111 @@ tools:
         scheduling:
           require:
             - highmem
+  remote_tool_inherit_test:
+    cores: 2
+    mem: 6
+    gpus: 3
+    env:
+      REMOTE_MARKER: "remote"
+    params:
+      native_spec: "--mem {mem} --cores {cores}"
+    scheduling:
+      require:
+        - pulsar
+  remote_tool_deep:
+    cores: 2
+    mem: 6
+    gpus: 3
+    env:
+      REMOTE_DEEP: "remote"
+    params:
+      native_spec: "--mem {mem} --cores {cores} --gpus {gpus}"
+    scheduling:
+      require:
+        - pulsar
+  remote_child_one:
+    cores: 2
+    mem: 5
+    env:
+      REMOTE_CHILD_ONE: "one"
+    params:
+      native_spec: "--mem {mem} --cores {cores}"
+    scheduling:
+      require:
+        - pulsar
+  remote_child_two:
+    cores: 3
+    mem: 7
+    env:
+      REMOTE_CHILD_TWO: "two"
+    params:
+      native_spec: "--mem {mem} --cores {cores}"
+    scheduling:
+      require:
+        - pulsar
+  remote_deep_one:
+    cores: 2
+    mem: 5
+    gpus: 1
+    env:
+      REMOTE_DEEP_ONE: "one"
+    params:
+      native_spec: "--mem {mem} --cores {cores} --gpus {gpus}"
+    scheduling:
+      require:
+        - pulsar
+  remote_deep_two:
+    cores: 3
+    mem: 6
+    gpus: 2
+    env:
+      REMOTE_DEEP_TWO: "two"
+    params:
+      native_spec: "--mem {mem} --cores {cores} --gpus {gpus}"
+    scheduling:
+      require:
+        - pulsar
+  remote_missing_parent:
+    cores: 2
+    mem: 4
+    env:
+      REMOTE_MISSING: "remote"
+    params:
+      native_spec: "--mem {mem} --cores {cores}"
+    scheduling:
+      require:
+        - pulsar
+  remote_cycle_tool:
+    cores: 2
+    mem: 4
+    env:
+      REMOTE_CYCLE: "remote"
+    params:
+      native_spec: "--mem {mem} --cores {cores}"
+    scheduling:
+      require:
+        - pulsar
+  remote_prior_root:
+    cores: 2
+    mem: 4
+    gpus: 1
+    env:
+      REMOTE_PRIOR_ROOT: "root"
+    params:
+      native_spec: "--mem {mem} --cores {cores} --gpus {gpus}"
+  remote_prior_mid:
+    inherits: remote_prior_root
+    mem: cores * 2
+    env:
+      REMOTE_PRIOR_MID: "mid"
+  remote_prior_leaf:
+    inherits: remote_prior_mid
+    mem: cores * 3
+    gpus: 2
+    env:
+      REMOTE_PRIOR_LEAF: "leaf"
+  remote_prior_child:
+    inherits: remote_prior_leaf
   toolshed.g2.bx.psu.edu/repos/iuc/disco/.*:
     cores: 8
     mem: 24

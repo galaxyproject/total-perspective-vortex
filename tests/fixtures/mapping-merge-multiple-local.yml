@@ -46,6 +46,106 @@ tools:
         scheduling:
           require:
             - pulsar
+  local_parent_for_inherit:
+    cores: 5
+    mem: cores * 2
+    env:
+      LOCAL_PARENT: "{cores}"
+    params:
+      native_spec: "--mem {mem} --cores {cores} --gpus {gpus}"
+    scheduling:
+      require:
+        - pulsar
+  remote_tool_inherit_test:
+    inherits: local_parent_for_inherit
+    mem: cores * 3
+    env:
+      LOCAL_OVERRIDE: "yes"
+  local_root_deep:
+    cores: 7
+    mem: cores * 2
+    env:
+      ROOT_MARKER: "{cores}"
+  local_mid_deep:
+    inherits: local_root_deep
+    mem: cores * 2.5
+    env:
+      MID_MARKER: "mid"
+  local_leaf_deep:
+    inherits: local_mid_deep
+    mem: cores * 2.8
+    env:
+      LEAF_MARKER: "leaf"
+  remote_tool_deep:
+    inherits: local_leaf_deep
+    mem: cores * 3
+    env:
+      LOCAL_DEEP_OVERRIDE: "yes"
+  shared_local_base:
+    cores: 4
+    mem: cores * 2
+    env:
+      BASE_MARKER: "base"
+  remote_child_one:
+    inherits: shared_local_base
+    mem: cores * 2.5
+    env:
+      CHILD_ONE: "local_one"
+  remote_child_two:
+    inherits: shared_local_base
+    mem: cores * 3
+    env:
+      CHILD_TWO: "local_two"
+  shared_deep_base:
+    cores: 6
+    mem: cores * 2
+    env:
+      BASE_DEEP: "base_deep"
+  local_deep_mid:
+    inherits: shared_deep_base
+    mem: cores * 2.2
+    env:
+      MID_DEEP: "mid_deep"
+  local_deep_leaf_one:
+    inherits: local_deep_mid
+    mem: cores * 2.5
+    env:
+      LEAF_DEEP_ONE: "leaf_one"
+  local_deep_leaf_two:
+    inherits: local_deep_mid
+    mem: cores * 2.8
+    env:
+      LEAF_DEEP_TWO: "leaf_two"
+  remote_deep_one:
+    inherits: local_deep_leaf_one
+    env:
+      LOCAL_DEEP_ONE: "yes"
+  remote_deep_two:
+    inherits: local_deep_leaf_two
+    env:
+      LOCAL_DEEP_TWO: "yes"
+  local_prior_base:
+    cores: 5
+    mem: cores * 2
+    env:
+      LOCAL_PRIOR_BASE: "base"
+  local_prior_mid:
+    inherits: local_prior_base
+    mem: cores * 2.5
+    env:
+      LOCAL_PRIOR_MID: "mid"
+  local_prior_leaf:
+    inherits: local_prior_mid
+    mem: cores * 3.5
+    env:
+      LOCAL_PRIOR_LEAF: "leaf"
+  remote_prior_child:
+    inherits: local_prior_leaf
+    params:
+      native_spec: "--mem {mem} --cores {cores} --gpus {gpus}"
+    scheduling:
+      require:
+        - pulsar
   toolshed.g2.bx.psu.edu/repos/iuc/disco/disco/.*:
     env:
       DISCO_MORE_PARAMS: "just another param"
@@ -75,7 +175,7 @@ destinations:
     runner: k8s
     max_accepted_cores: 16
     max_accepted_mem: 64
-    max_accepted_gpus: 2
+    max_accepted_gpus: 5
     scheduling:
       prefer:
         - pulsar
