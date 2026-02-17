@@ -12,6 +12,7 @@ from galaxy.tools import Tool as GalaxyTool
 from galaxy.util import listify
 from galaxy.util.watcher import get_watcher
 
+from tpv.core.explain import ExplainCollector, ExplainPhase
 from tpv.core.loader import TPVConfigLoader
 from tpv.core.mapper import EntityToDestinationMapper
 
@@ -107,6 +108,7 @@ def map_tool_to_destination(
     job_wrapper: JobWrapper | None = None,
     resource_params: dict[str, Any] | None = None,
     workflow_invocation_uuid: str | None = None,
+    explain_collector: ExplainCollector | None = None,
 ) -> JobDestination:
     if tpv_configs and tpv_config_files:
         raise ValueError("Only one of tpv_configs or tpv_config_files can be specified in execution environment.")
@@ -115,6 +117,18 @@ def map_tool_to_destination(
         raise ValueError("One of tpv_configs or tpv_config_files must be specified in execution environment.")
     referrer_id = referrer.id if referrer else None
     destination_mapper = lock_and_load_mapper(app, referrer_id or "tpv_dispatcher", resolved_tpv_configs)
+    if explain_collector:
+        configs_list = listify(resolved_tpv_configs)
+        for config_source in configs_list:
+            source_name = config_source if isinstance(config_source, str) else "<inline config>"
+            explain_collector.add_step(ExplainPhase.CONFIG_LOADING, f"Loaded config: {source_name}")
     return destination_mapper.map_to_destination(
-        app, tool, user, job, job_wrapper, resource_params, workflow_invocation_uuid
+        app,
+        tool,
+        user,
+        job,
+        job_wrapper,
+        resource_params,
+        workflow_invocation_uuid,
+        explain_collector=explain_collector,
     )
