@@ -58,12 +58,20 @@ class TestTPVConfigDumper(unittest.TestCase):
         self.assertIn("tools", data)
         self.assertIn("destinations", data)
 
-    def test_dump_text_shows_destination_capacity(self):
+    def test_dump_text_shows_destination_details(self):
         config_path = self._fixture_path("mapping-basic.yml")
         dumper = TPVConfigDumper.from_url_or_path([config_path])
         output = dumper.dump()
 
-        self.assertIn("max_accepted_cores=", output)
-        self.assertIn("max_accepted_mem=", output)
+        self.assertIn("max_accepted_cores:", output)
+        self.assertIn("max_accepted_mem:", output)
         self.assertIn("runner: local", output)
         self.assertIn("runner: k8s", output)
+
+    def test_dump_text_shows_env_and_params(self):
+        config_path = self._fixture_path("mapping-rules.yml")
+        dumper = TPVConfigDumper.from_url_or_path([config_path])
+        output = dumper.dump()
+
+        self.assertIn("env:", output)
+        self.assertIn("params:", output)

@@ -46,15 +46,11 @@ class TPVConfigDumper:
                 buf.write(f"    {k}: {v}\n")
         buf.write("\n")
 
-        # Tools
-        _render_entity_section(buf, "Tools", config.tools)
-        # Users
-        _render_entity_section(buf, "Users", config.users)
-        # Roles
+        _render_section(buf, "Tools", config.tools)
+        _render_section(buf, "Users", config.users)
         if config.roles:
-            _render_entity_section(buf, "Roles", config.roles)
-        # Destinations
-        _render_destination_section(buf, "Destinations", config.destinations)
+            _render_section(buf, "Roles", config.roles)
+        _render_section(buf, "Destinations", config.destinations)
 
         buf.write("=" * 72 + "\n")
         return buf.getvalue()
@@ -75,7 +71,10 @@ class TPVConfigDumper:
         return TPVConfigDumper(config_files)
 
 
-def _render_entity_section(
+_SKIP_FIELDS = {"id", "abstract"}
+
+
+def _render_section(
     buf: io.StringIO,
     title: str,
     entities: Dict[str, Any],
@@ -86,72 +85,19 @@ def _render_entity_section(
     for entity_id, entity in entities.items():
         abstract_marker = " (abstract)" if entity.abstract else ""
         buf.write(f"  {entity_id}{abstract_marker}:\n")
-        props = []
-        if entity.cores is not None:
-            props.append(f"cores={entity.cores}")
-        if entity.mem is not None:
-            props.append(f"mem={entity.mem}")
-        if entity.gpus is not None:
-            props.append(f"gpus={entity.gpus}")
-        if props:
-            buf.write(f"    {', '.join(props)}\n")
-        tags = entity.tpv_tags
-        tag_parts = []
-        if tags.require:
-            tag_parts.append(f"require={tags.require}")
-        if tags.prefer:
-            tag_parts.append(f"prefer={tags.prefer}")
-        if tags.accept:
-            tag_parts.append(f"accept={tags.accept}")
-        if tags.reject:
-            tag_parts.append(f"reject={tags.reject}")
-        if tag_parts:
-            buf.write(f"    scheduling: {', '.join(tag_parts)}\n")
-        if hasattr(entity, "rules") and entity.rules:
-            buf.write(f"    rules: {len(entity.rules)} rule(s)\n")
-        buf.write("\n")
-
-
-def _render_destination_section(
-    buf: io.StringIO,
-    title: str,
-    destinations: Dict[str, Any],
-) -> None:
-    if not destinations:
-        return
-    buf.write(f"--- {title} ---\n")
-    for dest_id, dest in destinations.items():
-        abstract_marker = " (abstract)" if dest.abstract else ""
-        buf.write(f"  {dest_id}{abstract_marker}:\n")
-        if dest.runner:
-            buf.write(f"    runner: {dest.runner}\n")
-        capacity = []
-        if dest.max_accepted_cores is not None:
-            capacity.append(f"max_accepted_cores={dest.max_accepted_cores}")
-        if dest.max_accepted_mem is not None:
-            capacity.append(f"max_accepted_mem={dest.max_accepted_mem}")
-        if dest.max_accepted_gpus is not None:
-            capacity.append(f"max_accepted_gpus={dest.max_accepted_gpus}")
-        if dest.min_accepted_cores is not None:
-            capacity.append(f"min_accepted_cores={dest.min_accepted_cores}")
-        if dest.min_accepted_mem is not None:
-            capacity.append(f"min_accepted_mem={dest.min_accepted_mem}")
-        if dest.min_accepted_gpus is not None:
-            capacity.append(f"min_accepted_gpus={dest.min_accepted_gpus}")
-        if capacity:
-            buf.write(f"    {', '.join(capacity)}\n")
-        tags = dest.tpv_dest_tags
-        tag_parts = []
-        if tags.require:
-            tag_parts.append(f"require={tags.require}")
-        if tags.prefer:
-            tag_parts.append(f"prefer={tags.prefer}")
-        if tags.accept:
-            tag_parts.append(f"accept={tags.accept}")
-        if tags.reject:
-            tag_parts.append(f"reject={tags.reject}")
-        if tag_parts:
-            buf.write(f"    scheduling: {', '.join(tag_parts)}\n")
-        if dest.rules:
-            buf.write(f"    rules: {len(dest.rules)} rule(s)\n")
+        data = entity.model_dump(exclude_defaults=True)
+        for key, value in data.items():
+            if key in _SKIP_FIELDS:
+                continue
+            if key == "destination_name_override" and value == entity_id:
+                continue
+            if key == "scheduling":
+                tag_data = {k: v for k, v in value.items() if v}
+                if tag_data:
+                    tag_parts = [f"{k}={v}" for k, v in tag_data.items()]
+                    buf.write(f"    scheduling: {', '.join(tag_parts)}\n")
+            elif key == "rules":
+                buf.write(f"    rules: {len(value)} rule(s)\n")
+            else:
+                buf.write(f"    {key}: {value}\n")
         buf.write("\n")
