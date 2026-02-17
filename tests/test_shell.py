@@ -760,3 +760,16 @@ class TPVShellTestCase(unittest.TestCase):
         self.assertIn("Entity Matching", output)
         self.assertIn("Destination Evaluation", output)
         self.assertIn("Final Result", output)
+
+    def test_dry_run_job_conf_resolves_relative_config_paths(self):
+        """tpv_config_files in job_conf should resolve relative to the job_conf's directory."""
+        job_config = os.path.join(os.path.dirname(__file__), "fixtures/job_conf_dry_run.yml")
+        output = self.call_shell_command("tpv", "dry-run", "--job-conf", job_config)
+        self.assertTrue("id: local" in output, f"Expected 'id: local' destination\n{output}")
+
+    def test_dump_job_conf_resolves_relative_config_paths(self):
+        """tpv dump --job-conf should resolve relative config paths relative to job_conf's directory."""
+        job_config = os.path.join(os.path.dirname(__file__), "fixtures/job_conf_dry_run.yml")
+        output = self.call_shell_command("tpv", "dump", "--job-conf", job_config)
+        self.assertIn("TPV MERGED CONFIGURATION", output, f"Expected merged config\n{output}")
+        self.assertIn("--- Tools ---", output)

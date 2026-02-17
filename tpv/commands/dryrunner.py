@@ -23,13 +23,26 @@ class TPVDryRunner:
         if tpv_confs:
             self.tpv_config_files = tpv_confs
         else:
-            self.tpv_config_files = self.galaxy_app.job_config.get_destination(  # type: ignore[no-untyped-call]
+            tpv_config_list: list[str] = self.galaxy_app.job_config.get_destination(  # type: ignore[no-untyped-call]
                 "tpv_dispatcher"
             ).params["tpv_config_files"]
+            self.tpv_config_files = self.resolve_config_paths(tpv_config_list, job_conf)
+
+    @staticmethod
+    def resolve_config_paths(config_files: list[str], job_conf: str) -> list[str]:
+        """Resolve relative tpv_config_files paths relative to the job_conf's directory."""
+        job_conf_dir = os.path.dirname(os.path.abspath(job_conf))
+        resolved: list[str] = []
+        for path in config_files:
+            if not os.path.isabs(path) and "://" not in path:
+                resolved.append(os.path.join(job_conf_dir, path))
+            else:
+                resolved.append(path)
+        return resolved
 
     def run(
         self, explain: bool = False
-    ) -> Union[JobDestination, Tuple[Optional[JobDestination], Optional[ExplainCollector]]]:
+    ) -> JobDestination | Tuple[JobDestination | None, ExplainCollector | None]:
         gateway.ACTIVE_DESTINATION_MAPPERS = {}
         collector = ExplainCollector() if explain else None
         try:
