@@ -735,3 +735,28 @@ class TPVShellTestCase(unittest.TestCase):
         self.assertIn("_sources", data)
         self.assertIn("tools", data)
         self.assertIn("destinations", data)
+
+    def test_dry_run_explain_with_mapping_exception(self):
+        """--explain should still show trace when mapping raises an exception."""
+        job_config = os.path.join(os.path.dirname(__file__), "fixtures/job_conf_dry_run.yml")
+        tpv_config = os.path.join(os.path.dirname(__file__), "fixtures/mapping-destinations.yml")
+        output = self.call_shell_command(
+            "tpv",
+            "dry-run",
+            "--job-conf",
+            job_config,
+            "--tool",
+            "three_core_test_tool",
+            "--input-size",
+            "5",
+            "--explain",
+            tpv_config,
+        )
+        self.assertIn(
+            "TPV SCHEDULING DECISION TRACE",
+            output,
+            f"Expected explain trace in output\n{output}",
+        )
+        self.assertIn("Entity Matching", output)
+        self.assertIn("Destination Evaluation", output)
+        self.assertIn("Final Result", output)

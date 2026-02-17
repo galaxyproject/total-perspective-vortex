@@ -27,17 +27,24 @@ class TPVDryRunner:
                 "tpv_dispatcher"
             ).params["tpv_config_files"]
 
-    def run(self, explain: bool = False) -> Union[JobDestination, Tuple[JobDestination, Optional[ExplainCollector]]]:
+    def run(
+        self, explain: bool = False
+    ) -> Union[JobDestination, Tuple[Optional[JobDestination], Optional[ExplainCollector]]]:
         gateway.ACTIVE_DESTINATION_MAPPERS = {}
         collector = ExplainCollector() if explain else None
-        destination = gateway.map_tool_to_destination(
-            self.galaxy_app,  # type: ignore[arg-type]
-            self.job,  # type: ignore[arg-type]
-            self.tool,  # type: ignore[arg-type]
-            self.user,  # type: ignore[arg-type]
-            tpv_config_files=self.tpv_config_files,
-            explain_collector=collector,
-        )
+        try:
+            destination = gateway.map_tool_to_destination(
+                self.galaxy_app,  # type: ignore[arg-type]
+                self.job,  # type: ignore[arg-type]
+                self.tool,  # type: ignore[arg-type]
+                self.user,  # type: ignore[arg-type]
+                tpv_config_files=self.tpv_config_files,
+                explain_collector=collector,
+            )
+        except Exception:
+            if explain:
+                return None, collector
+            raise
         if explain:
             return destination, collector
         return destination

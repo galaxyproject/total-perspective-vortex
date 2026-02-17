@@ -301,3 +301,45 @@ class TestDryRunExplain(unittest.TestCase):
         self.assertEqual(destination.id, "training")
         trace = collector.render()
         self.assertIn("training", trace)
+
+    def test_dry_run_explain_with_wait_exception(self):
+        """Explain should still produce a trace when TryNextDestinationOrWait is raised."""
+        dry_runner = TPVDryRunner.from_params(
+            job_conf=self._fixture_path("job_conf_dry_run.yml"),
+            tool_id="three_core_test_tool",
+            tpv_confs=[self._fixture_path("mapping-destinations.yml")],
+            input_size=5,
+        )
+        destination, collector = dry_runner.run(explain=True)
+
+        # destination should be None since mapping failed
+        self.assertIsNone(destination)
+        self.assertIsNotNone(collector)
+        trace = collector.render()
+        # Should show entity matching phase
+        self.assertIn("Entity Matching", trace)
+        # Should show destination evaluation
+        self.assertIn("Destination Evaluation", trace)
+        # Should show final result with error
+        self.assertIn("Final Result", trace)
+        # Should indicate what went wrong
+        self.assertIn("deferred", trace.lower())
+
+    def test_dry_run_explain_with_no_matching_destinations(self):
+        """Explain should produce a trace when no destinations match at all."""
+        dry_runner = TPVDryRunner.from_params(
+            job_conf=self._fixture_path("job_conf_dry_run.yml"),
+            tool_id="bwa",
+            tpv_confs=[self._fixture_path("mapping-destinations.yml")],
+            input_size=25,
+        )
+        destination, collector = dry_runner.run(explain=True)
+
+        # destination should be None since all destinations failed
+        self.assertIsNone(destination)
+        self.assertIsNotNone(collector)
+        trace = collector.render()
+        self.assertIn("Entity Matching", trace)
+        self.assertIn("Final Result", trace)
+        # Should indicate the failure
+        self.assertIn("No destinations", trace)

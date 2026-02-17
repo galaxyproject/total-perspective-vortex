@@ -430,14 +430,29 @@ class EntityToDestinationMapper(object):
                         f"Destination entity: {d} matched but could not fulfill requirements due to: {ef}."
                         " Trying next candidate..."
                     )
-                except TryNextDestinationOrWait:
+                except TryNextDestinationOrWait as ew:
+                    if explain:
+                        explain.add_step(
+                            ExplainPhase.DESTINATION_EVALUATION,
+                            f"Destination '{d.id}' deferred: {ew}, trying next...",
+                        )
                     wait_exception_raised = True
             if wait_exception_raised:
+                if explain:
+                    explain.add_step(
+                        ExplainPhase.FINAL_RESULT,
+                        "All matching destinations deferred (job not ready)",
+                    )
                 raise JobNotReadyException()  # type: ignore[no-untyped-call]
 
         # No matching destinations. Throw an exception
         from galaxy.jobs.mapper import JobMappingException
 
+        if explain:
+            explain.add_step(
+                ExplainPhase.FINAL_RESULT,
+                f"No destinations are available to fulfill request: {evaluated_entity.id}",
+            )
         raise JobMappingException(
             f"No destinations are available to fulfill request: {evaluated_entity.id}"
         )  # type: ignore[no-untyped-call]

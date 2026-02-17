@@ -80,8 +80,9 @@ def tpv_dry_run_config_files(args: Any) -> None:
                 sys.stderr.write(collector.render())
     else:
         destination = dry_runner.run()
-    yaml = YAML(typ="unsafe", pure=True)
-    yaml.dump(destination, sys.stdout)
+    if destination is not None:
+        yaml = YAML(typ="unsafe", pure=True)
+        yaml.dump(destination, sys.stdout)
 
 
 def tpv_dump_config(args: Any) -> None:
