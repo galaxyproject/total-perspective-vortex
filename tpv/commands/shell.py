@@ -7,10 +7,8 @@ from ruamel.yaml import YAML
 from ruamel.yaml.nodes import ScalarNode
 from ruamel.yaml.representer import RoundTripRepresenter
 
-from tpv.core.explain import MergedConfigRenderer
-from tpv.core.loader import TPVConfigLoader
-
 from .dryrunner import TPVDryRunner
+from .dumper import TPVConfigDumper
 from .formatter import TPVConfigFormatter
 from .linter import TPVConfigLinter, TPVLintError
 
@@ -100,16 +98,9 @@ def tpv_dump_config(args: Any) -> None:
     if not config_files:
         log.error("No config files specified. Provide config files or --job-conf.")
         return
-    loader = None
-    sources = []
-    for config_file in config_files:
-        loader = TPVConfigLoader.from_url_or_path(config_file, parent=loader)
-        sources.append(config_file)
+    dumper = TPVConfigDumper.from_url_or_path(config_files)
     output_format = getattr(args, "output_format", "text")
-    if output_format == "yaml":
-        sys.stdout.write(MergedConfigRenderer.render_yaml(loader.config, sources))
-    else:
-        sys.stdout.write(MergedConfigRenderer.render_text(loader.config, sources))
+    sys.stdout.write(dumper.dump(output_format=output_format))
 
 
 def create_parser() -> argparse.ArgumentParser:

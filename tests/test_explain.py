@@ -4,8 +4,7 @@ import unittest
 import yaml
 
 from tpv.commands.dryrunner import TPVDryRunner
-from tpv.core.explain import ExplainCollector, ExplainPhase, ExplainStep, MergedConfigRenderer
-from tpv.core.loader import TPVConfigLoader
+from tpv.core.explain import ExplainCollector, ExplainPhase
 
 
 class TestExplainCollectorUnit(unittest.TestCase):
@@ -101,66 +100,6 @@ class TestExplainCollectorUnit(unittest.TestCase):
         self.assertIn("        line1", output)
         self.assertIn("        line2", output)
         self.assertIn("        line3", output)
-
-
-class TestMergedConfigRenderer(unittest.TestCase):
-    """Unit tests for MergedConfigRenderer."""
-
-    def test_render_text_single_config(self):
-        config_path = os.path.join(os.path.dirname(__file__), "fixtures/mapping-basic.yml")
-        loader = TPVConfigLoader.from_url_or_path(config_path)
-        output = MergedConfigRenderer.render_text(loader.config, [config_path])
-
-        self.assertIn("TPV MERGED CONFIGURATION", output)
-        self.assertIn("mapping-basic.yml", output)
-        self.assertIn("--- Global ---", output)
-        self.assertIn("default_inherits: default", output)
-        self.assertIn("--- Tools ---", output)
-        self.assertIn("default (abstract):", output)
-        self.assertIn("bwa:", output)
-        self.assertIn("--- Destinations ---", output)
-        self.assertIn("local:", output)
-        self.assertIn("k8s_environment:", output)
-
-    def test_render_text_multiple_configs(self):
-        remote_path = os.path.join(os.path.dirname(__file__), "fixtures/mapping-merge-multiple-remote.yml")
-        local_path = os.path.join(os.path.dirname(__file__), "fixtures/mapping-merge-multiple-local.yml")
-        loader_remote = TPVConfigLoader.from_url_or_path(remote_path)
-        loader_local = TPVConfigLoader.from_url_or_path(local_path, parent=loader_remote)
-        output = MergedConfigRenderer.render_text(loader_local.config, [remote_path, local_path])
-
-        self.assertIn("TPV MERGED CONFIGURATION", output)
-        # Both sources should be listed
-        self.assertIn("mapping-merge-multiple-remote.yml", output)
-        self.assertIn("mapping-merge-multiple-local.yml", output)
-        # Merged tools from both configs should appear
-        self.assertIn("bwa:", output)
-        self.assertIn("default", output)
-        # Destinations from both configs
-        self.assertIn("local:", output)
-        self.assertIn("k8s_environment:", output)
-        self.assertIn("another_k8s_environment:", output)
-
-    def test_render_yaml(self):
-        config_path = os.path.join(os.path.dirname(__file__), "fixtures/mapping-basic.yml")
-        loader = TPVConfigLoader.from_url_or_path(config_path)
-        output = MergedConfigRenderer.render_yaml(loader.config, [config_path])
-
-        data = yaml.safe_load(output)
-        self.assertIn("_sources", data)
-        self.assertEqual(len(data["_sources"]), 1)
-        self.assertIn("tools", data)
-        self.assertIn("destinations", data)
-
-    def test_render_text_shows_destination_capacity(self):
-        config_path = os.path.join(os.path.dirname(__file__), "fixtures/mapping-basic.yml")
-        loader = TPVConfigLoader.from_url_or_path(config_path)
-        output = MergedConfigRenderer.render_text(loader.config, [config_path])
-
-        self.assertIn("max_accepted_cores=", output)
-        self.assertIn("max_accepted_mem=", output)
-        self.assertIn("runner: local", output)
-        self.assertIn("runner: k8s", output)
 
 
 class TestDryRunExplain(unittest.TestCase):
