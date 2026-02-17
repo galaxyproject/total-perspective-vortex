@@ -75,3 +75,15 @@ class TestTPVConfigDumper(unittest.TestCase):
 
         self.assertIn("env:", output)
         self.assertIn("params:", output)
+
+    def test_dump_text_shows_rule_details(self):
+        config_path = self._fixture_path("mapping-rules.yml")
+        dumper = TPVConfigDumper.from_url_or_path([config_path])
+        output = dumper.dump()
+
+        # Rule conditions should be shown
+        self.assertIn("[if: input_size < 5]", output)
+        self.assertIn("[if: input_size <= 10]", output)
+        # Rule effects should be shown
+        self.assertIn("fail: We don't run piddling datasets", output)
+        self.assertIn("cores: 4", output)

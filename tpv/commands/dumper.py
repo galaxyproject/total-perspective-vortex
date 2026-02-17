@@ -74,6 +74,16 @@ class TPVConfigDumper:
 _SKIP_FIELDS = {"id", "abstract"}
 
 
+def _write_value(buf: io.StringIO, key: str, value: Any, indent: str) -> None:
+    text = str(value)
+    if "\n" in text:
+        buf.write(f"{indent}{key}: |\n")
+        for line in text.splitlines():
+            buf.write(f"{indent}  {line}\n")
+    else:
+        buf.write(f"{indent}{key}: {value}\n")
+
+
 def _render_section(
     buf: io.StringIO,
     title: str,
@@ -97,7 +107,19 @@ def _render_section(
                     tag_parts = [f"{k}={v}" for k, v in tag_data.items()]
                     buf.write(f"    scheduling: {', '.join(tag_parts)}\n")
             elif key == "rules":
-                buf.write(f"    rules: {len(value)} rule(s)\n")
+                buf.write("    rules:\n")
+                for rule_id, rule_data in value.items():
+                    condition = rule_data.get("if", "")
+                    effects = {k: v for k, v in rule_data.items() if k not in ("id", "if")}
+                    condition_str = str(condition) if condition else ""
+                    if condition_str and "\n" not in condition_str:
+                        buf.write(f"      {rule_id} [if: {condition_str}]\n")
+                    else:
+                        buf.write(f"      {rule_id}\n")
+                        if condition_str:
+                            _write_value(buf, "if", condition_str, "        ")
+                    for ek, ev in effects.items():
+                        _write_value(buf, ek, ev, "        ")
             else:
-                buf.write(f"    {key}: {value}\n")
+                _write_value(buf, key, value, "    ")
         buf.write("\n")
