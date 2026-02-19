@@ -207,3 +207,148 @@ For example:
     shell: null
     tags: null
     url: null
+
+**Explain mode**
+
+The ``--explain`` flag provides a detailed decision trace showing how TPV arrived at its scheduling result. This is
+useful for debugging why a particular tool was routed to a specific destination, or why a mapping failed.
+
+.. code-block:: console
+
+    tpv dry-run --job-conf <path_to_galaxy_job_conf_file> --tool <tool_id> --explain \
+        [--user <user_name_or_email>] [--input-size <size_in_gb>] \
+        [--output-format text|yaml] [tpv_config_file ...]
+
+The trace is written to stderr (so it can be separated from the destination YAML on stdout) and includes the
+following phases:
+
+- **Configuration Loading** -- which config files were loaded
+- **Entity Matching** -- which tool, user, and role entities were matched
+- **Entity Combining** -- how matched entities were merged
+- **Rule Evaluation** -- which rules matched or did not match, and how they modified the entity
+- **Destination Matching** -- which candidate destinations matched or were rejected
+- **Destination Ranking** -- how candidates were scored and ordered
+- **Destination Evaluation** -- final evaluation of the selected destination
+- **Final Result** -- the chosen destination, or the reason for failure
+
+For example:
+
+.. code-block:: console
+
+    $ tpv dry-run --job-conf /srv/galaxy/config/job_conf.yml --tool bwa --input-size 40 --explain
+    ========================================================================
+    TPV SCHEDULING DECISION TRACE
+    ========================================================================
+
+    --- Configuration Loading ---
+      [1] Loaded config: /srv/galaxy/config/tpv_rules.yml
+
+    --- Entity Matching ---
+      [2] Tool 'bwa': matched entity 'bwa'
+      ...
+
+    --- Final Result ---
+      [10] Selected destination: pulsar (score=2)
+
+    ========================================================================
+
+If the mapping fails (e.g. no destinations can accept the job), the trace still shows all steps up to the
+failure, making it easy to diagnose the issue.
+
+To get the trace as YAML instead of text, use ``--output-format yaml``:
+
+.. code-block:: console
+
+    $ tpv dry-run --job-conf /srv/galaxy/config/job_conf.yml --tool bwa --explain --output-format yaml
+
+dump
+----
+
+The ``tpv dump`` command loads one or more TPV configuration files, merges them, and outputs the fully resolved
+configuration. This is useful for inspecting the final merged state when multiple config files override each other.
+
+.. code-block:: console
+
+    tpv dump [--job-conf <path_to_galaxy_job_conf_file>] \
+        [--output-format text|yaml] [tpv_config_file ...]
+
+If no TPV config files are specified on the command line, they will be discovered from the ``tpv_dispatcher``
+destination definition in the Galaxy job configuration file specified via ``--job-conf``.
+
+The text output shows all non-default fields for each entity, including resource requirements, scheduling tags,
+environment variables, parameters, and full rule details. Simple rule conditions appear inline, while multiline
+code blocks are rendered with YAML-style ``|`` block syntax.
+
+For example:
+
+.. code-block:: console
+
+    $ tpv dump config1.yml config2.yml
+    ========================================================================
+    TPV MERGED CONFIGURATION
+    Sources (in load order):
+      1. config1.yml
+      2. config2.yml
+    ========================================================================
+
+    --- Global ---
+      default_inherits: default
+
+    --- Tools ---
+      default:
+        cores: 2
+        mem: cores * 3
+        env: [{'name': 'GALAXY_SLOTS', 'value': '{cores}'}]
+        params: {'native_spec': '--mem {mem} --cores {cores}'}
+        scheduling: prefer=['general'], reject=['pulsar']
+        rules:
+          fail_small_data [if: input_size < 5]
+            fail: Data size too small
+
+      bwa:
+        scheduling: require=['pulsar']
+        rules:
+          medium_resources [if: input_size <= 10]
+            cores: 4
+            mem: cores * 4
+          large_resources [if: input_size > 10 and input_size < 20]
+            scheduling: {'require': ['highmem']}
+          reject_huge [if: input_size >= 20]
+            fail: Too much data, shouldn't run
+
+    --- Users ---
+      default:
+        rules:
+          training_destination_rule
+            if: |
+              any([r for r in user.all_roles()
+                   if (not r.deleted and r.name.startswith('training'))])
+            scheduling: {'require': ['training']}
+
+    --- Destinations ---
+      local:
+        runner: local
+        max_accepted_cores: 4
+        max_accepted_mem: 16
+        scheduling: prefer=['general']
+
+      k8s_environment:
+        runner: k8s
+        max_accepted_cores: 16
+        max_accepted_mem: 64
+        max_accepted_gpus: 2
+        scheduling: prefer=['pulsar']
+
+    ========================================================================
+
+To dump the merged configuration as YAML:
+
+.. code-block:: console
+
+    $ tpv dump --output-format yaml config1.yml config2.yml
+
+To discover config files from a Galaxy job configuration:
+
+.. code-block:: console
+
+    $ tpv dump --job-conf /srv/galaxy/config/job_conf.yml
