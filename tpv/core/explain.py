@@ -1,9 +1,14 @@
+from __future__ import annotations
+
 import dataclasses
 import io
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from ruamel.yaml import YAML
+
+if TYPE_CHECKING:
+    from .entities import Destination, Entity
 
 
 class ExplainPhase(Enum):
@@ -94,3 +99,43 @@ class ExplainCollector:
         buf = io.StringIO()
         yaml.dump(data, buf)
         return buf.getvalue()
+
+    @staticmethod
+    def match_failure_reason(dest: Destination, entity: Entity) -> str:
+        """Produce a human-readable reason why a destination didn't match an entity."""
+        if dest.abstract:
+            return "destination is abstract"
+        if (
+            dest.max_accepted_cores is not None
+            and entity.cores is not None
+            and dest.max_accepted_cores < float(entity.cores)
+        ):
+            return f"cores {entity.cores} exceeds max_accepted_cores {dest.max_accepted_cores}"
+        if dest.max_accepted_mem is not None and entity.mem is not None and dest.max_accepted_mem < float(entity.mem):
+            return f"mem {entity.mem} exceeds max_accepted_mem {dest.max_accepted_mem}"
+        if (
+            dest.max_accepted_gpus is not None
+            and entity.gpus is not None
+            and dest.max_accepted_gpus < float(entity.gpus)
+        ):
+            return f"gpus {entity.gpus} exceeds max_accepted_gpus {dest.max_accepted_gpus}"
+        if (
+            dest.min_accepted_cores is not None
+            and entity.cores is not None
+            and dest.min_accepted_cores > float(entity.cores)
+        ):
+            return f"cores {entity.cores} below min_accepted_cores {dest.min_accepted_cores}"
+        if dest.min_accepted_mem is not None and entity.mem is not None and dest.min_accepted_mem > float(entity.mem):
+            return f"mem {entity.mem} below min_accepted_mem {dest.min_accepted_mem}"
+        if (
+            dest.min_accepted_gpus is not None
+            and entity.gpus is not None
+            and dest.min_accepted_gpus > float(entity.gpus)
+        ):
+            return f"gpus {entity.gpus} below min_accepted_gpus {dest.min_accepted_gpus}"
+        if not entity.tpv_tags.match(dest.tpv_dest_tags):
+            return (
+                f"tag mismatch - entity requires {entity.tpv_tags.require}, rejects {entity.tpv_tags.reject} "
+                f"dest tags are {list(dest.tpv_dest_tags.all_tag_values())}"
+            )
+        return "unknown reason"

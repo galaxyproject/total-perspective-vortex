@@ -26,10 +26,10 @@ class TPVDryRunner:
             tpv_config_list: list[str] = self.galaxy_app.job_config.get_destination(  # type: ignore[no-untyped-call]
                 "tpv_dispatcher"
             ).params["tpv_config_files"]
-            self.tpv_config_files = self.resolve_config_paths(tpv_config_list, job_conf)
+            self.tpv_config_files = self.resolve_relative_config_paths(tpv_config_list, job_conf)
 
     @staticmethod
-    def resolve_config_paths(config_files: list[str], job_conf: str) -> list[str]:
+    def resolve_relative_config_paths(config_files: list[str], job_conf: str) -> list[str]:
         """Resolve relative tpv_config_files paths relative to the job_conf's directory."""
         job_conf_dir = os.path.dirname(os.path.abspath(job_conf))
         resolved: list[str] = []

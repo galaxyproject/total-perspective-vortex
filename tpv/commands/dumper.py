@@ -11,6 +11,8 @@ log = logging.getLogger(__name__)
 
 class TPVConfigDumper:
 
+    _SKIP_FIELDS = {"id", "abstract"}
+
     def __init__(self, config_files: List[str]):
         self.config_files = config_files
         self.loader: Optional[TPVConfigLoader] = None
@@ -46,11 +48,11 @@ class TPVConfigDumper:
                 buf.write(f"    {k}: {v}\n")
         buf.write("\n")
 
-        _render_section(buf, "Tools", config.tools)
-        _render_section(buf, "Users", config.users)
+        self._render_section(buf, "Tools", config.tools)
+        self._render_section(buf, "Users", config.users)
         if config.roles:
-            _render_section(buf, "Roles", config.roles)
-        _render_section(buf, "Destinations", config.destinations)
+            self._render_section(buf, "Roles", config.roles)
+        self._render_section(buf, "Destinations", config.destinations)
 
         buf.write("=" * 72 + "\n")
         return buf.getvalue()
@@ -67,59 +69,57 @@ class TPVConfigDumper:
         return buf.getvalue()
 
     @staticmethod
+    def _write_value(buf: io.StringIO, key: str, value: Any, indent: str) -> None:
+        text = str(value)
+        if "\n" in text:
+            buf.write(f"{indent}{key}: |\n")
+            for line in text.splitlines():
+                buf.write(f"{indent}  {line}\n")
+        else:
+            buf.write(f"{indent}{key}: {value}\n")
+
+    @classmethod
+    def _render_section(
+        cls,
+        buf: io.StringIO,
+        title: str,
+        entities: Dict[str, Any],
+    ) -> None:
+        if not entities:
+            return
+        buf.write(f"--- {title} ---\n")
+        for entity_id, entity in entities.items():
+            abstract_marker = " (abstract)" if entity.abstract else ""
+            buf.write(f"  {entity_id}{abstract_marker}:\n")
+            data = entity.model_dump(exclude_defaults=True)
+            for key, value in data.items():
+                if key in cls._SKIP_FIELDS:
+                    continue
+                if key == "destination_name_override" and value == entity_id:
+                    continue
+                if key == "scheduling":
+                    tag_data = {k: v for k, v in value.items() if v}
+                    if tag_data:
+                        tag_parts = [f"{k}={v}" for k, v in tag_data.items()]
+                        buf.write(f"    scheduling: {', '.join(tag_parts)}\n")
+                elif key == "rules":
+                    buf.write("    rules:\n")
+                    for rule_id, rule_data in value.items():
+                        condition = rule_data.get("if", "")
+                        effects = {k: v for k, v in rule_data.items() if k not in ("id", "if")}
+                        condition_str = str(condition) if condition else ""
+                        if condition_str and "\n" not in condition_str:
+                            buf.write(f"      {rule_id} [if: {condition_str}]\n")
+                        else:
+                            buf.write(f"      {rule_id}\n")
+                            if condition_str:
+                                cls._write_value(buf, "if", condition_str, "        ")
+                        for ek, ev in effects.items():
+                            cls._write_value(buf, ek, ev, "        ")
+                else:
+                    cls._write_value(buf, key, value, "    ")
+            buf.write("\n")
+
+    @staticmethod
     def from_url_or_path(config_files: List[str]) -> "TPVConfigDumper":
         return TPVConfigDumper(config_files)
-
-
-_SKIP_FIELDS = {"id", "abstract"}
-
-
-def _write_value(buf: io.StringIO, key: str, value: Any, indent: str) -> None:
-    text = str(value)
-    if "\n" in text:
-        buf.write(f"{indent}{key}: |\n")
-        for line in text.splitlines():
-            buf.write(f"{indent}  {line}\n")
-    else:
-        buf.write(f"{indent}{key}: {value}\n")
-
-
-def _render_section(
-    buf: io.StringIO,
-    title: str,
-    entities: Dict[str, Any],
-) -> None:
-    if not entities:
-        return
-    buf.write(f"--- {title} ---\n")
-    for entity_id, entity in entities.items():
-        abstract_marker = " (abstract)" if entity.abstract else ""
-        buf.write(f"  {entity_id}{abstract_marker}:\n")
-        data = entity.model_dump(exclude_defaults=True)
-        for key, value in data.items():
-            if key in _SKIP_FIELDS:
-                continue
-            if key == "destination_name_override" and value == entity_id:
-                continue
-            if key == "scheduling":
-                tag_data = {k: v for k, v in value.items() if v}
-                if tag_data:
-                    tag_parts = [f"{k}={v}" for k, v in tag_data.items()]
-                    buf.write(f"    scheduling: {', '.join(tag_parts)}\n")
-            elif key == "rules":
-                buf.write("    rules:\n")
-                for rule_id, rule_data in value.items():
-                    condition = rule_data.get("if", "")
-                    effects = {k: v for k, v in rule_data.items() if k not in ("id", "if")}
-                    condition_str = str(condition) if condition else ""
-                    if condition_str and "\n" not in condition_str:
-                        buf.write(f"      {rule_id} [if: {condition_str}]\n")
-                    else:
-                        buf.write(f"      {rule_id}\n")
-                        if condition_str:
-                            _write_value(buf, "if", condition_str, "        ")
-                    for ek, ev in effects.items():
-                        _write_value(buf, ek, ev, "        ")
-            else:
-                _write_value(buf, key, value, "    ")
-        buf.write("\n")

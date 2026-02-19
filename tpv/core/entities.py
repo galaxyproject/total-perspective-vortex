@@ -24,6 +24,7 @@ from ruamel.yaml.comments import CommentedMap
 from typing_extensions import Self
 
 from .evaluator import TPVCodeEvaluator
+from .explain import ExplainCollector, ExplainPhase
 
 log = logging.getLogger(__name__)
 
@@ -559,8 +560,6 @@ class EntityWithRules(Entity):
         return new_entity
 
     def evaluate_rules(self, context: dict[str, Any]) -> Self:
-        from .explain import ExplainCollector, ExplainPhase
-
         new_entity = copy.deepcopy(self)
         context.update(new_entity.context or {})
         explain = ExplainCollector.from_context(context)

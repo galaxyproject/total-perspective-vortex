@@ -151,46 +151,6 @@ class EntityToDestinationMapper(object):
     def rank(self, entity: Entity, destinations: list[Destination], context: dict[str, Any]) -> list[Destination]:
         return entity.rank_destinations(destinations, context)
 
-    @staticmethod
-    def _explain_match_failure(dest: Destination, entity: Entity) -> str:
-        """Produce a human-readable reason why a destination didn't match an entity."""
-        if dest.abstract:
-            return "destination is abstract"
-        if (
-            dest.max_accepted_cores is not None
-            and entity.cores is not None
-            and dest.max_accepted_cores < float(entity.cores)
-        ):
-            return f"cores {entity.cores} exceeds max_accepted_cores {dest.max_accepted_cores}"
-        if dest.max_accepted_mem is not None and entity.mem is not None and dest.max_accepted_mem < float(entity.mem):
-            return f"mem {entity.mem} exceeds max_accepted_mem {dest.max_accepted_mem}"
-        if (
-            dest.max_accepted_gpus is not None
-            and entity.gpus is not None
-            and dest.max_accepted_gpus < float(entity.gpus)
-        ):
-            return f"gpus {entity.gpus} exceeds max_accepted_gpus {dest.max_accepted_gpus}"
-        if (
-            dest.min_accepted_cores is not None
-            and entity.cores is not None
-            and dest.min_accepted_cores > float(entity.cores)
-        ):
-            return f"cores {entity.cores} below min_accepted_cores {dest.min_accepted_cores}"
-        if dest.min_accepted_mem is not None and entity.mem is not None and dest.min_accepted_mem > float(entity.mem):
-            return f"mem {entity.mem} below min_accepted_mem {dest.min_accepted_mem}"
-        if (
-            dest.min_accepted_gpus is not None
-            and entity.gpus is not None
-            and dest.min_accepted_gpus > float(entity.gpus)
-        ):
-            return f"gpus {entity.gpus} below min_accepted_gpus {dest.min_accepted_gpus}"
-        if not entity.tpv_tags.match(dest.tpv_dest_tags):
-            return (
-                f"tag mismatch - entity requires {entity.tpv_tags.require}, rejects {entity.tpv_tags.reject} "
-                f"dest tags are {list(dest.tpv_dest_tags.all_tag_values())}"
-            )
-        return "unknown reason"
-
     def match_and_rank_destinations(
         self,
         entity: Entity,
@@ -229,7 +189,7 @@ class EntityToDestinationMapper(object):
                     )
             else:
                 if explain:
-                    reason = self._explain_match_failure(dest, evaluated_entity)
+                    reason = ExplainCollector.match_failure_reason(dest, evaluated_entity)
                     explain.add_step(
                         ExplainPhase.DESTINATION_MATCHING,
                         f"{dest.id}: REJECTED",
