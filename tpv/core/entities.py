@@ -77,9 +77,9 @@ def default_dict_copier(entity1: "Entity", entity2: "Entity", property_name: str
 
 
 class TagType(IntEnum):
-    REQUIRE = 2
-    PREFER = 1
-    ACCEPT = 0
+    REQUIRE = 3
+    PREFER = 2
+    ACCEPT = 1
     REJECT = -1
 
 
@@ -689,12 +689,6 @@ class Destination(EntityWithRules):
             self.min_accepted_gpus is not None
             and entity.gpus is not None
             and self.min_accepted_gpus > float(entity.gpus)
-        ):
-            return False
-        if (
-            entity.tpv_tags.accept
-            and "tool_type_user_defined" in entity.tpv_tags.accept
-            and not "tool_type_user_defined" in (self.tpv_dest_tags.accept or [])
         ):
             return False
         return entity.tpv_tags.match(self.tpv_dest_tags)

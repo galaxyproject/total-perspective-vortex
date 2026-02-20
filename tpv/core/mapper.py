@@ -104,9 +104,18 @@ class EntityToDestinationMapper(object):
             tpv_tool = Tool(
                 evaluator=self.loader,
                 id=f"tool_provided_resources_{getattr(galaxy_tool.dynamic_tool, 'uuid', galaxy_tool.id)}",
+                scheduling=SchedulingTags(accept=[f"tool_type_{galaxy_tool.tool_type}"]),
                 **resource_fields,
             )
             return cast(Optional[EntityType], tpv_tool)
+        if issubclass(entity_type, Destination):
+            # Secure default: user-defined tools must be explicitly accepted by a destination.
+            tpv_destination = Destination(
+                evaluator=self.loader,
+                id="tool_type_secure_defaults",
+                scheduling=SchedulingTags(reject=["tool_type_user_defined"]),
+            )
+            return cast(Optional[EntityType], tpv_destination)
         return None
 
     def __get_default_inherits(self, entity_list: Mapping[str, EntityType]) -> Optional[EntityType]:
@@ -116,12 +125,19 @@ class EntityToDestinationMapper(object):
                 return default_match
         return None
 
-    def __apply_default_destination_inheritance(self, entity_list: Dict[str, Destination]) -> List[Destination]:
+    def __apply_default_destination_inheritance(
+        self, entity_list: Dict[str, Destination], context: Mapping[str, Any]
+    ) -> List[Destination]:
+        inherited_defaults: List[Destination] = []
         default_inherits = self.__get_default_inherits(entity_list)
         if default_inherits:
-            return [self.inherit_entities([default_inherits, entity]) for entity in entity_list.values()]
-        else:
-            return list(entity_list.values())
+            inherited_defaults.append(default_inherits)
+        environment_inherits = self.__get_environment_inherits(Destination, context)
+        if environment_inherits:
+            inherited_defaults.append(environment_inherits)
+        if inherited_defaults:
+            return [self.inherit_entities([*inherited_defaults, entity]) for entity in entity_list.values()]
+        return list(entity_list.values())
 
     def inherit_entities(self, entities: List[EntityType]) -> EntityType:
         return functools.reduce(lambda a, b: b.inherit(a), entities)
@@ -142,7 +158,7 @@ class EntityToDestinationMapper(object):
         # So temporarily evaluate them so we can match up with a destination.
         matches = [
             dest
-            for dest in self.__apply_default_destination_inheritance(destinations)
+            for dest in self.__apply_default_destination_inheritance(destinations, context)
             if dest.matches(entity.evaluate_resources(context), context)
         ]
         return self.rank(entity, matches, context)
@@ -169,21 +185,6 @@ class EntityToDestinationMapper(object):
 
         if not tool_entity:
             tool_entity = Tool(evaluator=self.loader, id=tool_id)
-
-        tool_type_tag = f"tool_type_{tool.tool_type}"
-
-        # Create a new accept list with the tool_type tag, preserving existing tags
-        existing_accept = tool_entity.tpv_tags.accept or []
-        new_accept = existing_accept.copy() if existing_accept else []
-        if tool_type_tag not in new_accept:
-            new_accept.append(tool_type_tag)
-
-        tool_entity.tpv_tags = SchedulingTags(
-            require=tool_entity.tpv_tags.require,
-            prefer=tool_entity.tpv_tags.prefer,
-            accept=new_accept,
-            reject=tool_entity.tpv_tags.reject,
-        )
 
         entity_list: List[EntityWithRules] = [tool_entity]
 

@@ -1,0 +1,18 @@
+global:
+  default_inherits: default
+
+tools:
+  default:
+    cores: 1
+
+destinations:
+  local:
+    runner: local
+    scheduling:
+      require:
+        - tool_type_default
+  interactive_environment:
+    runner: pulsar
+    scheduling:
+      require:
+        - tool_type_interactive

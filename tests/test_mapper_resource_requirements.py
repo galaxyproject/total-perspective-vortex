@@ -1,6 +1,7 @@
 import os
 import unittest
 
+from galaxy.jobs.mapper import JobMappingException
 from galaxy.tool_util.deps.requirements import ResourceRequirement
 
 from tpv.commands.test import mock_galaxy
@@ -163,11 +164,71 @@ class TestMapperResourceRequirements(unittest.TestCase):
         self.assertIsNotNone(destination)
         assert destination.params["native_spec"] == "--mem 8 --cores 3 --gpus 2"
 
-    def test_user_defined_tool_correctly_routed(self):
-        tool = mock_galaxy.Tool("user_defined", mock_galaxy.DynamicTool("08175037-030a-44c5-8468-c9d36cc29067"))
-        tool.tool_type = "user_defined"
+    def test_tool_type_tag_auto_injected(self):
+        tool = mock_galaxy.Tool("hisat")
+        user = mock_galaxy.User("test_user", "test@test.com")
+        tpv_config_path = os.path.join(os.path.dirname(__file__), "fixtures/mapping-tool-type-tags.yml")
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=5 * 1024**3))]
+        destination = self._map_to_destination(tool, user, datasets, tpv_config_files=[tpv_config_path])
+
+        self.assertEqual(destination.id, "local")
+
+    def test_tool_type_interactive_tag_injected(self):
+        tool = mock_galaxy.Tool(
+            "interactive_tool", dynamic_tool=mock_galaxy.DynamicTool("12345-67890-abcdef"), tool_type="interactive"
+        )
+        user = mock_galaxy.User("test_user", "test@test.com")
+        tpv_config_path = os.path.join(os.path.dirname(__file__), "fixtures/mapping-tool-type-tags.yml")
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=5 * 1024**3))]
+        destination = self._map_to_destination(tool, user, datasets, tpv_config_files=[tpv_config_path])
+
+        self.assertEqual(destination.id, "interactive_environment")
+
+    def test_user_defined_tool_accepted_when_destination_accepts(self):
+        tool = mock_galaxy.Tool(
+            "user_defined", mock_galaxy.DynamicTool("08175037-030a-44c5-8468-c9d36cc29067"), tool_type="user_defined"
+        )
         user = mock_galaxy.User("test_user", "test@test.com")
         datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=5 * 1024**3))]
         tpv_config_path = os.path.join(os.path.dirname(__file__), "fixtures/mapping-user-defined.yml")
         destination = self._map_to_destination(tool, user, datasets, tpv_config_files=[tpv_config_path])
-        assert destination.id == "pulsar_environment"
+        self.assertEqual(destination.id, "pulsar_environment")
+
+    def test_user_defined_tool_rejected_by_default(self):
+        tool = mock_galaxy.Tool(
+            "user_defined", mock_galaxy.DynamicTool("08175037-030a-44c5-8468-c9d36cc29067"), tool_type="user_defined"
+        )
+        user = mock_galaxy.User("test_user", "test@test.com")
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=5 * 1024**3))]
+        tpv_config_path = os.path.join(os.path.dirname(__file__), "fixtures/mapping-user-defined-default-reject.yml")
+
+        with self.assertRaises(JobMappingException):
+            self._map_to_destination(tool, user, datasets, tpv_config_files=[tpv_config_path])
+
+    def test_expression_tool_correctly_routed(self):
+        tool = mock_galaxy.Tool(
+            "expression", mock_galaxy.DynamicTool("2010f8e5-e296-434a-aeec-f5d9dce96377"), tool_type="expression"
+        )
+        user = mock_galaxy.User("test_user", "test@test.com")
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=5 * 1024**3))]
+        tpv_config_path = os.path.join(os.path.dirname(__file__), "fixtures/mapping-user-defined.yml")
+        destination = self._map_to_destination(tool, user, datasets, tpv_config_files=[tpv_config_path])
+        assert destination.id == "expression_environment"
+
+    def test_non_user_defined_tool_not_rejected_by_default(self):
+        user = mock_galaxy.User("test_user", "test@test.com")
+        datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=5 * 1024**3))]
+        tpv_config_path = os.path.join(os.path.dirname(__file__), "fixtures/mapping-user-defined-default-reject.yml")
+
+        default_tool_destination = self._map_to_destination(
+            mock_galaxy.Tool("hisat"), user, datasets, tpv_config_files=[tpv_config_path]
+        )
+        self.assertEqual(default_tool_destination.id, "local")
+
+        interactive_tool = mock_galaxy.Tool(
+            "interactive", mock_galaxy.DynamicTool("12345-67890-abcdef"), tool_type="interactive"
+        )
+        interactive_destination = self._map_to_destination(
+            interactive_tool, user, datasets, tpv_config_files=[tpv_config_path]
+        )
+        self.assertEqual(interactive_destination.id, "local")
