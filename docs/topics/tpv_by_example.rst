@@ -174,6 +174,36 @@ These TPV defined scheduling tags should be contrasted with Galaxy's destination
 https://github.com/galaxyproject/galaxy/blob/0a0d68b7feed5e303ed762f6586ea9757219c6f7/lib/galaxy/config/sample/job_conf.sample.yml#L1037
 Galaxy handler tags can be defined as simply `tags` at the destination.
 
+Tool type tags
+^^^^^^^^^^^^^^
+
+TPV auto-injects ``tool_type_<tool.tool_type>`` as a tool ``accept`` tag during mapping. You can
+therefore route by tool type (e.g. interactive, expression, user_defined etc.) using normal scheduling
+tags on destinations.
+
+By default, all destinations reject the ``tool_type_user_defined`` tag as security measure. To allow
+user-defined tools on a destination, explicitly accept that tag.
+
+.. code-block:: yaml
+   :linenos:
+
+   destinations:
+     local:
+       runner: local
+       scheduling:
+         reject:
+           - tool_type_interactive
+     interactive_cluster:
+       runner: pulsar
+       scheduling:
+         require:
+           - tool_type_interactive
+     user_defined_cluster:
+       runner: pulsar
+       scheduling:
+         accept:
+           - tool_type_user_defined
+
 Rules
 -----
 

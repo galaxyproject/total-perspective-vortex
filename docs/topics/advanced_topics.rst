@@ -179,6 +179,32 @@ who are specifically marked as requiring, tolerating, or preferring the "restric
 can execute that tool. Of course, the destination must also be marked as not rejecting the
 "restricted" tag.
 
+Auto-injected tool type tags
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+TPV automatically adds a tool type tag to each mapped tool as an ``accept`` tag, using the form
+``tool_type_<tool.tool_type>``. This allows administrators to route tools, such as expression
+tools, interactive tools and user-defined tools by tag, to specific destinations.
+
+In addition, as a default security measure, all destinations are treated as rejecting
+``tool_type_user_defined`` by default. This means user-defined tools must be explicitly
+accepted by a destination to be routable there.
+
+For example:
+
+.. code-block:: yaml
+
+   destinations:
+     local:
+       runner: local
+       scheduling:
+         reject:
+           - tool_type_interactive
+     pulsar_user_tools:
+       runner: pulsar
+       scheduling:
+         accept:
+           - tool_type_user_defined
+
 Scheduling by rules
 -------------------
 Rules can be used to conditionally modify any entity requirement. Rules can be given an ID,
