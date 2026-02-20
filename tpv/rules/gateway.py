@@ -18,7 +18,7 @@ from tpv.core.mapper import EntityToDestinationMapper
 
 log = logging.getLogger(__name__)
 
-JOB_YAML_CONFIG_TYPE = list[str | dict[str, Any]] | str | dict[str, Any]
+JOB_YAML_CONFIG_TYPE = list[str] | list[str | dict[str, Any]] | str | dict[str, Any]
 
 ACTIVE_DESTINATION_MAPPERS: dict[str, EntityToDestinationMapper] = {}
 DESTINATION_MAPPER_LOCK = threading.Lock()

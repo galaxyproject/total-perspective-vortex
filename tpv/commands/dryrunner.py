@@ -11,7 +11,7 @@ class TPVDryRunner:
     def __init__(
         self,
         job_conf: str,
-        tpv_confs: str | None = None,
+        tpv_confs: list[str] | None = None,
         user: mock_galaxy.User | None = None,
         tool: mock_galaxy.Tool | None = None,
         job: mock_galaxy.Job | None = None,
@@ -69,7 +69,7 @@ class TPVDryRunner:
         tool_id: str | None = None,
         roles: list[str] | None = None,
         history_tags: list[str] | None = None,
-        tpv_confs: str | None = None,
+        tpv_confs: list[str] | None = None,
         input_size: int | None = None,
     ) -> "TPVDryRunner":
         if user_email is not None:
