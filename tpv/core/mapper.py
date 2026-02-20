@@ -58,13 +58,10 @@ class EntityToDestinationMapper(object):
             log.error(f"Failed to compile regex: {key}")
             raise
 
-    def _find_entities_matching_id(
-        self,
-        context: Mapping[str, Any],
-        entity_list: dict[str, EntityType],
-        entity_name: str,
-        entity_type: type[EntityType],
+    def _get_common_inherits(
+        self, context: Mapping[str, Any], entity_list: dict[str, EntityType], entity_type: type[EntityType]
     ) -> List[EntityType]:
+        """Gets inherited values common to all entities (because destinations do not inherit regex matches)"""
         matches: List[EntityType] = []
         default_inherits = self.__get_default_inherits(entity_list)
         if default_inherits:
@@ -72,6 +69,16 @@ class EntityToDestinationMapper(object):
         env_inherits = self.__get_environment_inherits(entity_type, context)
         if env_inherits:
             matches += [env_inherits]
+        return matches
+
+    def _find_entities_matching_id(
+        self,
+        context: Mapping[str, Any],
+        entity_list: dict[str, EntityType],
+        entity_name: str,
+        entity_type: type[EntityType],
+    ) -> List[EntityType]:
+        matches = self._get_common_inherits(context, entity_list, entity_type)
         for key in entity_list.keys():
             if self.lookup_tool_regex(key).match(entity_name):
                 match = entity_list[key]
@@ -128,13 +135,7 @@ class EntityToDestinationMapper(object):
     def __apply_default_destination_inheritance(
         self, entity_list: Dict[str, Destination], context: Mapping[str, Any]
     ) -> List[Destination]:
-        inherited_defaults: List[Destination] = []
-        default_inherits = self.__get_default_inherits(entity_list)
-        if default_inherits:
-            inherited_defaults.append(default_inherits)
-        environment_inherits = self.__get_environment_inherits(Destination, context)
-        if environment_inherits:
-            inherited_defaults.append(environment_inherits)
+        inherited_defaults = self._get_common_inherits(context, entity_list, Destination)
         if inherited_defaults:
             return [self.inherit_entities([*inherited_defaults, entity]) for entity in entity_list.values()]
         return list(entity_list.values())
