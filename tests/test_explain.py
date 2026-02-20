@@ -1,5 +1,6 @@
 import os
 import unittest
+from unittest.mock import MagicMock
 
 import yaml
 from galaxy.jobs.mapper import JobMappingException
@@ -89,6 +90,12 @@ class TestExplainCollectorUnit(unittest.TestCase):
         self.assertEqual(data["phases"]["Configuration Loading"][0]["message"], "Loaded config: test.yml")
         self.assertEqual(data["phases"]["Entity Matching"][0]["detail"], "detail info")
 
+    def test_render_yaml_empty(self):
+        collector = ExplainCollector()
+        output = collector.render_yaml()
+        data = yaml.safe_load(output)
+        self.assertEqual(data["phases"], {})
+
     def test_detail_multiline(self):
         collector = ExplainCollector()
         collector.add_step(
@@ -101,6 +108,46 @@ class TestExplainCollectorUnit(unittest.TestCase):
         self.assertIn("        line1", output)
         self.assertIn("        line2", output)
         self.assertIn("        line3", output)
+
+    def test_match_failure_reason_gpus_exceed_max(self):
+        """match_failure_reason should report when gpu request exceeds max_accepted_gpus."""
+        dest = MagicMock()
+        dest.abstract = False
+        dest.max_accepted_cores = None
+        dest.max_accepted_mem = None
+        dest.max_accepted_gpus = 2.0
+        dest.min_accepted_cores = None
+        dest.min_accepted_mem = None
+        dest.min_accepted_gpus = None
+
+        entity = MagicMock()
+        entity.cores = None
+        entity.mem = None
+        entity.gpus = 4.0
+
+        reason = ExplainCollector.match_failure_reason(dest, entity)
+        self.assertIn("gpus", reason)
+        self.assertIn("max_accepted_gpus", reason)
+
+    def test_match_failure_reason_unknown(self):
+        """match_failure_reason returns 'unknown reason' when no specific condition is met."""
+        dest = MagicMock()
+        dest.abstract = False
+        dest.max_accepted_cores = None
+        dest.max_accepted_mem = None
+        dest.max_accepted_gpus = None
+        dest.min_accepted_cores = None
+        dest.min_accepted_mem = None
+        dest.min_accepted_gpus = None
+
+        entity = MagicMock()
+        entity.cores = None
+        entity.mem = None
+        entity.gpus = None
+        entity.tpv_tags.match.return_value = True  # tags match, not a tag mismatch
+
+        reason = ExplainCollector.match_failure_reason(dest, entity)
+        self.assertEqual(reason, "unknown reason")
 
 
 class TestDryRunExplain(unittest.TestCase):
@@ -306,3 +353,58 @@ class TestDryRunExplain(unittest.TestCase):
         self.assertIn("Final Result", trace)
         # Should indicate the failure
         self.assertIn("No destinations", trace)
+
+    def test_dry_run_explain_with_matching_role_entity(self):
+        """Explain trace should show a matched role entity."""
+        dry_runner = TPVDryRunner.from_params(
+            job_conf=self._fixture_path("job_conf_dry_run.yml"),
+            tool_id="bwa",
+            user_email="nobody@unknown.org",
+            roles=["training"],
+            tpv_confs=[self._fixture_path("mapping-role.yml")],
+        )
+        destination, collector = dry_runner.run(explain=True)
+
+        self.assertIsNotNone(collector)
+        trace = collector.render()
+        self.assertIn("Role: matched entity 'training'", trace)
+
+    def test_dry_run_explain_with_unmatched_user(self):
+        """Explain trace should note when a user has no matching entity."""
+        dry_runner = TPVDryRunner.from_params(
+            job_conf=self._fixture_path("job_conf_dry_run.yml"),
+            tool_id="bwa",
+            user_email="nobody@unknown.org",
+            tpv_confs=[self._fixture_path("mapping-basic.yml")],
+        )
+        destination, collector = dry_runner.run(explain=True)
+
+        self.assertIsNotNone(collector)
+        trace = collector.render()
+        self.assertIn("nobody@unknown.org': no matching entity", trace)
+
+    def test_resolve_relative_config_paths_keeps_absolute_and_urls(self):
+        """Absolute paths and URLs should be returned unchanged."""
+        result = TPVDryRunner.resolve_relative_config_paths(
+            ["/absolute/path.yml", "https://example.com/config.yml"],
+            "/some/job_conf.yml",
+        )
+        self.assertEqual(result, ["/absolute/path.yml", "https://example.com/config.yml"])
+
+    def test_from_params_roles_without_user_creates_default_user(self):
+        """from_params with roles but no user_email should create a default anonymous user."""
+        runner = TPVDryRunner.from_params(
+            job_conf=self._fixture_path("job_conf_dry_run.yml"),
+            roles=["some_role"],
+            tpv_confs=[self._fixture_path("mapping-basic.yml")],
+        )
+        self.assertIsNotNone(runner.user)
+        self.assertEqual(runner.user.email, "gargravarr@vortex.org")
+
+    def test_from_params_without_tool_id_sets_tool_none(self):
+        """from_params without tool_id should leave tool as None."""
+        runner = TPVDryRunner.from_params(
+            job_conf=self._fixture_path("job_conf_dry_run.yml"),
+            tpv_confs=[self._fixture_path("mapping-basic.yml")],
+        )
+        self.assertIsNone(runner.tool)

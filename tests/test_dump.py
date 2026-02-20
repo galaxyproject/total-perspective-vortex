@@ -87,3 +87,17 @@ class TestTPVConfigDumper(unittest.TestCase):
         # Rule effects should be shown
         self.assertIn("fail: We don't run piddling datasets", output)
         self.assertIn("cores: 4", output)
+
+    def test_dump_empty_config_files_returns_empty_string(self):
+        """Dumper with no config files should return empty string."""
+        dumper = TPVConfigDumper([])
+        self.assertEqual(dumper.dump(), "")
+
+    def test_dump_text_shows_roles_section(self):
+        """Dump should include a Roles section when the config defines roles."""
+        config_path = self._fixture_path("mapping-role.yml")
+        dumper = TPVConfigDumper.from_url_or_path([config_path])
+        output = dumper.dump()
+
+        self.assertIn("--- Roles ---", output)
+        self.assertIn("training:", output)

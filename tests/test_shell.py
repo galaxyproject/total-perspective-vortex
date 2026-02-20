@@ -773,3 +773,8 @@ class TPVShellTestCase(unittest.TestCase):
         output = self.call_shell_command("tpv", "dump", "--job-conf", job_config)
         self.assertIn("TPV MERGED CONFIGURATION", output, f"Expected merged config\n{output}")
         self.assertIn("--- Tools ---", output)
+
+    def test_dump_no_config_files_logs_error(self):
+        """tpv dump with no config files and no --job-conf should log an error."""
+        output = self.call_shell_command("tpv", "dump")
+        self.assertIn("No config files specified", output)
