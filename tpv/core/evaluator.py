@@ -1,6 +1,7 @@
 import abc
+from collections.abc import Callable
 from types import CodeType
-from typing import Any, Callable, Dict, Tuple, Union
+from typing import Any
 
 
 class TPVCodeEvaluator(abc.ABC):
@@ -8,14 +9,14 @@ class TPVCodeEvaluator(abc.ABC):
     @abc.abstractmethod
     def compile_code_block(
         self, code: str, as_f_string: bool = False, exec_only: bool = False
-    ) -> tuple[CodeType, Union[CodeType, None]]:
+    ) -> tuple[CodeType, CodeType | None]:
         pass  # pragma: no cover
 
     @abc.abstractmethod
     def eval_code_block(
         self,
         code: str,
-        context: Dict[str, Any],
+        context: dict[str, Any],
         as_f_string: bool = False,
         exec_only: bool = False,
     ) -> Any:
@@ -25,8 +26,8 @@ class TPVCodeEvaluator(abc.ABC):
         self,
         prop_name: str,
         prop_val: Any,
-        context: Dict[str, Any],
-        func: Callable[[str, Any, Dict[str, Any]], Any],
+        context: dict[str, Any],
+        func: Callable[[str, Any, dict[str, Any]], Any],
     ) -> Any:
         if isinstance(prop_val, str):
             return func(prop_name, prop_val, context)
@@ -53,7 +54,7 @@ class TPVCodeEvaluator(abc.ABC):
             lambda n, v, c: self.compile_code_block(v, as_f_string=True),
         )
 
-    def evaluate_complex_property(self, prop: Any, context: Dict[str, Any]) -> Any:
+    def evaluate_complex_property(self, prop: Any, context: dict[str, Any]) -> Any:
         return self.process_complex_property(
             "",
             prop,

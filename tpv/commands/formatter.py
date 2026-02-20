@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, Dict, List, Tuple
+from collections.abc import Callable
+from typing import Any
 
 from ruamel.yaml.comments import (
     CommentedMap,
@@ -20,9 +21,9 @@ class TPVConfigFormatter(object):
 
     @staticmethod
     def generic_key_sorter(
-        keys_to_place_first: List[str],
-    ) -> Callable[[str], Tuple[int, bool, str]]:
-        def sort_criteria(key: str) -> Tuple[int, bool, str]:
+        keys_to_place_first: list[str],
+    ) -> Callable[[str], tuple[int, bool, str]]:
+        def sort_criteria(key: str) -> tuple[int, bool, str]:
             try:
                 index = keys_to_place_first.index(key)
             except ValueError:
@@ -33,7 +34,7 @@ class TPVConfigFormatter(object):
         return sort_criteria
 
     @staticmethod
-    def multi_level_dict_sorter(dict_to_sort: Dict[str, Any], sort_order: Dict[str, Any]) -> Dict[str, Any]:
+    def multi_level_dict_sorter(dict_to_sort: dict[str, Any], sort_order: dict[str, Any]) -> dict[str, Any]:
         """
         Sorts a dict by given criteria, placing the given keys first.
         For example:
@@ -98,10 +99,10 @@ class TPVConfigFormatter(object):
         else:
             return dict_to_sort
 
-    def format(self) -> Dict[str, Any]:
+    def format(self) -> dict[str, Any]:
         default_inherits = self.yaml_dict.get("global", {}).get("default_inherits") or "default"
 
-        basic_entity_sort_order: Dict[str, Any] = {
+        basic_entity_sort_order: dict[str, Any] = {
             "id": {},
             "inherits": {},
             "if": {},

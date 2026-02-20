@@ -5,7 +5,7 @@ import functools
 import logging
 from collections.abc import Callable
 from types import CodeType
-from typing import Any, Dict, TypeVar, cast
+from typing import Any, TypeVar, cast
 
 from . import helpers, util
 from .entities import Entity, GlobalConfig, TPVConfig
@@ -23,7 +23,7 @@ class InvalidParentException(Exception):
 
 class TPVConfigLoader(TPVCodeEvaluator):
 
-    def __init__(self, tpv_config: Dict[Any, Any], parent: TPVConfigLoader | None = None):
+    def __init__(self, tpv_config: dict[Any, Any], parent: TPVConfigLoader | None = None):
         self._cached_compile_code_block: Callable[[str, bool, bool], tuple[CodeType, CodeType | None]] = (
             functools.lru_cache(maxsize=None)(self.__compile_code_block)
         )
@@ -59,7 +59,7 @@ class TPVConfigLoader(TPVCodeEvaluator):
     def eval_code_block(
         self,
         code: str,
-        context: Dict[str, Any],
+        context: dict[str, Any],
         as_f_string: bool = False,
         exec_only: bool = False,
     ) -> Any:
@@ -81,7 +81,7 @@ class TPVConfigLoader(TPVCodeEvaluator):
 
     @staticmethod
     def process_inheritance(
-        entity_list: Dict[str, EntityType],
+        entity_list: dict[str, EntityType],
         entity: EntityType,
         visited: set[str] | None = None,
     ) -> EntityType:
@@ -103,7 +103,7 @@ class TPVConfigLoader(TPVCodeEvaluator):
         return entity
 
     @staticmethod
-    def recompute_inheritance(entities: Dict[str, EntityType]) -> None:
+    def recompute_inheritance(entities: dict[str, EntityType]) -> None:
         for key, entity in entities.items():
             entities[key] = TPVConfigLoader.process_inheritance(entities, entity)
 
@@ -124,9 +124,9 @@ class TPVConfigLoader(TPVCodeEvaluator):
 
     def inherit_parent_entities(
         self,
-        entities_parent: Dict[str, EntityType],
-        entities_new: Dict[str, EntityType],
-    ) -> Dict[str, EntityType]:
+        entities_parent: dict[str, EntityType],
+        entities_new: dict[str, EntityType],
+    ) -> dict[str, EntityType]:
         """
         Merge two entity maps with a clear precedence:
         1) Later configs override earlier ones.
@@ -135,7 +135,7 @@ class TPVConfigLoader(TPVCodeEvaluator):
            sit at lowest precedence.
         """
 
-        merged: Dict[str, EntityType] = dict(entities_parent)
+        merged: dict[str, EntityType] = dict(entities_parent)
 
         for entity in entities_new.values():
             prior_definition = merged.get(entity.id)

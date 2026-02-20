@@ -1,7 +1,8 @@
 import functools
 import logging
 import re
-from typing import Any, Dict, List, Mapping, Optional, TypeVar, cast
+from collections.abc import Mapping
+from typing import Any, TypeVar, cast
 
 from cachetools import Cache, cached
 from galaxy.app import UniverseApplication
@@ -42,7 +43,7 @@ class EntityToDestinationMapper(object):
         self._cache_inherit_matching_entities: Any = Cache(maxsize=0)
 
         def _cache_key_ignore_context(
-            context: Dict[str, Any], entity_type: type[EntityType], entity_field: str, entity_name: str
+            context: dict[str, Any], entity_type: type[EntityType], entity_field: str, entity_name: str
         ) -> tuple[type[EntityType], str, str]:
             # ignore context in the key
             return (entity_type, entity_field, entity_name)
@@ -93,10 +94,10 @@ class EntityToDestinationMapper(object):
         return matches
 
     def __inherit_matching_entities(
-        self, context: Dict[str, Any], entity_type: type[EntityType], entity_field: str, entity_name: str
-    ) -> Optional[EntityType]:
-        entity_list: Dict[str, EntityType] = getattr(self.config, entity_field)
-        matches: List[EntityType] = self._find_entities_matching_id(context, entity_list, entity_name, entity_type)
+        self, context: dict[str, Any], entity_type: type[EntityType], entity_field: str, entity_name: str
+    ) -> EntityType | None:
+        entity_list: dict[str, EntityType] = getattr(self.config, entity_field)
+        matches: list[EntityType] = self._find_entities_matching_id(context, entity_list, entity_name, entity_type)
         if matches:
             return self.inherit_entities(matches)
         else:
@@ -104,7 +105,7 @@ class EntityToDestinationMapper(object):
 
     def __get_environment_inherits(
         self, entity_type: type[EntityType], context: Mapping[str, Any]
-    ) -> Optional[EntityType]:
+    ) -> EntityType | None:
         if issubclass(entity_type, Tool) and context.get("tool"):
             galaxy_tool: GalaxyTool = context["tool"]
             resource_fields = extract_resource_requirements_from_tool(galaxy_tool)
@@ -125,36 +126,34 @@ class EntityToDestinationMapper(object):
             return cast(Optional[EntityType], tpv_destination)
         return None
 
-    def __get_default_inherits(self, entity_list: Mapping[str, EntityType]) -> Optional[EntityType]:
+    def __get_default_inherits(self, entity_list: Mapping[str, EntityType]) -> EntityType | None:
         if self.default_inherits:
             default_match = entity_list.get(self.default_inherits)
             if default_match:
                 return default_match
         return None
 
-    def __apply_default_destination_inheritance(
-        self, entity_list: Dict[str, Destination], context: Mapping[str, Any]
-    ) -> List[Destination]:
+    def __apply_default_destination_inheritance(self, entity_list: dict[str, Destination]) -> list[Destination]:
         inherited_defaults = self._get_common_inherits(context, entity_list, Destination)
         if inherited_defaults:
             return [self.inherit_entities([*inherited_defaults, entity]) for entity in entity_list.values()]
         return list(entity_list.values())
 
-    def inherit_entities(self, entities: List[EntityType]) -> EntityType:
+    def inherit_entities(self, entities: list[EntityType]) -> EntityType:
         return functools.reduce(lambda a, b: b.inherit(a), entities)
 
-    def combine_entities(self, entities: List[EntityType]) -> EntityType:
+    def combine_entities(self, entities: list[EntityType]) -> EntityType:
         return functools.reduce(lambda a, b: b.combine(a), entities)
 
-    def rank(self, entity: Entity, destinations: List[Destination], context: Dict[str, Any]) -> List[Destination]:
+    def rank(self, entity: Entity, destinations: list[Destination], context: dict[str, Any]) -> list[Destination]:
         return entity.rank_destinations(destinations, context)
 
     def match_and_rank_destinations(
         self,
         entity: Entity,
-        destinations: Dict[str, Destination],
-        context: Dict[str, Any],
-    ) -> List[Destination]:
+        destinations: dict[str, Destination],
+        context: dict[str, Any],
+    ) -> list[Destination]:
         # At this point, the resource requirements (cores, mem, gpus) are unevaluated.
         # So temporarily evaluate them so we can match up with a destination.
         matches = [
@@ -175,8 +174,8 @@ class EntityToDestinationMapper(object):
         )  # type: ignore[no-untyped-call]
 
     def _find_matching_entities(
-        self, context: Dict[str, Any], tool: GalaxyTool, user: Optional[GalaxyUser]
-    ) -> List[EntityWithRules]:
+        self, context: dict[str, Any], tool: GalaxyTool, user: GalaxyUser | None
+    ) -> list[EntityWithRules]:
         # Prefer tool uuid if available, we don't want user defined tools to be able to hijack another tools' rules.
         if tool.dynamic_tool:
             tool_id = f"{tool.tool_type}-{tool.dynamic_tool.uuid}"
@@ -187,7 +186,7 @@ class EntityToDestinationMapper(object):
         if not tool_entity:
             tool_entity = Tool(evaluator=self.loader, id=tool_id)
 
-        entity_list: List[EntityWithRules] = [tool_entity]
+        entity_list: list[EntityWithRules] = [tool_entity]
 
         if user:
             role_entities = (
@@ -208,7 +207,7 @@ class EntityToDestinationMapper(object):
         return entity_list
 
     def match_combine_evaluate_entities(
-        self, context: Dict[str, Any], tool: GalaxyTool, user: Optional[GalaxyUser]
+        self, context: dict[str, Any], tool: GalaxyTool, user: GalaxyUser | None
     ) -> EntityWithRules:
         # 1. Find the entities relevant to this job
         entity_list = self._find_matching_entities(context, tool, user)
@@ -232,11 +231,11 @@ class EntityToDestinationMapper(object):
         self,
         app: UniverseApplication,
         tool: GalaxyTool,
-        user: Optional[GalaxyUser],
+        user: GalaxyUser | None,
         job: Job,
-        job_wrapper: Optional[JobWrapper] = None,
-        resource_params: Optional[Dict[str, Any]] = None,
-        workflow_invocation_uuid: Optional[str] = None,
+        job_wrapper: JobWrapper | None = None,
+        resource_params: dict[str, Any] | None = None,
+        workflow_invocation_uuid: str | None = None,
     ) -> JobDestination:
 
         # 1. Create evaluation context - these are the common variables available within any code block

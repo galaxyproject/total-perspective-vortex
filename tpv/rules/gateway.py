@@ -2,7 +2,7 @@ import logging
 import os
 import threading
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Union, cast
+from typing import Any, cast
 
 from galaxy.app import UniverseApplication
 from galaxy.jobs import JobDestination, JobWrapper
@@ -17,7 +17,7 @@ from tpv.core.mapper import EntityToDestinationMapper
 
 log = logging.getLogger(__name__)
 
-JOB_YAML_CONFIG_TYPE = Union[List[Union[str, Dict[str, Any]]], str, Dict[str, Any]]
+JOB_YAML_CONFIG_TYPE = list[str | dict[str, Any]] | str | dict[str, Any]
 
 ACTIVE_DESTINATION_MAPPERS: dict[str, EntityToDestinationMapper] = {}
 DESTINATION_MAPPER_LOCK = threading.Lock()
@@ -26,7 +26,7 @@ REFERRERS_BY_CONFIG_FILE: dict[str, dict[str, JOB_YAML_CONFIG_TYPE]] = defaultdi
 
 
 def load_destination_mapper(tpv_configs: JOB_YAML_CONFIG_TYPE, reload: bool = False) -> EntityToDestinationMapper:
-    tpv_config_list: List[Any] = listify(tpv_configs)
+    tpv_config_list: list[Any] = listify(tpv_configs)
     log.info(f"{'re' if reload else ''}loading tpv rules from: {tpv_configs}")
     loader = None
     for tpv_config in tpv_config_list:
@@ -56,7 +56,7 @@ def setup_destination_mapper(
                     app.config, "watch_job_rules", monitor_what_str="job rules"
                 )  # type: ignore[no-untyped-call]
 
-            def reload_destination_mapper(path: Optional[str]) -> None:
+            def reload_destination_mapper(path: str | None) -> None:
                 # reload all config files when one file changes to preserve order of loading the files
                 # watchdog on darwin notifies only once per file, so reload all mappers that refer to this file
                 for referrer, config_files in REFERRERS_BY_CONFIG_FILE[tpv_config_real_path].items():
@@ -90,14 +90,14 @@ def map_tool_to_destination(
     app: UniverseApplication,
     job: Job,
     tool: GalaxyTool,
-    user: Optional[GalaxyUser],
+    user: GalaxyUser | None,
     # the destination referring to the TPV dynamic destination, usually named "tpv_dispatcher"
-    referrer: Optional[JobDestination] = None,
-    tpv_config_files: Optional[JOB_YAML_CONFIG_TYPE] = None,
-    tpv_configs: Optional[JOB_YAML_CONFIG_TYPE] = None,
-    job_wrapper: Optional[JobWrapper] = None,
-    resource_params: Optional[Dict[str, Any]] = None,
-    workflow_invocation_uuid: Optional[str] = None,
+    referrer: JobDestination | None = None,
+    tpv_config_files: JOB_YAML_CONFIG_TYPE | None = None,
+    tpv_configs: JOB_YAML_CONFIG_TYPE | None = None,
+    job_wrapper: JobWrapper | None = None,
+    resource_params: dict[str, Any] | None = None,
+    workflow_invocation_uuid: str | None = None,
 ) -> JobDestination:
     if tpv_configs and tpv_config_files:
         raise ValueError("Only one of tpv_configs or tpv_config_files can be specified in execution environment.")
