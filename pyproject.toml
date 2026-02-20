@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "total-perspective-vortex"
 description = "A library for routing entities (jobs, users or groups) to destinations in Galaxy"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = "MIT"
 authors = [
     {name = "Galaxy Contributors"},
