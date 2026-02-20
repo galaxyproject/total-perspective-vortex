@@ -8,7 +8,7 @@ tools:
     gpus: 2
     scheduling:
       require:
-        - support-user-defined-tools
+        - my-custom-tag
 
 destinations:
   local:
@@ -17,4 +17,4 @@ destinations:
     runner: pulsar
     scheduling:
       accept:
-        - support-user-defined-tools
+        - my-custom-tag
