@@ -69,15 +69,12 @@ def tpv_dry_run_config_files(args: Any) -> None:
     )
     explain = getattr(args, "explain", False)
     output_format = getattr(args, "output_format", "text")
-    if explain:
-        destination, collector = dry_runner.run(explain=True)
-        if collector:
-            if output_format == "yaml":
-                sys.stderr.write(collector.render_yaml())
-            else:
-                sys.stderr.write(collector.render())
-    else:
-        destination = dry_runner.run()
+    destination, collector = dry_runner.run(explain=explain)
+    if collector:
+        if output_format == "yaml":
+            sys.stderr.write(collector.render_yaml())
+        else:
+            sys.stderr.write(collector.render())
     if destination is not None:
         yaml = YAML(typ="unsafe", pure=True)
         yaml.dump(destination, sys.stdout)

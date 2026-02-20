@@ -40,9 +40,7 @@ class TPVDryRunner:
                 resolved.append(path)
         return resolved
 
-    def run(
-        self, explain: bool = False
-    ) -> JobDestination | Tuple[JobDestination | None, ExplainCollector | None]:
+    def run(self, explain: bool = False) -> Tuple[JobDestination | None, ExplainCollector | None]:
         gateway.ACTIVE_DESTINATION_MAPPERS = {}
         collector = ExplainCollector() if explain else None
         try:
@@ -55,12 +53,10 @@ class TPVDryRunner:
                 explain_collector=collector,
             )
         except Exception:
-            if explain:
-                return None, collector
-            raise
-        if explain:
-            return destination, collector
-        return destination
+            if not explain:
+                raise
+            return None, collector
+        return destination, collector
 
     @staticmethod
     def from_params(

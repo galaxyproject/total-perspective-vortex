@@ -2,6 +2,7 @@ import os
 import unittest
 
 import yaml
+from galaxy.jobs.mapper import JobMappingException
 
 from tpv.commands.dryrunner import TPVDryRunner
 from tpv.core.explain import ExplainCollector, ExplainPhase
@@ -198,18 +199,41 @@ class TestDryRunExplain(unittest.TestCase):
         self.assertIn("score", trace)
 
     def test_dry_run_without_explain(self):
-        """explain=False should return just the destination (no tuple)."""
+        """run() always returns a (destination, collector) tuple; collector is None when explain=False."""
         dry_runner = TPVDryRunner.from_params(
             job_conf=self._fixture_path("job_conf_dry_run.yml"),
             tool_id="bwa",
             tpv_confs=[self._fixture_path("mapping-rules.yml")],
             input_size=6,
         )
-        result = dry_runner.run(explain=False)
+        destination, collector = dry_runner.run(explain=False)
 
-        # When explain=False, returns just the JobDestination (not a tuple)
-        self.assertNotIsInstance(result, tuple)
-        self.assertIsNotNone(result)
+        self.assertIsNotNone(destination)
+        self.assertIsNone(collector)
+
+    def test_dry_run_exceptions_propagate_without_explain(self):
+        """Exceptions must propagate to the caller when explain=False."""
+        dry_runner = TPVDryRunner.from_params(
+            job_conf=self._fixture_path("job_conf_dry_run.yml"),
+            tool_id="bwa",
+            tpv_confs=[self._fixture_path("mapping-destinations.yml")],
+            input_size=25,
+        )
+        with self.assertRaises(JobMappingException):
+            dry_runner.run(explain=False)
+
+    def test_dry_run_exceptions_captured_with_explain(self):
+        """Exceptions must be captured and not re-raised when explain=True."""
+        dry_runner = TPVDryRunner.from_params(
+            job_conf=self._fixture_path("job_conf_dry_run.yml"),
+            tool_id="bwa",
+            tpv_confs=[self._fixture_path("mapping-destinations.yml")],
+            input_size=25,
+        )
+        destination, collector = dry_runner.run(explain=True)
+
+        self.assertIsNone(destination)
+        self.assertIsNotNone(collector)
 
     def test_dry_run_explain_default_tool(self):
         """Explain should work for the default tool too."""
