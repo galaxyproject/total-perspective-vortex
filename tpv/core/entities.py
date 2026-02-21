@@ -77,6 +77,15 @@ class TagType(IntEnum):
     REJECT = -1
 
 
+# Affinity weights for scoring: REQUIRE is a constraint (not a preference),
+# so it scores the same as ACCEPT. Only PREFER differentiates rankings.
+SCORING_WEIGHTS: dict[TagType, int] = {
+    TagType.REQUIRE: 1,
+    TagType.PREFER: 2,
+    TagType.ACCEPT: 1,
+}
+
+
 @dataclass(frozen=True)
 class Tag:
     value: str
@@ -219,15 +228,18 @@ class SchedulingTags(BaseModel):
         )
 
     def score(self, other: "SchedulingTags") -> int:
+        self_rank_tags = tuple(
+            (tag, SCORING_WEIGHTS[tag.tag_type]) for tag in self.tags if tag.tag_type in SCORING_WEIGHTS
+        )
+        other_rank_tags = tuple(
+            (tag, SCORING_WEIGHTS[tag.tag_type]) for tag in other.tags if tag.tag_type in SCORING_WEIGHTS
+        )
+        self_values = set(self.all_tag_values())
+        other_values = set(other.all_tag_values())
         return (
-            sum(
-                int(tag.tag_type) * int(o.tag_type)
-                for tag in self.filter()
-                for o in other.filter()
-                if tag.value == o.value
-            )
-            # penalize tags that don't exist in the other
-            - sum(int(tag.tag_type) for tag in self.tags if tag.value not in other.all_tag_values())
+            sum(sw * ow for (s, sw) in self_rank_tags for (o, ow) in other_rank_tags if s.value == o.value)
+            - sum(sw for (s, sw) in self_rank_tags if s.value not in other_values)
+            - sum(ow for (o, ow) in other_rank_tags if o.value not in self_values)
         )
 
 

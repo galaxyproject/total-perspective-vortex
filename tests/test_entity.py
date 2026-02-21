@@ -147,3 +147,39 @@ class TestEntity(unittest.TestCase):
         prefer_tags = SchedulingTags(prefer=["x"])
 
         assert prefer_tags.score(entity_tags) > accept_tags.score(entity_tags)
+
+    def test_scheduling_score_symmetric_empty_tags(self):
+        assert SchedulingTags().score(SchedulingTags()) == 0
+
+    def test_scheduling_score_penalizes_entity_tags_missing_from_dest(self):
+        dest_tags = SchedulingTags()
+        entity_tags = SchedulingTags(prefer=["x"])
+
+        assert dest_tags.score(entity_tags) < 0
+
+    def test_scheduling_score_mutual_coverage_beats_partial(self):
+        entity_tags = SchedulingTags(prefer=["gpu", "fast"])
+        full_dest = SchedulingTags(prefer=["gpu", "fast"])
+        partial_dest = SchedulingTags(prefer=["gpu"])
+
+        assert full_dest.score(entity_tags) > partial_dest.score(entity_tags)
+
+    def test_scheduling_score_require_equals_accept_weight(self):
+        entity_tags = SchedulingTags(accept=["x"])
+        dest_require = SchedulingTags(require=["x"])
+        dest_accept = SchedulingTags(accept=["x"])
+
+        assert dest_require.score(entity_tags) == dest_accept.score(entity_tags)
+
+    def test_scheduling_score_symmetric_require_treatment(self):
+        # entity require + dest accept should score same as dest require + entity accept
+        assert SchedulingTags(accept=["x"]).score(SchedulingTags(require=["x"])) == SchedulingTags(require=["x"]).score(
+            SchedulingTags(accept=["x"])
+        )
+
+    def test_scheduling_score_prefer_differentiates_over_require(self):
+        entity_tags = SchedulingTags(accept=["x"])
+        dest_prefer = SchedulingTags(prefer=["x"])
+        dest_require = SchedulingTags(require=["x"])
+
+        assert dest_prefer.score(entity_tags) > dest_require.score(entity_tags)
