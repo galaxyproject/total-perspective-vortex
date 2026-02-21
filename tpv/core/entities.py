@@ -4,7 +4,7 @@ import logging
 import re
 from collections import defaultdict
 from dataclasses import dataclass
-from enum import IntEnum
+from enum import Enum, auto
 from typing import (
     Annotated,
     Any,
@@ -70,11 +70,11 @@ def default_dict_copier(entity1: "Entity", entity2: "Entity", property_name: str
     return new_dict
 
 
-class TagType(IntEnum):
-    REQUIRE = 3
-    PREFER = 2
-    ACCEPT = 1
-    REJECT = -1
+class TagType(Enum):
+    REQUIRE = auto()
+    PREFER = auto()
+    ACCEPT = auto()
+    REJECT = auto()
 
 
 # Affinity weights for scoring: REQUIRE is a constraint (not a preference),
