@@ -4,7 +4,7 @@ import unittest
 from galaxy.jobs import JobDestination
 
 from tpv.commands.test import mock_galaxy
-from tpv.core.entities import Destination, Tag, TagType, Tool
+from tpv.core.entities import Destination, SchedulingTags, Tag, TagType, Tool
 from tpv.core.loader import TPVConfigLoader
 from tpv.rules import gateway
 
@@ -133,3 +133,17 @@ class TestEntity(unittest.TestCase):
 
         # tag should not match if either tag_type or tag_value mismatches
         assert not list(destination.tpv_dest_tags.filter(tag_type=[TagType.ACCEPT], tag_value="pulsar"))
+
+    def test_scheduling_score_explicit_accept_outscores_implicit_default_reject(self):
+        entity_tags = SchedulingTags(accept=["tool_type_expression"])
+        local_tags = SchedulingTags(reject=["tool_type_user_defined"])
+        expression_tags = SchedulingTags(accept=["tool_type_expression"], reject=["tool_type_user_defined"])
+
+        assert expression_tags.score(entity_tags) > local_tags.score(entity_tags)
+
+    def test_scheduling_score_prefer_is_weighted_higher_than_accept(self):
+        entity_tags = SchedulingTags(accept=["x"])
+        accept_tags = SchedulingTags(accept=["x"])
+        prefer_tags = SchedulingTags(prefer=["x"])
+
+        assert prefer_tags.score(entity_tags) > accept_tags.score(entity_tags)

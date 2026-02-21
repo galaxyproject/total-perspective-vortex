@@ -179,6 +179,86 @@ who are specifically marked as requiring, tolerating, or preferring the "restric
 can execute that tool. Of course, the destination must also be marked as not rejecting the
 "restricted" tag.
 
+Auto-injected tool type tags
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+TPV automatically adds a tool type tag to each mapped tool as an ``accept`` tag, using the form
+``tool_type_<tool.tool_type>``. This enables administrators to route tools, such as expression
+tools, interactive tools and user-defined tools, by tag, to specific destinations.
+
+Common tool type tags include:
+
++----------------------+----------------------------+
+| Galaxy ``tool_type`` | Auto-injected TPV tag      |
++======================+============================+
+| ``default``          | ``tool_type_default``      |
++----------------------+----------------------------+
+| ``interactive``      | ``tool_type_interactive``  |
++----------------------+----------------------------+
+| ``expression``       | ``tool_type_expression``   |
++----------------------+----------------------------+
+| ``data_source``      | ``tool_type_data_source``  |
++----------------------+----------------------------+
+| ``user_defined``     | ``tool_type_user_defined`` |
++----------------------+----------------------------+
+
+This list is not exhaustive. TPV uses whatever value Galaxy provides in ``tool.tool_type``.
+
+In addition, as a default security measure, all destinations are treated as rejecting
+``tool_type_user_defined`` by default. This means user-defined tools must be explicitly
+accepted by a destination to be routable there.
+
+For example:
+
+.. code-block:: yaml
+
+   destinations:
+     local:
+       runner: local
+       scheduling:
+         reject:
+           - tool_type_interactive
+     pulsar_user_tools:
+       runner: pulsar
+       scheduling:
+         accept:
+           - tool_type_user_defined
+
+Auto-injected tool resource requirements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+If a Galaxy tool wrapper defines ``resource_requirements``, TPV injects those values into the mapped tool
+entity automatically. This lets tools that declare requirements in Galaxy XML wrappers participate in TPV
+destination matching even when no explicit TPV tool resource fields are defined.
+
+Mapped fields are:
+
+* ``cores_min`` -> ``cores``
+* ``cores_max`` -> ``max_cores``
+* ``ram_min`` -> ``mem``
+* ``ram_max`` -> ``max_mem``
+* ``cuda_device_count_min`` -> ``gpus``
+* ``cuda_device_count_max`` -> ``max_gpus``
+
+If the same resource is also defined in TPV ``tools:``, the TPV configuration value overrides the
+auto-injected value.
+
+For example, with a tool that declares ``cores_min=8`` and ``ram_min=16384`` in Galaxy's tool XML:
+
+.. code-block:: yaml
+   :linenos:
+
+   tools:
+     default:
+      mem: 8  # The Galaxy tool wrapper's ram_min would override this default value
+     my_tool:
+       mem: 32  # but this specific override takes priority over ram_min
+   destinations:
+     slurm:
+       runner: slurm
+       max_accepted_cores: 16
+       max_accepted_mem: 32768
+
+Note that tool resource requirements override tool defaults.
+
 Scheduling by rules
 -------------------
 Rules can be used to conditionally modify any entity requirement. Rules can be given an ID,

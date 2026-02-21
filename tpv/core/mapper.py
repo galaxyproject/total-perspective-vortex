@@ -16,6 +16,7 @@ from .entities import (
     Entity,
     EntityWithRules,
     Role,
+    SchedulingTags,
     Tool,
     TryNextDestinationOrFail,
     TryNextDestinationOrWait,
@@ -57,13 +58,10 @@ class EntityToDestinationMapper(object):
             log.error(f"Failed to compile regex: {key}")
             raise
 
-    def _find_entities_matching_id(
-        self,
-        context: Mapping[str, Any],
-        entity_list: dict[str, EntityType],
-        entity_name: str,
-        entity_type: type[EntityType],
+    def _get_common_inherits(
+        self, context: Mapping[str, Any], entity_list: dict[str, EntityType], entity_type: type[EntityType]
     ) -> List[EntityType]:
+        """Gets inherited values common to all entities (because destinations do not inherit regex matches)"""
         matches: List[EntityType] = []
         default_inherits = self.__get_default_inherits(entity_list)
         if default_inherits:
@@ -71,6 +69,16 @@ class EntityToDestinationMapper(object):
         env_inherits = self.__get_environment_inherits(entity_type, context)
         if env_inherits:
             matches += [env_inherits]
+        return matches
+
+    def _find_entities_matching_id(
+        self,
+        context: Mapping[str, Any],
+        entity_list: dict[str, EntityType],
+        entity_name: str,
+        entity_type: type[EntityType],
+    ) -> List[EntityType]:
+        matches = self._get_common_inherits(context, entity_list, entity_type)
         for key in entity_list.keys():
             if self.lookup_tool_regex(key).match(entity_name):
                 match = entity_list[key]
@@ -103,9 +111,18 @@ class EntityToDestinationMapper(object):
             tpv_tool = Tool(
                 evaluator=self.loader,
                 id=f"tool_provided_resources_{getattr(galaxy_tool.dynamic_tool, 'uuid', galaxy_tool.id)}",
+                scheduling=SchedulingTags(accept=[f"tool_type_{galaxy_tool.tool_type}"]),
                 **resource_fields,
             )
             return cast(Optional[EntityType], tpv_tool)
+        if issubclass(entity_type, Destination):
+            # Secure default: user-defined tools must be explicitly accepted by a destination.
+            tpv_destination = Destination(
+                evaluator=self.loader,
+                id="tool_type_secure_defaults",
+                scheduling=SchedulingTags(reject=["tool_type_user_defined"]),
+            )
+            return cast(Optional[EntityType], tpv_destination)
         return None
 
     def __get_default_inherits(self, entity_list: Mapping[str, EntityType]) -> Optional[EntityType]:
@@ -115,12 +132,13 @@ class EntityToDestinationMapper(object):
                 return default_match
         return None
 
-    def __apply_default_destination_inheritance(self, entity_list: Dict[str, Destination]) -> List[Destination]:
-        default_inherits = self.__get_default_inherits(entity_list)
-        if default_inherits:
-            return [self.inherit_entities([default_inherits, entity]) for entity in entity_list.values()]
-        else:
-            return list(entity_list.values())
+    def __apply_default_destination_inheritance(
+        self, entity_list: Dict[str, Destination], context: Mapping[str, Any]
+    ) -> List[Destination]:
+        inherited_defaults = self._get_common_inherits(context, entity_list, Destination)
+        if inherited_defaults:
+            return [self.inherit_entities([*inherited_defaults, entity]) for entity in entity_list.values()]
+        return list(entity_list.values())
 
     def inherit_entities(self, entities: List[EntityType]) -> EntityType:
         return functools.reduce(lambda a, b: b.inherit(a), entities)
@@ -141,7 +159,7 @@ class EntityToDestinationMapper(object):
         # So temporarily evaluate them so we can match up with a destination.
         matches = [
             dest
-            for dest in self.__apply_default_destination_inheritance(destinations)
+            for dest in self.__apply_default_destination_inheritance(destinations, context)
             if dest.matches(entity.evaluate_resources(context), context)
         ]
         return self.rank(entity, matches, context)

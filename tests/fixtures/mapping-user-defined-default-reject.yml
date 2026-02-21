@@ -6,8 +6,9 @@ tools:
     cores: 1
   user_defined-*:
     gpus: 2
-  expression-*:
-    cores: 2
+    scheduling:
+      require:
+        - my-custom-tag
 
 destinations:
   local:
@@ -16,9 +17,4 @@ destinations:
     runner: pulsar
     scheduling:
       accept:
-        - tool_type_user_defined
-  expression_environment:
-    runner: pulsar
-    scheduling:
-      accept:
-        - tool_type_expression
+        - my-custom-tag

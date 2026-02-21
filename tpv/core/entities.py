@@ -77,9 +77,9 @@ def default_dict_copier(entity1: "Entity", entity2: "Entity", property_name: str
 
 
 class TagType(IntEnum):
-    REQUIRE = 2
-    PREFER = 1
-    ACCEPT = 0
+    REQUIRE = 3
+    PREFER = 2
+    ACCEPT = 1
     REJECT = -1
 
 
