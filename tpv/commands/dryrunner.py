@@ -1,3 +1,5 @@
+import os
+
 from galaxy.jobs import JobDestination
 
 from tpv.core.explain import ExplainCollector
@@ -40,7 +42,7 @@ class TPVDryRunner:
                 resolved.append(path)
         return resolved
 
-    def run(self, explain: bool = False) -> Tuple[JobDestination | None, ExplainCollector | None]:
+    def run(self, explain: bool = False) -> tuple[JobDestination | None, ExplainCollector | None]:
         gateway.ACTIVE_DESTINATION_MAPPERS = {}
         collector = ExplainCollector() if explain else None
         try:

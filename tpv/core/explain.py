@@ -3,7 +3,7 @@ from __future__ import annotations
 import dataclasses
 import io
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any
 
 from ruamel.yaml import YAML
 
@@ -27,7 +27,7 @@ class ExplainPhase(Enum):
 class ExplainStep:
     phase: ExplainPhase
     message: str
-    detail: Optional[str] = None
+    detail: str | None = None
 
 
 class ExplainCollector:
@@ -36,18 +36,18 @@ class ExplainCollector:
     CONTEXT_KEY = "__explain"
 
     def __init__(self) -> None:
-        self.steps: List[ExplainStep] = []
+        self.steps: list[ExplainStep] = []
 
     def add_step(
         self,
         phase: ExplainPhase,
         message: str,
-        detail: Optional[str] = None,
+        detail: str | None = None,
     ) -> None:
         self.steps.append(ExplainStep(phase=phase, message=message, detail=detail))
 
     @staticmethod
-    def from_context(context: Dict[str, Any]) -> Optional["ExplainCollector"]:
+    def from_context(context: dict[str, Any]) -> "ExplainCollector" | None:
         """Retrieve the collector from a context dict, or None if not explaining."""
         return context.get(ExplainCollector.CONTEXT_KEY)
 
@@ -76,9 +76,9 @@ class ExplainCollector:
 
     def render_yaml(self) -> str:
         """Render the collected steps as YAML."""
-        data: Dict[str, Any] = {"phases": {}}
+        data: dict[str, Any] = {"phases": {}}
         current_phase = None
-        phase_steps: List[Dict[str, Any]] = []
+        phase_steps: list[dict[str, Any]] = []
 
         for step in self.steps:
             if step.phase != current_phase:
@@ -86,7 +86,7 @@ class ExplainCollector:
                     data["phases"][current_phase.value] = phase_steps
                 current_phase = step.phase
                 phase_steps = []
-            step_data: Dict[str, Any] = {"message": step.message}
+            step_data: dict[str, Any] = {"message": step.message}
             if step.detail:
                 step_data["detail"] = step.detail
             phase_steps.append(step_data)

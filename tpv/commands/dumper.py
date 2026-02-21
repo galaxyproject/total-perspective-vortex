@@ -1,6 +1,6 @@
 import io
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ruamel.yaml import YAML
 
@@ -13,9 +13,9 @@ class TPVConfigDumper:
 
     _SKIP_FIELDS = {"id", "abstract"}
 
-    def __init__(self, config_files: List[str]):
+    def __init__(self, config_files: list[str]):
         self.config_files = config_files
-        self.loader: Optional[TPVConfigLoader] = None
+        self.loader: TPVConfigLoader | None = None
         for config_file in config_files:
             self.loader = TPVConfigLoader.from_url_or_path(config_file, parent=self.loader)
 
@@ -83,7 +83,7 @@ class TPVConfigDumper:
         cls,
         buf: io.StringIO,
         title: str,
-        entities: Dict[str, Any],
+        entities: dict[str, Any],
     ) -> None:
         if not entities:
             return
@@ -121,5 +121,5 @@ class TPVConfigDumper:
             buf.write("\n")
 
     @staticmethod
-    def from_url_or_path(config_files: List[str]) -> "TPVConfigDumper":
+    def from_url_or_path(config_files: list[str]) -> "TPVConfigDumper":
         return TPVConfigDumper(config_files)

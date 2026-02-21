@@ -169,7 +169,7 @@ class EntityToDestinationMapper(object):
                 f"cores={evaluated_entity.cores}, mem={evaluated_entity.mem}, gpus={evaluated_entity.gpus}",
             )
 
-        all_dests = self.__apply_default_destination_inheritance(destinations)
+        all_dests = self.__apply_default_destination_inheritance(destinations, context)
         matches = []
         for dest in all_dests:
             if dest.matches(evaluated_entity, context):
