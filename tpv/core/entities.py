@@ -150,12 +150,12 @@ class SchedulingTags(BaseModel):
         tag_value: str | None = None,
     ) -> Iterable[Tag]:
         filtered = self.tags
-        if tag_type:
+        if tag_type is not None:
             if isinstance(tag_type, TagType):
                 filtered = (tag for tag in filtered if tag.tag_type == tag_type)
             else:
                 filtered = (tag for tag in filtered if tag.tag_type in tag_type)
-        if tag_value:
+        if tag_value is not None:
             filtered = (tag for tag in filtered if tag.value == tag_value)
         return filtered
 

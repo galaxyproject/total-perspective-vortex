@@ -134,6 +134,24 @@ class TestEntity(unittest.TestCase):
         # tag should not match if either tag_type or tag_value mismatches
         assert not list(destination.tpv_dest_tags.filter(tag_type=[TagType.ACCEPT], tag_value="pulsar"))
 
+    def test_tag_filter_with_scalar_accept_tag_type(self):
+        tags = SchedulingTags(require=["req"], accept=["acc"])
+
+        matched = list(tags.filter(tag_type=TagType.ACCEPT))
+
+        assert len(matched) == 1
+        assert matched[0].tag_type == TagType.ACCEPT
+        assert matched[0].value == "acc"
+
+    def test_tag_filter_with_empty_string_tag_value(self):
+        tags = SchedulingTags(accept=["", "acc"])
+
+        matched = list(tags.filter(tag_value=""))
+
+        assert len(matched) == 1
+        assert matched[0].tag_type == TagType.ACCEPT
+        assert matched[0].value == ""
+
     def test_scheduling_score_explicit_accept_outscores_implicit_default_reject(self):
         entity_tags = SchedulingTags(accept=["tool_type_expression"])
         local_tags = SchedulingTags(reject=["tool_type_user_defined"])
