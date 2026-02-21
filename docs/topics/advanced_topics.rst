@@ -182,7 +182,26 @@ can execute that tool. Of course, the destination must also be marked as not rej
 Auto-injected tool type tags
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 TPV automatically adds a tool type tag to each mapped tool as an ``accept`` tag, using the form
-``tool_type_<tool.tool_type>``. This allows administrators to route tools, such as expression (``tool_type_expression``), interactive (``tool_type_interactive``), data-source (``tool_type_data_source``) and user-defined tools (``tool_type_user_defined``) by tag, to specific destinations.
+``tool_type_<tool.tool_type>``. This enables administrators to route tools, such as expression
+tools, interactive tools and user-defined tools, by tag, to specific destinations.
+
+Common tool type tags include:
+
++----------------------+----------------------------+
+| Galaxy ``tool_type`` | Auto-injected TPV tag      |
++======================+============================+
+| ``default``          | ``tool_type_default``      |
++----------------------+----------------------------+
+| ``interactive``      | ``tool_type_interactive``  |
++----------------------+----------------------------+
+| ``expression``       | ``tool_type_expression``   |
++----------------------+----------------------------+
+| ``data_source``      | ``tool_type_data_source``  |
++----------------------+----------------------------+
+| ``user_defined``     | ``tool_type_user_defined`` |
++----------------------+----------------------------+
+
+This list is not exhaustive. TPV uses whatever value Galaxy provides in ``tool.tool_type``.
 
 In addition, as a default security measure, all destinations are treated as rejecting
 ``tool_type_user_defined`` by default. This means user-defined tools must be explicitly
