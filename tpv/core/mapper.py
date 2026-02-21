@@ -61,9 +61,9 @@ class EntityToDestinationMapper(object):
 
     def _get_common_inherits(
         self, context: Mapping[str, Any], entity_list: dict[str, EntityType], entity_type: type[EntityType]
-    ) -> List[EntityType]:
+    ) -> list[EntityType]:
         """Gets inherited values common to all entities (because destinations do not inherit regex matches)"""
-        matches: List[EntityType] = []
+        matches: list[EntityType] = []
         default_inherits = self.__get_default_inherits(entity_list)
         if default_inherits:
             matches += [default_inherits]
@@ -78,7 +78,7 @@ class EntityToDestinationMapper(object):
         entity_list: dict[str, EntityType],
         entity_name: str,
         entity_type: type[EntityType],
-    ) -> List[EntityType]:
+    ) -> list[EntityType]:
         matches = self._get_common_inherits(context, entity_list, entity_type)
         for key in entity_list.keys():
             if self.lookup_tool_regex(key).match(entity_name):
@@ -115,7 +115,7 @@ class EntityToDestinationMapper(object):
                 scheduling=SchedulingTags(accept=[f"tool_type_{galaxy_tool.tool_type}"]),
                 **resource_fields,
             )
-            return cast(Optional[EntityType], tpv_tool)
+            return cast(EntityType, tpv_tool)
         if issubclass(entity_type, Destination):
             # Secure default: user-defined tools must be explicitly accepted by a destination.
             tpv_destination = Destination(
@@ -123,7 +123,7 @@ class EntityToDestinationMapper(object):
                 id="tool_type_secure_defaults",
                 scheduling=SchedulingTags(reject=["tool_type_user_defined"]),
             )
-            return cast(Optional[EntityType], tpv_destination)
+            return cast(EntityType, tpv_destination)
         return None
 
     def __get_default_inherits(self, entity_list: Mapping[str, EntityType]) -> EntityType | None:
@@ -133,7 +133,9 @@ class EntityToDestinationMapper(object):
                 return default_match
         return None
 
-    def __apply_default_destination_inheritance(self, entity_list: dict[str, Destination]) -> list[Destination]:
+    def __apply_default_destination_inheritance(
+        self, entity_list: dict[str, Destination], context: Mapping[str, Any]
+    ) -> list[Destination]:
         inherited_defaults = self._get_common_inherits(context, entity_list, Destination)
         if inherited_defaults:
             return [self.inherit_entities([*inherited_defaults, entity]) for entity in entity_list.values()]
