@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import Any, List, Optional, Tuple
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -24,13 +24,13 @@ class TPVLintError(Exception):
 
 class TPVConfigLinter(object):
 
-    def __init__(self, url_or_path: List[str], ignore: Optional[List[str]], preserve_temp_code: bool):
-        self.url_or_path: List[str] = url_or_path
-        self.ignore: List[str] = ignore or []
+    def __init__(self, url_or_path: list[str], ignore: list[str] | None, preserve_temp_code: bool):
+        self.url_or_path: list[str] = url_or_path
+        self.ignore: list[str] = ignore or []
         self.preserve_temp_code = preserve_temp_code
-        self.warnings: List[Tuple[str, str]] = []
-        self.errors: List[str | Tuple[str, str]] = []
-        self.loader: Optional[TPVConfigLoader] = None
+        self.warnings: list[tuple[str, str]] = []
+        self.errors: list[str | tuple[str, str]] = []
+        self.loader: TPVConfigLoader | None = None
 
     def load_config(self) -> None:
         loader = None
@@ -164,8 +164,8 @@ class TPVConfigLinter(object):
 
     @staticmethod
     def from_url_or_path(
-        url_or_path: List[str],
-        ignore: Optional[List[str]] = None,
+        url_or_path: list[str],
+        ignore: list[str] | None = None,
         preserve_temp_code: bool = False,
     ) -> "TPVConfigLinter":
         return TPVConfigLinter(url_or_path, ignore=ignore, preserve_temp_code=preserve_temp_code)

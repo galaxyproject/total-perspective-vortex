@@ -93,3 +93,8 @@ class TestMapperConfigHandling(unittest.TestCase):
         tool = mock_galaxy.Tool("my_concrete_tool")
         with self.assertRaisesRegex(ValueError, "One of tpv_configs or tpv_config_files must be specified"):
             map_to_destination(tool, tpv_config_files=None, tpv_configs=None)
+
+    def test_load_yaml_missing_local_path(self):
+        missing_local_path = os.path.join(os.path.dirname(__file__), "fixtures/this-file-does-not-exist.yml")
+        with self.assertRaises(FileNotFoundError):
+            load_yaml_from_url_or_path(missing_local_path)

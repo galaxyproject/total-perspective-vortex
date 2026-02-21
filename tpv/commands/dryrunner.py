@@ -1,5 +1,3 @@
-from typing import List, Optional
-
 from galaxy.jobs import JobDestination
 
 from tpv.rules import gateway
@@ -12,10 +10,10 @@ class TPVDryRunner:
     def __init__(
         self,
         job_conf: str,
-        tpv_confs: Optional[str] = None,
-        user: Optional[mock_galaxy.User] = None,
-        tool: Optional[mock_galaxy.Tool] = None,
-        job: Optional[mock_galaxy.Job] = None,
+        tpv_confs: str | None = None,
+        user: mock_galaxy.User | None = None,
+        tool: mock_galaxy.Tool | None = None,
+        job: mock_galaxy.Job | None = None,
     ):
         self.galaxy_app = mock_galaxy.App(job_conf=job_conf, create_model=True)
         self.user = user
@@ -41,12 +39,12 @@ class TPVDryRunner:
     @staticmethod
     def from_params(
         job_conf: str,
-        user_email: Optional[str] = None,
-        tool_id: Optional[str] = None,
-        roles: Optional[List[str]] = None,
-        history_tags: Optional[List[str]] = None,
-        tpv_confs: Optional[str] = None,
-        input_size: Optional[int] = None,
+        user_email: str | None = None,
+        tool_id: str | None = None,
+        roles: list[str] | None = None,
+        history_tags: list[str] | None = None,
+        tpv_confs: str | None = None,
+        input_size: int | None = None,
     ) -> "TPVDryRunner":
         if user_email is not None:
             user = mock_galaxy.User(username="gargravarr", email=user_email)

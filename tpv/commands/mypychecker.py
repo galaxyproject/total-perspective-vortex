@@ -5,7 +5,7 @@ import os
 import re
 import tempfile
 import textwrap
-from typing import Annotated, Any, Dict, List, Set, Tuple, Type, get_args, get_origin
+from typing import Annotated, Any, get_args, get_origin
 
 import mypy.api
 from jinja2 import Environment, FileSystemLoader
@@ -50,9 +50,9 @@ def get_serializable_type_str(return_type: Any) -> str:
 def get_return_type_str(field_info: FieldInfo, value: Any) -> str:
     """
     Attempt to convert the field's annotation into a nice string for a function return.
-    Example: Annotated[Optional[int], TPVFieldMetadata(...)] -> Optional[int]
+    Example: Annotated[int | None, TPVFieldMetadata(...)] -> int | None
     """
-    annotation = field_info.annotation  # e.g. Annotated[Optional[int], TPVFieldMetadata()]
+    annotation = field_info.annotation  # e.g. Annotated[int | None, TPVFieldMetadata()]
     origin = get_origin(annotation)
     args = get_args(annotation)
 
@@ -96,26 +96,26 @@ def add_return_to_last_expr(code: str) -> str:
     return "\n".join(l for l in lines if l)
 
 
-def render_optional_union(type_names: List[str]) -> str:
+def render_optional_union(type_names: list[str]) -> str:
     cleaned = [t for t in type_names if t != "None"]
 
     if not cleaned:
-        return "Optional[Any]"
+        return "Any | None"
     elif len(cleaned) == 1:
-        return f"Optional[{cleaned[0]}]"
+        return f"{cleaned[0]} | None"
     else:
         union_part = " | ".join(sorted(cleaned))
-        return f"Optional[{union_part}]"
+        return f"({union_part}) | None"
 
 
 def gather_all_evaluable_code(
     loader: TPVConfigLoader,
-) -> Tuple[Dict[str, Any], List[dict[str, str]]]:
+) -> tuple[dict[str, Any], list[dict[str, str]]]:
     """
     Returns a list of all context vars and a list of (func_name, code_block) for all evaluable fields
     from all entities in the TPVConfig.
     """
-    context_vars_container: Dict[str, Any] = {}
+    context_vars_container: dict[str, Any] = {}
     code_blocks = []
 
     # Gather from top-level groups
@@ -139,8 +139,8 @@ def gather_all_evaluable_code(
 
 
 def infer_context_var_type(
-    context_vars_container: Dict[str, Set[Type[Any]]],
-    entity_context_vars: Dict[str, Any],
+    context_vars_container: dict[str, set[type[Any]]],
+    entity_context_vars: dict[str, Any],
 ) -> None:
     for var_name, var_val in entity_context_vars.items():
         possible_types = context_vars_container.get(var_name, set())
@@ -151,10 +151,10 @@ def infer_context_var_type(
 
 def gather_fields_from_entity(
     loader: TPVConfigLoader,
-    context_vars_container: Dict[str, Any],
+    context_vars_container: dict[str, Any],
     entity: Entity,
     path: str,
-) -> List[dict[str, str]]:
+) -> list[dict[str, str]]:
     """
     Return a list of dicts, each dict with:
       {
@@ -214,7 +214,7 @@ def gather_fields_from_entity(
     return code_snippets
 
 
-def type_check_code(loader: TPVConfigLoader, preserve_temp_code: bool) -> tuple[int, List[str], str]:
+def type_check_code(loader: TPVConfigLoader, preserve_temp_code: bool) -> tuple[int, list[str], str]:
     """
     1) Gather all evaluable code blocks from the loaded TPVConfig.
     2) Render them to a single .py file using Jinja2.

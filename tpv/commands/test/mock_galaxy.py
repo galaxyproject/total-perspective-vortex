@@ -1,5 +1,5 @@
 import hashlib
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, cast
 
 from galaxy.job_metrics import JobMetrics
 from galaxy.jobs import JobConfiguration
@@ -23,13 +23,13 @@ class HistoryTag:
 
 
 class History:
-    def __init__(self, name: str = "Unnamed TPV dry run history", tags: List[str] = []):
+    def __init__(self, name: str = "Unnamed TPV dry run history", tags: list[str] | None = None):
         self.name = name
-        self.tags = [HistoryTag(tag_name) for tag_name in tags]
+        self.tags = [HistoryTag(tag_name) for tag_name in (tags or [])]
 
 
 class App:
-    def __init__(self, job_conf: Optional[str] = None, create_model: bool = False):
+    def __init__(self, job_conf: str | None = None, create_model: bool = False):
         self.config = bunch.Bunch(
             job_config_file=job_conf,
             use_tasked_jobs=False,
@@ -49,13 +49,13 @@ class App:
 
 
 class User:
-    def __init__(self, username: str, email: str, roles: List[str] = [], id: Optional[int] = None):
+    def __init__(self, username: str, email: str, roles: list[str] | None = None, id: int | None = None):
         self.username = username
         self.email = email
-        self.roles = [Role(name) for name in roles]
+        self.roles = [Role(name) for name in (roles or [])]
         self.id = id or int(hashlib.sha256(f"{self.username}".encode("utf-8")).hexdigest(), 16) % 1000000
 
-    def all_roles(self) -> List[Role]:
+    def all_roles(self) -> list[Role]:
         """
         Return a unique list of Roles associated with this user or any of their groups.
         """
@@ -66,7 +66,7 @@ class User:
 class Dataset:
     counter = 0
 
-    def __init__(self, file_name: str, file_size: int, object_store_id: Optional[str] = None):
+    def __init__(self, file_name: str, file_size: int, object_store_id: str | None = None):
         self.id = self.counter
         self.counter += 1
         self.file_name = file_name
@@ -91,16 +91,16 @@ class JobToInputDatasetAssociation:
 
 class Job:
     def __init__(self) -> None:
-        self.input_datasets: List[JobToInputDatasetAssociation] = []
-        self.input_library_datasets: List[JobToInputDatasetAssociation] = []
-        self.param_values: Dict[str, Any] = dict()
-        self.parameters: Dict[str, Any] = {}
-        self.history: Optional[History] = None
+        self.input_datasets: list[JobToInputDatasetAssociation] = []
+        self.input_library_datasets: list[JobToInputDatasetAssociation] = []
+        self.param_values: dict[str, Any] = dict()
+        self.parameters: dict[str, Any] = {}
+        self.history: History | None = None
 
     def add_input_dataset(self, dataset_association: DatasetAssociation) -> None:
         self.input_datasets.append(JobToInputDatasetAssociation(dataset_association.name, dataset_association))
 
-    def get_param_values(self, app: App) -> Dict[str, Any]:
+    def get_param_values(self, app: App) -> dict[str, Any]:
         return self.param_values
 
 
@@ -114,15 +114,15 @@ class Tool:
     def __init__(
         self,
         id: str,
-        version: Optional[str] = None,
-        resource_requirements: Optional[List[ResourceRequirement]] = None,
-        dynamic_tool: Optional[DynamicTool] = None,
+        version: str | None = None,
+        resource_requirements: list[ResourceRequirement] | None = None,
+        dynamic_tool: DynamicTool | None = None,
         tool_type: str = "default",
     ):
         self.id = id
         self.old_id = id
         self.version = version
-        self.installed_tool_dependencies: List[Any] = []
+        self.installed_tool_dependencies: list[Any] = []
         self.resource_requirements = resource_requirements or []
         self.dynamic_tool = dynamic_tool
         self.tool_type = tool_type
