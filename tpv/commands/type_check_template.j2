@@ -64,7 +64,7 @@ def {{ block.func_name }}() -> None:
     {{ block.code|indent(4) }}
 {% else -%}
 def {{ block.func_name }}() -> {{ block.return_type }}:
-    # add a return to the last statement in the code block
+    {# add a return to the last statement in the code block -#}
     {{ block.code|returnify|indent(4) }}
 {% endif -%}
 {% endfor %}

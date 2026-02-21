@@ -60,7 +60,16 @@ def setup_destination_mapper(
                 # reload all config files when one file changes to preserve order of loading the files
                 # watchdog on darwin notifies only once per file, so reload all mappers that refer to this file
                 for referrer, config_files in REFERRERS_BY_CONFIG_FILE[tpv_config_real_path].items():
-                    ACTIVE_DESTINATION_MAPPERS[referrer] = load_destination_mapper(config_files, reload=True)
+                    try:
+                        ACTIVE_DESTINATION_MAPPERS[referrer] = load_destination_mapper(config_files, reload=True)
+                    except Exception:
+                        log.warning(
+                            "Failed to reload mapper for referrer '%s' after file change at '%s' (event path: '%s')",
+                            referrer,
+                            tpv_config_real_path,
+                            path,
+                            exc_info=True,
+                        )
 
             WATCHERS_BY_CONFIG_FILE[tpv_config_real_path] = watcher
             REFERRERS_BY_CONFIG_FILE[tpv_config_real_path][referrer] = tpv_configs
