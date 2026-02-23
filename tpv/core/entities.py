@@ -24,6 +24,7 @@ from ruamel.yaml.comments import CommentedMap
 from typing_extensions import Self
 
 from .evaluator import TPVCodeEvaluator
+from .explain import ExplainCollector, ExplainPhase
 
 log = logging.getLogger(__name__)
 
@@ -561,8 +562,25 @@ class EntityWithRules(Entity):
     def evaluate_rules(self, context: dict[str, Any]) -> Self:
         new_entity = copy.deepcopy(self)
         context.update(new_entity.context or {})
+        explain = ExplainCollector.from_context(context)
         for rule in self.rules.values():
             if rule.is_matching(context):
+                if explain:
+                    changes = []
+                    if rule.cores is not None:
+                        changes.append(f"cores={rule.cores}")
+                    if rule.mem is not None:
+                        changes.append(f"mem={rule.mem}")
+                    if rule.gpus is not None:
+                        changes.append(f"gpus={rule.gpus}")
+                    if rule.tpv_tags and (rule.tpv_tags.require or rule.tpv_tags.reject):
+                        changes.append(f"scheduling={rule.tpv_tags.model_dump(exclude_none=True)}")
+                    detail = f"applied: {', '.join(changes)}" if changes else None
+                    explain.add_step(
+                        ExplainPhase.RULE_EVALUATION,
+                        f"Rule '{rule.id}' (if: {str(rule.if_condition)[:80]}) -> MATCHED",
+                        detail,
+                    )
                 rule = rule.evaluate(context)
                 new_entity = cast(Self, rule.inherit(cast(Rule, new_entity)))
                 new_entity.gpus = rule.gpus or new_entity.gpus
@@ -570,6 +588,12 @@ class EntityWithRules(Entity):
                 new_entity.mem = rule.mem or new_entity.mem
                 new_entity.id = f"{new_entity.id}, Rule: {rule.id}"
                 context.update({"entity": new_entity})
+            else:
+                if explain:
+                    explain.add_step(
+                        ExplainPhase.RULE_EVALUATION,
+                        f"Rule '{rule.id}' (if: {str(rule.if_condition)[:80]}) -> not matched",
+                    )
         return new_entity
 
     def evaluate(self, context: dict[str, Any]) -> Self:

@@ -20,4 +20,4 @@ execution:
       function: map_tool_to_destination
       rules_module: tpv.rules
       tpv_config_files:
-        - fixtures/mapping-basic.yml
+        - mapping-basic.yml

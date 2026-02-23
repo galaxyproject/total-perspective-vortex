@@ -652,3 +652,129 @@ class TPVShellTestCase(unittest.TestCase):
             "id: magrathea" in output,
             f"Expected 'id: magrathea' destination\n{output}",
         )
+
+    def test_dry_run_with_explain_flag(self):
+        job_config = os.path.join(os.path.dirname(__file__), "fixtures/job_conf_dry_run.yml")
+        tpv_config = os.path.join(os.path.dirname(__file__), "fixtures/mapping-rules.yml")
+        output = self.call_shell_command(
+            "tpv",
+            "dry-run",
+            "--job-conf",
+            job_config,
+            "--tool",
+            "bwa",
+            "--input-size",
+            "6",
+            "--explain",
+            tpv_config,
+        )
+        self.assertIn(
+            "TPV SCHEDULING DECISION TRACE",
+            output,
+            f"Expected explain trace in output\n{output}",
+        )
+        self.assertIn("Entity Matching", output)
+        self.assertIn("Rule Evaluation", output)
+        self.assertIn("Destination Matching", output)
+        self.assertIn("Final Result", output)
+        # YAML destination should still be present
+        self.assertIn("id: k8s_environment", output)
+
+    def test_dry_run_explain_yaml_format(self):
+        job_config = os.path.join(os.path.dirname(__file__), "fixtures/job_conf_dry_run.yml")
+        tpv_config = os.path.join(os.path.dirname(__file__), "fixtures/mapping-rules.yml")
+        output = self.call_shell_command(
+            "tpv",
+            "dry-run",
+            "--job-conf",
+            job_config,
+            "--tool",
+            "bwa",
+            "--input-size",
+            "6",
+            "--explain",
+            "--output-format",
+            "yaml",
+            tpv_config,
+        )
+        self.assertIn("phases:", output, f"Expected YAML phases in output\n{output}")
+        self.assertIn("Configuration Loading", output)
+
+    def test_dump_single_config(self):
+        tpv_config = os.path.join(os.path.dirname(__file__), "fixtures/mapping-basic.yml")
+        output = self.call_shell_command("tpv", "dump", tpv_config)
+        self.assertIn("TPV MERGED CONFIGURATION", output, f"Expected merged config header\n{output}")
+        self.assertIn("--- Tools ---", output)
+        self.assertIn("--- Destinations ---", output)
+        self.assertIn("bwa:", output)
+        self.assertIn("local:", output)
+
+    def test_dump_multiple_configs(self):
+        remote = os.path.join(os.path.dirname(__file__), "fixtures/mapping-merge-multiple-remote.yml")
+        local = os.path.join(os.path.dirname(__file__), "fixtures/mapping-merge-multiple-local.yml")
+        output = self.call_shell_command("tpv", "dump", remote, local)
+        self.assertIn("TPV MERGED CONFIGURATION", output)
+        # Both sources should be listed
+        self.assertIn("mapping-merge-multiple-remote.yml", output)
+        self.assertIn("mapping-merge-multiple-local.yml", output)
+        # Merged entities from both configs
+        self.assertIn("bwa:", output)
+        self.assertIn("another_k8s_environment:", output)
+
+    @pytest.mark.usefixtures("chdir_tests")
+    def test_dump_from_job_conf(self):
+        job_config = "fixtures/job_conf_dry_run.yml"
+        output = self.call_shell_command("tpv", "dump", "--job-conf", job_config)
+        self.assertIn("TPV MERGED CONFIGURATION", output, f"Expected merged config\n{output}")
+        self.assertIn("--- Tools ---", output)
+
+    def test_dump_yaml_format(self):
+        tpv_config = os.path.join(os.path.dirname(__file__), "fixtures/mapping-basic.yml")
+        output = self.call_shell_command("tpv", "dump", "--output-format", "yaml", tpv_config)
+        data = yaml.safe_load(output)
+        self.assertIn("_sources", data)
+        self.assertIn("tools", data)
+        self.assertIn("destinations", data)
+
+    def test_dry_run_explain_with_mapping_exception(self):
+        """--explain should still show trace when mapping raises an exception."""
+        job_config = os.path.join(os.path.dirname(__file__), "fixtures/job_conf_dry_run.yml")
+        tpv_config = os.path.join(os.path.dirname(__file__), "fixtures/mapping-destinations.yml")
+        output = self.call_shell_command(
+            "tpv",
+            "dry-run",
+            "--job-conf",
+            job_config,
+            "--tool",
+            "three_core_test_tool",
+            "--input-size",
+            "5",
+            "--explain",
+            tpv_config,
+        )
+        self.assertIn(
+            "TPV SCHEDULING DECISION TRACE",
+            output,
+            f"Expected explain trace in output\n{output}",
+        )
+        self.assertIn("Entity Matching", output)
+        self.assertIn("Destination Evaluation", output)
+        self.assertIn("Final Result", output)
+
+    def test_dry_run_job_conf_resolves_relative_config_paths(self):
+        """tpv_config_files in job_conf should resolve relative to the job_conf's directory."""
+        job_config = os.path.join(os.path.dirname(__file__), "fixtures/job_conf_dry_run.yml")
+        output = self.call_shell_command("tpv", "dry-run", "--job-conf", job_config)
+        self.assertTrue("id: local" in output, f"Expected 'id: local' destination\n{output}")
+
+    def test_dump_job_conf_resolves_relative_config_paths(self):
+        """tpv dump --job-conf should resolve relative config paths relative to job_conf's directory."""
+        job_config = os.path.join(os.path.dirname(__file__), "fixtures/job_conf_dry_run.yml")
+        output = self.call_shell_command("tpv", "dump", "--job-conf", job_config)
+        self.assertIn("TPV MERGED CONFIGURATION", output, f"Expected merged config\n{output}")
+        self.assertIn("--- Tools ---", output)
+
+    def test_dump_no_config_files_logs_error(self):
+        """tpv dump with no config files and no --job-conf should log an error."""
+        output = self.call_shell_command("tpv", "dump")
+        self.assertIn("No config files specified", output)

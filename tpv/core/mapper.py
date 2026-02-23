@@ -23,6 +23,7 @@ from .entities import (
     TryNextDestinationOrWait,
     User,
 )
+from .explain import ExplainCollector, ExplainPhase
 from .loader import TPVConfigLoader
 from .resource_requirements import extract_resource_requirements_from_tool
 
@@ -156,14 +157,54 @@ class EntityToDestinationMapper(object):
         destinations: dict[str, Destination],
         context: dict[str, Any],
     ) -> list[Destination]:
+        explain = ExplainCollector.from_context(context)
         # At this point, the resource requirements (cores, mem, gpus) are unevaluated.
         # So temporarily evaluate them so we can match up with a destination.
-        matches = [
-            dest
-            for dest in self.__apply_default_destination_inheritance(destinations, context)
-            if dest.matches(entity.evaluate_resources(context), context)
-        ]
-        return self.rank(entity, matches, context)
+        evaluated_entity = entity.evaluate_resources(context)
+
+        if explain:
+            explain.add_step(
+                ExplainPhase.RESOURCE_EVALUATION,
+                "Evaluated resource expressions",
+                f"cores={evaluated_entity.cores}, mem={evaluated_entity.mem}, gpus={evaluated_entity.gpus}",
+            )
+
+        all_dests = self.__apply_default_destination_inheritance(destinations, context)
+        matches = []
+        for dest in all_dests:
+            if dest.matches(evaluated_entity, context):
+                matches.append(dest)
+                if explain:
+                    capacity_parts = []
+                    if dest.max_accepted_cores is not None:
+                        capacity_parts.append(f"max_cores={dest.max_accepted_cores}")
+                    if dest.max_accepted_mem is not None:
+                        capacity_parts.append(f"max_mem={dest.max_accepted_mem}")
+                    if dest.max_accepted_gpus is not None:
+                        capacity_parts.append(f"max_gpus={dest.max_accepted_gpus}")
+                    explain.add_step(
+                        ExplainPhase.DESTINATION_MATCHING,
+                        f"{dest.id}: MATCHED",
+                        f"capacity: {', '.join(capacity_parts)}" if capacity_parts else None,
+                    )
+            else:
+                if explain:
+                    reason = ExplainCollector.match_failure_reason(dest, evaluated_entity)
+                    explain.add_step(
+                        ExplainPhase.DESTINATION_MATCHING,
+                        f"{dest.id}: REJECTED",
+                        reason,
+                    )
+
+        ranked = self.rank(entity, matches, context)
+        if explain:
+            for i, d in enumerate(ranked):
+                score = d.score(entity)
+                explain.add_step(
+                    ExplainPhase.DESTINATION_RANKING,
+                    f"#{i + 1} {d.id} (score: {score})",
+                )
+        return ranked
 
     def to_galaxy_destination(self, destination: Destination) -> JobDestination:
         return JobDestination(
@@ -178,6 +219,7 @@ class EntityToDestinationMapper(object):
     def _find_matching_entities(
         self, context: dict[str, Any], tool: GalaxyTool, user: GalaxyUser | None
     ) -> list[EntityWithRules]:
+        explain = ExplainCollector.from_context(context)
         # Prefer tool uuid if available, we don't want user defined tools to be able to hijack another tools' rules.
         if tool.dynamic_tool:
             tool_id = f"{tool.tool_type}-{tool.dynamic_tool.uuid}"
@@ -187,6 +229,17 @@ class EntityToDestinationMapper(object):
 
         if not tool_entity:
             tool_entity = Tool(evaluator=self.loader, id=tool_id)
+            if explain:
+                explain.add_step(
+                    ExplainPhase.ENTITY_MATCHING,
+                    f"Tool '{tool_id}': no explicit match, using default",
+                )
+        else:
+            if explain:
+                explain.add_step(
+                    ExplainPhase.ENTITY_MATCHING,
+                    f"Tool '{tool_id}': matched entity '{tool_entity.id}'",
+                )
 
         entity_list: list[EntityWithRules] = [tool_entity]
 
@@ -201,22 +254,56 @@ class EntityToDestinationMapper(object):
             user_role_entity = next(user_role_entities, None)
             if user_role_entity:
                 entity_list += [user_role_entity]
+                if explain:
+                    explain.add_step(
+                        ExplainPhase.ENTITY_MATCHING,
+                        f"Role: matched entity '{user_role_entity.id}'",
+                    )
+            else:
+                if explain:
+                    explain.add_step(ExplainPhase.ENTITY_MATCHING, "No role entities matched")
 
             user_entity = self.inherit_matching_entities(context, User, "users", user.email)
             if user_entity:
                 entity_list += [user_entity]
+                if explain:
+                    explain.add_step(
+                        ExplainPhase.ENTITY_MATCHING,
+                        f"User '{user.email}': matched entity '{user_entity.id}'",
+                    )
+            else:
+                if explain:
+                    explain.add_step(
+                        ExplainPhase.ENTITY_MATCHING,
+                        f"User '{user.email}': no matching entity",
+                    )
+        else:
+            if explain:
+                explain.add_step(ExplainPhase.ENTITY_MATCHING, "No user specified")
 
         return entity_list
 
     def match_combine_evaluate_entities(
         self, context: dict[str, Any], tool: GalaxyTool, user: GalaxyUser | None
     ) -> EntityWithRules:
+        explain = ExplainCollector.from_context(context)
         # 1. Find the entities relevant to this job
         entity_list = self._find_matching_entities(context, tool, user)
 
         # 2. Combine entity requirements
         combined_entity = self.combine_entities(entity_list)
         context.update({"entity": combined_entity, "self": combined_entity})
+
+        if explain:
+            entity_names = [f"{type(e).__name__}({e.id})" for e in entity_list]
+            explain.add_step(
+                ExplainPhase.ENTITY_COMBINING,
+                f"Combining entities: {' + '.join(entity_names)}",
+                f"cores={combined_entity.cores}, mem={combined_entity.mem}, gpus={combined_entity.gpus}\n"
+                f"scheduling: require={combined_entity.tpv_tags.require}, "
+                f"prefer={combined_entity.tpv_tags.prefer}, "
+                f"reject={combined_entity.tpv_tags.reject}",
+            )
 
         # 3. Evaluate rules only, so that all expressions are collapsed into a flat entity. The final
         #    values for expressions should be evaluated only after combining with the destination.
@@ -238,6 +325,7 @@ class EntityToDestinationMapper(object):
         job_wrapper: JobWrapper | None = None,
         resource_params: dict[str, Any] | None = None,
         workflow_invocation_uuid: str | None = None,
+        explain_collector: ExplainCollector | None = None,
     ) -> JobDestination:
 
         # 1. Create evaluation context - these are the common variables available within any code block
@@ -256,34 +344,75 @@ class EntityToDestinationMapper(object):
             }
         )
 
+        # Inject the explain collector into the context
+        if explain_collector:
+            context[ExplainCollector.CONTEXT_KEY] = explain_collector
+
         # 2. Find, combine and evaluate entities that match this tool and user
         evaluated_entity = self.match_combine_evaluate_entities(context, tool, user)
 
         # 3. Match and rank destinations that best match the combined entity
         ranked_dest_entities = self.match_and_rank_destinations(evaluated_entity, self.destinations, context)
 
+        explain = ExplainCollector.from_context(context)
+
         # 4. Fully combine entity with matching destinations
         if ranked_dest_entities:
             wait_exception_raised = False
             for d in ranked_dest_entities:
                 try:  # An exception here signifies that a destination rule did not match
+                    if explain:
+                        explain.add_step(
+                            ExplainPhase.DESTINATION_EVALUATION,
+                            f"Evaluating destination '{d.id}'",
+                        )
                     dest_combined_entity = d.combine(cast(Destination, evaluated_entity))
                     evaluated_destination = dest_combined_entity.evaluate(context)
                     # 5. Return the top-ranked destination that evaluates successfully
+                    if explain:
+                        explain.add_step(
+                            ExplainPhase.FINAL_RESULT,
+                            f"Destination: {evaluated_destination.dest_name}",
+                            f"runner: {evaluated_destination.runner}\n"
+                            f"cores: {evaluated_destination.cores}, mem: {evaluated_destination.mem}, "
+                            f"gpus: {evaluated_destination.gpus}\n"
+                            f"params: {evaluated_destination.params}\n"
+                            f"env: {evaluated_destination.env}",
+                        )
                     return self.to_galaxy_destination(evaluated_destination)
                 except TryNextDestinationOrFail as ef:
+                    if explain:
+                        explain.add_step(
+                            ExplainPhase.DESTINATION_EVALUATION,
+                            f"Destination '{d.id}' failed: {ef}, trying next...",
+                        )
                     log.exception(
                         f"Destination entity: {d} matched but could not fulfill requirements due to: {ef}."
                         " Trying next candidate..."
                     )
-                except TryNextDestinationOrWait:
+                except TryNextDestinationOrWait as ew:
+                    if explain:
+                        explain.add_step(
+                            ExplainPhase.DESTINATION_EVALUATION,
+                            f"Destination '{d.id}' deferred: {ew}, trying next...",
+                        )
                     wait_exception_raised = True
             if wait_exception_raised:
+                if explain:
+                    explain.add_step(
+                        ExplainPhase.FINAL_RESULT,
+                        "All matching destinations deferred (job not ready)",
+                    )
                 raise JobNotReadyException()  # type: ignore[no-untyped-call]
 
         # No matching destinations. Throw an exception
         from galaxy.jobs.mapper import JobMappingException
 
+        if explain:
+            explain.add_step(
+                ExplainPhase.FINAL_RESULT,
+                f"No destinations are available to fulfill request: {evaluated_entity.id}",
+            )
         raise JobMappingException(
             f"No destinations are available to fulfill request: {evaluated_entity.id}"
         )  # type: ignore[no-untyped-call]
