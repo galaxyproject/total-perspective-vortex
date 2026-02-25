@@ -125,7 +125,7 @@ will reveal the code that was type checked, and you can find the line numbers pi
   min_accepted_gpus: int | None
   env: list[dict[str, str]] | None
   params: dict[str, Any] | None
-  resubmit: dict[str, str] | None
+  resubmit: dict[str, Any] | None
   rank: str | None
   context: dict[str, Any] | None
   handler_tags: SchedulingTags | None
