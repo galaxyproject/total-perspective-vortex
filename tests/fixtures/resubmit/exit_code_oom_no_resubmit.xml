@@ -5,7 +5,8 @@
     </stdio>
     <command detect_errors="exit_code" oom_exit_code="42"><![CDATA[
 mv hi.txt '$out_file1' &&
-echo "OOM_TOOL_MEMORY \$OOM_TOOL_MEMORY" &&
+echo >> '$out_file1' &&
+echo "OOM_TOOL_MEMORY \$OOM_TOOL_MEMORY" >> '$out_file1' &&
 if [[ -z \$OOM_TOOL_MEMORY ]]; then
     exit 1;
 fi &&

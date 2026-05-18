@@ -5,6 +5,15 @@ import pytest
 
 from tpv.rules import gateway
 
+# Galaxy's IntegrationTestCase now mixes in UsesCeleryTasks, whose autouse
+# fixtures require the celery pytest plugin and a celery_includes fixture.
+pytest_plugins = ("celery.contrib.pytest",)
+
+
+@pytest.fixture(scope="session")
+def celery_includes():
+    return ["galaxy.celery.tasks"]
+
 
 def pytest_addoption(parser):
     parser.addoption("--runslow", action="store_true", default=False, help="run slow tests")
