@@ -117,7 +117,7 @@ jobs:
           key: tox-cache-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('**/pyproject.toml', '**/setup.py', '**/requirements.txt', '**/requirements_test.txt', '**/tox.ini') }}-py310
 
       - name: Run tox
-        run: uvx --with tox-uv tox -e py${{ matrix.python-version }}
+        run: uvx --with tox-uv tox -e py${{ matrix.python-version }} -- --runslow
         env:
           PYTHONUNBUFFERED: "True"
 
