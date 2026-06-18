@@ -583,3 +583,95 @@ property.
      slurm:
        runner: slurm
        destination_name_override: "my-dest-with-{cores}-cores-{mem}-mem"
+
+
+Per-user resource pools
+-----------------------
+A *resource pool* caps the aggregate cores, memory and GPUs a single user may consume across
+their concurrently active jobs. This is important when exposing User Defined Tools (UDTs),
+where one user could otherwise submit many jobs and monopolise the cluster.
+
+Pools are declared once under ``global.resource_pools`` and enforced from a rule by calling
+``helpers.enforce_resource_pool(context, name=...)``. Because the rule can live on the
+``default`` tool (which every tool inherits), a single rule enforces a pool across *every*
+job:
+
+.. code-block:: yaml
+   :linenos:
+
+   global:
+     default_inherits: default
+     resource_pools:
+       # Pluggable store. The default ValkeyAllocationStore keeps allocations in Valkey,
+       # NOT in Galaxy's database. Use InMemoryAllocationStore for a single process / tests.
+       store: tpv.core.resource_pool.ValkeyAllocationStore
+       store_options:
+         url: valkey://localhost:6379/0
+         ttl: 3600
+       pools:
+         default:
+           max_cores: 32
+           max_mem: 256          # GB, matching the TPV ``mem`` convention
+         gpu:
+           max_gpus: 2
+
+   tools:
+     default:
+       cores: 2
+       mem: cores * 3
+       rules:
+         - id: enforce_default_pool
+           if: entity.cores or entity.mem or entity.gpus
+           execute: |
+             helpers.enforce_resource_pool(context, name="default")
+
+When admitting a job would push the user over the pool budget, the job is **deferred**
+(re-queued and retried later) rather than failed. A second, independent pool is just another
+named pool and another rule — for example a GPU pool gated on ``if: entity.gpus``:
+
+.. code-block:: yaml
+   :linenos:
+
+   tools:
+     default:
+       rules:
+         - id: enforce_gpu_pool
+           if: entity.gpus
+           execute: |
+             helpers.enforce_resource_pool(context, name="gpu")
+
+Allowing oversize jobs
+~~~~~~~~~~~~~~~~~~~~~~~~
+Some trusted (non-UDT) tools legitimately need more than the whole pool budget. A pool may
+permit such *oversize* jobs up to a small concurrency limit instead of rejecting them:
+
+.. code-block:: yaml
+   :linenos:
+   :emphasize-lines: 6,7,8,9
+
+   global:
+     resource_pools:
+       pools:
+         general:
+           max_cores: 32
+           oversize:
+             max_concurrent: 1     # at most one over-budget job at a time per user
+             hard_max_cores: 128   # but never more than this — always fail beyond it
+         udt:
+           max_cores: 16
+           # no `oversize` block (max_concurrent defaults to 0): over-budget UDT jobs fail
+
+A job whose request fits the budget is admitted normally. A job that exceeds the budget is
+*oversize*: it is admitted only while fewer than ``max_concurrent`` oversize jobs are running,
+deferred otherwise, and failed outright when ``max_concurrent`` is ``0`` or the request
+exceeds a ``hard_max_*`` ceiling. Route UDTs through a pool without an oversize allowance, and
+trusted tools through one that permits it, by attaching the appropriate rule (e.g. gate UDTs
+on the ``tool_type_user_defined`` tag).
+
+.. note::
+   Enforcement is **fail-closed**: if the allocation store cannot be reached, pool-governed
+   jobs are deferred rather than admitted, so an outage never silently bypasses the limits.
+   Treat Valkey as a scheduling dependency. Budgets are resolved through a pluggable
+   ``BudgetProvider``; the default returns one flat budget per pool for every user, and a
+   custom provider can vary budgets by user, role or an external service without changing
+   rules.

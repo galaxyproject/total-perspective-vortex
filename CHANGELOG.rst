@@ -1,3 +1,11 @@
+Unreleased
+--------------------------------------------------------------------
+* Add per-user resource pools. ``helpers.enforce_resource_pool(context, name=...)`` caps the
+  aggregate cores/memory/GPUs a user may consume concurrently, with an optional oversize
+  allowance for big non-UDT tools. Allocations are tracked in a pluggable, Valkey-backed
+  store (no data is written to Galaxy's database) and pools are declared under
+  ``global.resource_pools``. See the "Per-user resource pools" docs section.
+
 3.2.1 - Apr 13, 2026. (sha c5c317f8613ca66446af38eba4e865c20d62ac45)
 --------------------------------------------------------------------
 * Replace deprecated pydantic class Config with ConfigDict by @mvdbeek (PR #191)

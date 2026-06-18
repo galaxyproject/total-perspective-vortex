@@ -5,6 +5,8 @@ except ImportError:
     # If Galaxy is < 23.1 you need to have `packaging` in <= 21.3
     from packaging.version import parse as parse_version
 
+import copy
+import logging
 import operator
 import random
 from collections.abc import Callable
@@ -13,12 +15,23 @@ from typing import Any
 
 from galaxy import model
 from galaxy.app import UniverseApplication
+from galaxy.jobs.mapper import JobMappingException, JobNotReadyException
 from galaxy.model import Dataset, Job, JobToInputDatasetAssociation
 from galaxy.model import User as GalaxyUser
 from galaxy.tools import Tool as GalaxyTool
 
 from tpv.core.entities import Destination, Entity
+from tpv.core.resource_pool import (
+    NORMAL,
+    OVERSIZE,
+    Budget,
+    ResourceUsage,
+    StoreUnavailable,
+    terminal_job_ids,
+)
 from tpv.core.resource_requirements import TPVResourceFieldName, extract_resource_requirements_from_tool
+
+log = logging.getLogger(__name__)
 
 GIGABYTES = 1024.0**3
 
@@ -168,3 +181,101 @@ def get_dataset_attributes(
         }
         for i in datasets or {}
     }
+
+
+def _evaluate_request(entity: Entity, context: dict[str, Any]) -> ResourceUsage:
+    # Resolve the entity's (possibly symbolic) cores/mem/gpus to clamped numbers. Pool rules
+    # run during rule evaluation, before resources are finalised, so e.g. ``mem: cores * 3``
+    # is still a string here. Use a shallow copy of the context so we don't pollute the live
+    # evaluation (evaluate_resources sets cores/mem/gpus keys on the context it is given).
+    evaluated = entity.evaluate_resources(copy.copy(context))
+    return ResourceUsage(
+        cores=float(evaluated.cores or 0),
+        mem=float(evaluated.mem or 0),
+        gpus=float(evaluated.gpus or 0),
+    )
+
+
+def _exceeds_budget(req: ResourceUsage, budget: Budget) -> bool:
+    return (
+        (budget.cores is not None and req.cores > budget.cores)
+        or (budget.mem is not None and req.mem > budget.mem)
+        or (budget.gpus is not None and req.gpus > budget.gpus)
+    )
+
+
+def enforce_resource_pool(context: dict[str, Any], name: str = "default") -> None:
+    """Enforce a per-user resource pool for the job currently being mapped.
+
+    Call this from a TPV rule's ``execute`` block, passing the evaluation ``context``::
+
+        rules:
+          - id: enforce_default_pool
+            if: entity.cores or entity.mem or entity.gpus
+            execute: |
+              helpers.enforce_resource_pool(context, name="default")
+
+    The user's aggregate allocation across their active jobs is tracked in the configured
+    allocation store (see ``global.resource_pools``). If admitting this job would exceed the
+    pool budget the job is deferred (``JobNotReadyException``); if the job is *oversize* (its
+    own request exceeds the budget) it is admitted only up to ``oversize.max_concurrent`` and
+    otherwise deferred, or failed (``JobMappingException``) when oversize jobs are not allowed
+    or the request is beyond the ``hard_max_*`` ceiling. If the store is unreachable the job
+    is deferred (fail-closed), never silently admitted.
+    """
+    mapper = context["mapper"]
+    manager = getattr(mapper, "resource_pools", None)
+    if manager is None:
+        return  # resource pools not configured for this deployment; no-op
+    pool = manager.pool(name)
+    if pool is None:
+        raise JobMappingException(  # type: ignore[no-untyped-call]
+            f"Resource pool '{name}' is not defined in the TPV configuration"
+        )
+
+    user = context.get("user")
+    if user is None:
+        return  # anonymous jobs are not governed by per-user pools
+
+    app = context["app"]
+    job = context["job"]
+    entity = context["entity"]
+
+    budget = manager.provider.budget_for(user, name)
+    req = _evaluate_request(entity, context)
+
+    is_oversize = _exceeds_budget(req, budget)
+    if is_oversize:
+        ceiling = Budget(
+            cores=pool.oversize.hard_max_cores,
+            mem=pool.oversize.hard_max_mem,
+            gpus=pool.oversize.hard_max_gpus,
+        )
+        if pool.oversize.max_concurrent <= 0 or _exceeds_budget(req, ceiling):
+            raise JobMappingException(  # type: ignore[no-untyped-call]
+                f"This job requests cores={req.cores}, mem={req.mem}, gpus={req.gpus}, which "
+                f"exceeds your '{name}' resource pool allocation and can never be scheduled."
+            )
+    kind = OVERSIZE if is_oversize else NORMAL
+
+    store = manager.store
+    try:
+        ledger_ids = set(store.read(name, user.id).keys())
+        drop = terminal_job_ids(app.model.context, ledger_ids)
+        admitted = store.admit(
+            name,
+            user.id,
+            job.id,
+            req,
+            kind=kind,
+            budget=budget,
+            max_oversize=pool.oversize.max_concurrent,
+            reserve_pool=pool.oversize.reserve_pool,
+            drop_job_ids=drop,
+        )
+    except StoreUnavailable:
+        log.warning("Resource pool '%s' store is unavailable; deferring job (fail-closed)", name)
+        raise JobNotReadyException()  # type: ignore[no-untyped-call]
+
+    if not admitted:
+        raise JobNotReadyException()  # type: ignore[no-untyped-call]

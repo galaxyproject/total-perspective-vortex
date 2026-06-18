@@ -1,0 +1,93 @@
+global:
+  default_inherits: default
+  resource_pools:
+    # InMemoryAllocationStore keeps the ledger in-process so tests need no Valkey.
+    store: tpv.core.resource_pool.InMemoryAllocationStore
+    pools:
+      default:
+        max_cores: 32
+        max_mem: 256
+        oversize:
+          max_concurrent: 1
+          hard_max_cores: 128
+          hard_max_mem: 512
+      gpu:
+        max_gpus: 2
+      udt:
+        max_cores: 16
+        max_mem: 128
+
+tools:
+  default:
+    cores: 4
+    mem: cores * 2
+    gpus: 0
+    env: {}
+    params: {}
+    scheduling:
+      require: []
+      prefer: []
+      accept: []
+      reject: []
+    rules:
+      - id: enforce_default_pool
+        if: entity.cores or entity.mem or entity.gpus
+        execute: |
+          helpers.enforce_resource_pool(context, name="default")
+
+  # 64 cores exceeds the default pool's 32-core budget -> oversize (allowed, throttled).
+  bigtool:
+    cores: 64
+    mem: 64
+
+  # 200 cores exceeds the default pool's hard_max_cores of 128 -> always fails.
+  hugetool:
+    cores: 200
+    mem: 64
+
+  # 600GB mem exceeds the default pool's hard_max_mem of 512 -> always fails (cores fit).
+  bigmem_tool:
+    cores: 4
+    mem: 600
+
+  # Exercises a second, GPU-dimension pool.
+  gpu_tool:
+    cores: 4
+    gpus: 1
+    rules:
+      - id: enforce_gpu_pool
+        if: entity.gpus
+        execute: |
+          helpers.enforce_resource_pool(context, name="gpu")
+
+  # Routed through the 'udt' pool, which has no oversize allowance: a 64-core request fails.
+  udt_tool:
+    inherits: ~
+    cores: 64
+    mem: 64
+    env: {}
+    params: {}
+    scheduling:
+      require: []
+      prefer: []
+      accept: []
+      reject: []
+    rules:
+      - id: enforce_udt_pool
+        if: entity.cores or entity.mem or entity.gpus
+        execute: |
+          helpers.enforce_resource_pool(context, name="udt")
+
+destinations:
+  local:
+    runner: local
+    max_accepted_cores: 256
+    max_accepted_mem: 1024
+    max_accepted_gpus: 8
+    params:
+      native_spec: "--cores {cores} --mem {mem}"
+    scheduling:
+      require: []
+      prefer: []
+      accept: []
+      reject: []

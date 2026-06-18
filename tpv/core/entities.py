@@ -25,6 +25,7 @@ from typing_extensions import Self
 
 from .evaluator import TPVCodeEvaluator
 from .explain import ExplainCollector, ExplainPhase
+from .resource_pool import ResourcePoolConfig
 
 log = logging.getLogger(__name__)
 
@@ -722,6 +723,7 @@ class GlobalConfig(BaseModel):
 
     default_inherits: str | None = None
     context: dict[str, Any] = Field(default_factory=lambda: dict())
+    resource_pools: ResourcePoolConfig | None = None
 
 
 class TPVConfig(BaseModel):

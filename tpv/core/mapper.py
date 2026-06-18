@@ -25,6 +25,7 @@ from .entities import (
 )
 from .explain import ExplainCollector, ExplainPhase
 from .loader import TPVConfigLoader
+from .resource_pool import ResourcePoolManager
 from .resource_requirements import extract_resource_requirements_from_tool
 
 log = logging.getLogger(__name__)
@@ -40,6 +41,8 @@ class EntityToDestinationMapper(object):
         self.destinations = self.config.destinations
         self.default_inherits = self.config.global_config.default_inherits
         self.global_context = self.config.global_config.context
+        pool_config = self.config.global_config.resource_pools
+        self.resource_pools = ResourcePoolManager(pool_config) if pool_config else None
         self.lookup_tool_regex = functools.lru_cache(maxsize=None)(self.__compile_tool_regex)
         self._cache_inherit_matching_entities: Any = Cache(maxsize=0)
 
@@ -341,6 +344,9 @@ class EntityToDestinationMapper(object):
                 "mapper": self,
             }
         )
+        # Expose the context dict itself so rule code can hand the full evaluation context to
+        # helpers (e.g. helpers.enforce_resource_pool) that need to evaluate entity resources.
+        context["context"] = context
 
         # Inject the explain collector into the context
         if explain_collector:
