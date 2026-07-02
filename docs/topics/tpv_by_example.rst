@@ -591,54 +591,54 @@ A *resource pool* caps the aggregate cores, memory and GPUs a single user may co
 their concurrently active jobs. This is important when exposing User Defined Tools (UDTs),
 where one user could otherwise submit many jobs and monopolise the cluster.
 
-Pools are declared once under ``global.resource_pools`` and enforced from a rule by calling
-``helpers.enforce_resource_pool(context, name=...)``. Because the rule can live on the
-``default`` tool (which every tool inherits), a single rule enforces a pool across *every*
-job:
+Pools are a **first-class TPV entity**, declared in a top-level ``pools:`` collection alongside
+``tools:``, ``users:``, ``roles:`` and ``destinations:``. A pool governs a job when the job's
+requested scheduling tags match the pool's tags — exactly the tag matching a destination uses.
+The only thing that lives under ``global`` is the *infrastructure* wiring for the allocation
+store (a backend URL and TTL); the budget *policy* lives on the pool entities. Enforcement is
+automatic: no rule to attach, no helper to call.
 
 .. code-block:: yaml
    :linenos:
 
    global:
-     default_inherits: default
-     resource_pools:
-       # Pluggable store. The default ValkeyAllocationStore keeps allocations in Valkey,
-       # NOT in Galaxy's database. Use InMemoryAllocationStore for a single process / tests.
-       store: tpv.core.resource_pool.ValkeyAllocationStore
-       store_options:
-         url: valkey://localhost:6379/0
-         ttl: 3600
-       pools:
-         default:
-           max_cores: 32
-           max_mem: 256          # GB, matching the TPV ``mem`` convention
-         gpu:
-           max_gpus: 2
+     # Infrastructure only. The default ValkeyAllocationStore keeps allocations in Valkey,
+     # NOT in Galaxy's database. Use InMemoryAllocationStore for a single process / tests.
+     resource_pool_store:
+       class: tpv.core.resource_pool.ValkeyAllocationStore
+       url: valkey://localhost:6379/0
+       ttl: 3600
 
-   tools:
+   pools:
+     # No require tags -> governs every job (that a reject tag does not exclude).
      default:
-       cores: 2
-       mem: cores * 3
-       rules:
-         - id: enforce_default_pool
-           if: entity.cores or entity.mem or entity.gpus
-           execute: |
-             helpers.enforce_resource_pool(context, name="default")
+       max_concurrent_cores: 32
+       max_concurrent_mem: 256      # GB, matching the TPV ``mem`` convention
+     # A second, independent pool that governs only jobs tagged ``gpu``.
+     gpu:
+       scheduling:
+         require:
+           - gpu
+       max_concurrent_gpus: 2
 
-When admitting a job would push the user over the pool budget, the job is **deferred**
-(re-queued and retried later) rather than failed. A second, independent pool is just another
-named pool and another rule — for example a GPU pool gated on ``if: entity.gpus``:
+The ``max_concurrent_*`` naming is deliberate: it keeps the per-user-aggregate budget distinct
+from a tool's per-job ``cores``/``mem``/``gpus`` request and from a destination's
+``max_accepted_*`` per-job capacity. When admitting a job would push the user over the pool
+budget, the job is **deferred** (re-queued and retried later) rather than failed.
+
+Per-user and per-role budgets fall out of the entity model — no bespoke provider. Because a
+pool sits *below* Tool/Role/User in merge order, a ``max_concurrent_*`` set on a Role or User is
+resolved by the ordinary ``inherit`` + ``combine`` precedence and overrides the pool default:
 
 .. code-block:: yaml
    :linenos:
 
-   tools:
-     default:
-       rules:
-         - id: enforce_gpu_pool
-           if: entity.gpus
-           execute: |
-             helpers.enforce_resource_pool(context, name="gpu")
+   roles:
+     power_users:
+       max_concurrent_cores: 128    # this role gets a bigger budget
+   users:
+     trillian@vortex.org:
+       max_concurrent_gpus: 4       # this user overrides the gpu pool budget
 
 Allowing oversize jobs
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -647,31 +647,41 @@ permit such *oversize* jobs up to a small concurrency limit instead of rejecting
 
 .. code-block:: yaml
    :linenos:
-   :emphasize-lines: 6,7,8,9
+   :emphasize-lines: 5,6,7,8
 
-   global:
-     resource_pools:
-       pools:
-         general:
-           max_cores: 32
-           oversize:
-             max_concurrent: 1     # at most one over-budget job at a time per user
-             hard_max_cores: 128   # but never more than this — always fail beyond it
-         udt:
-           max_cores: 16
-           # no `oversize` block (max_concurrent defaults to 0): over-budget UDT jobs fail
+   pools:
+     general:
+       max_concurrent_cores: 32
+       oversize:
+         max_concurrent: 1        # at most one over-budget job at a time per user
+         hard_max_cores: 128      # but never more than this — always fail beyond it
+     udt:
+       scheduling:
+         require:
+           - tool_type_user_defined
+       max_concurrent_cores: 16
+       # no `oversize` block (max_concurrent defaults to 0): over-budget UDT jobs fail
 
 A job whose request fits the budget is admitted normally. A job that exceeds the budget is
 *oversize*: it is admitted only while fewer than ``max_concurrent`` oversize jobs are running,
 deferred otherwise, and failed outright when ``max_concurrent`` is ``0`` or the request
-exceeds a ``hard_max_*`` ceiling. Route UDTs through a pool without an oversize allowance, and
-trusted tools through one that permits it, by attaching the appropriate rule (e.g. gate UDTs
-on the ``tool_type_user_defined`` tag).
+exceeds a ``hard_max_*`` ceiling. Route UDTs through a pool without an oversize allowance (gate
+it on the ``tool_type_user_defined`` tag) and trusted tools through one that permits it.
 
 .. note::
-   Enforcement is **fail-closed**: if the allocation store cannot be reached, pool-governed
-   jobs are deferred rather than admitted, so an outage never silently bypasses the limits.
-   Treat Valkey as a scheduling dependency. Budgets are resolved through a pluggable
-   ``BudgetProvider``; the default returns one flat budget per pool for every user, and a
-   custom provider can vary budgets by user, role or an external service without changing
-   rules.
+   **What a pool counts.** A pool counts the resources a job *asks for*, measured before a
+   destination gets to shrink them — so a destination that caps cores does not reduce what the
+   pool charges the user. The check runs once a suitable destination is known to exist (a job
+   with nowhere to run is never counted) but before the destination is finalised, so the count
+   does not depend on which destination is chosen.
+
+.. note::
+   Enforcement is **fail-closed**: if the allocation store cannot be reached, TPV cannot check
+   how much the user is already using, so it plays it safe and **defers** the job rather than
+   admitting one that might blow past the budget (fail-closed = "when unsure, say no"). This
+   means an outage never silently bypasses the limits — but it also means **Valkey is a
+   scheduling dependency**: because the ``default`` pool governs every job, a Valkey outage will
+   defer every governed job on the instance. If that trade-off is too strict for a given pool,
+   set ``fail_open: true`` on it to admit jobs during an outage instead ("when unsure, let it
+   through"). Leave it off (the default) for UDT/security pools, where letting a user exceed the
+   limit is worse than making them wait.

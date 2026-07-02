@@ -112,6 +112,7 @@ class TPVConfigLoader(TPVCodeEvaluator):
         self.recompute_inheritance(tpv_config.users)
         self.recompute_inheritance(tpv_config.roles)
         self.recompute_inheritance(tpv_config.destinations)
+        self.recompute_inheritance(tpv_config.pools)
 
     def inherit_globals(self, parent_globals: GlobalConfig) -> None:
         if parent_globals:
@@ -121,6 +122,9 @@ class TPVConfigLoader(TPVCodeEvaluator):
             merged_context = dict(parent_globals.context or {})
             merged_context.update(self.config.global_config.context)
             self.config.global_config.context = merged_context
+            self.config.global_config.resource_pool_store = (
+                self.config.global_config.resource_pool_store or parent_globals.resource_pool_store
+            )
 
     def inherit_parent_entities(
         self,
@@ -161,6 +165,7 @@ class TPVConfigLoader(TPVCodeEvaluator):
         self.config.users = self.inherit_parent_entities(parent_config.users, self.config.users)
         self.config.roles = self.inherit_parent_entities(parent_config.roles, self.config.roles)
         self.config.destinations = self.inherit_parent_entities(parent_config.destinations, self.config.destinations)
+        self.config.pools = self.inherit_parent_entities(parent_config.pools, self.config.pools)
 
     @staticmethod
     def from_url_or_path(url_or_path: str, parent: TPVConfigLoader | None = None) -> TPVConfigLoader:

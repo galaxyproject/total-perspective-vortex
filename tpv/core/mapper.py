@@ -1,3 +1,4 @@
+import copy
 import functools
 import logging
 import re
@@ -7,7 +8,7 @@ from typing import Any, TypeVar, cast
 from cachetools import Cache, cached
 from galaxy.app import UniverseApplication
 from galaxy.jobs import JobDestination, JobWrapper
-from galaxy.jobs.mapper import JobNotReadyException
+from galaxy.jobs.mapper import JobMappingException, JobNotReadyException
 from galaxy.model import Job
 from galaxy.model import User as GalaxyUser
 from galaxy.tools import Tool as GalaxyTool
@@ -16,6 +17,7 @@ from .entities import (
     Destination,
     Entity,
     EntityWithRules,
+    PoolEntity,
     Role,
     SchedulingTags,
     Tool,
@@ -25,7 +27,15 @@ from .entities import (
 )
 from .explain import ExplainCollector, ExplainPhase
 from .loader import TPVConfigLoader
-from .resource_pool import ResourcePoolManager
+from .resource_pool import (
+    NORMAL,
+    OVERSIZE,
+    Budget,
+    ResourcePoolManager,
+    ResourceUsage,
+    StoreUnavailable,
+    terminal_job_ids,
+)
 from .resource_requirements import extract_resource_requirements_from_tool
 
 log = logging.getLogger(__name__)
@@ -41,8 +51,17 @@ class EntityToDestinationMapper(object):
         self.destinations = self.config.destinations
         self.default_inherits = self.config.global_config.default_inherits
         self.global_context = self.config.global_config.context
-        pool_config = self.config.global_config.resource_pools
-        self.resource_pools = ResourcePoolManager(pool_config) if pool_config else None
+        self.pools = self.config.pools
+        store_config = self.config.global_config.resource_pool_store
+        if self.pools and store_config is None:
+            # Fail loudly rather than silently disabling enforcement: a config that declares pool
+            # policy but omits the store wiring would otherwise be fail-open by omission.
+            raise ValueError(
+                "Resource pools are configured under 'pools:' but 'global.resource_pool_store' is "
+                "not set. Add the store wiring (e.g. a ValkeyAllocationStore) so enforcement is "
+                "active, or remove the pools."
+            )
+        self.resource_pools = ResourcePoolManager(store_config) if store_config else None
         self.lookup_tool_regex = functools.lru_cache(maxsize=None)(self.__compile_tool_regex)
         self._cache_inherit_matching_entities: Any = Cache(maxsize=0)
 
@@ -317,6 +336,112 @@ class EntityToDestinationMapper(object):
 
         return evaluated_entity
 
+    @staticmethod
+    def _exceeds(req: ResourceUsage, budget: Budget) -> bool:
+        return (
+            (budget.cores is not None and req.cores > budget.cores)
+            or (budget.mem is not None and req.mem > budget.mem)
+            or (budget.gpus is not None and req.gpus > budget.gpus)
+        )
+
+    def _classify_pool_request(self, name: str, req: ResourceUsage, budget: Budget, pool: PoolEntity) -> str:
+        """Return NORMAL or OVERSIZE for a request, or raise JobMappingException if the request
+        can never be scheduled in this pool (oversize not allowed, or beyond a hard_max ceiling)."""
+        if not self._exceeds(req, budget):
+            return NORMAL
+        ceiling = Budget(
+            cores=pool.oversize.hard_max_cores,
+            mem=pool.oversize.hard_max_mem,
+            gpus=pool.oversize.hard_max_gpus,
+        )
+        if pool.oversize.max_concurrent <= 0 or self._exceeds(req, ceiling):
+            raise JobMappingException(  # type: ignore[no-untyped-call]
+                f"This job requests cores={req.cores}, mem={req.mem}, gpus={req.gpus}, which "
+                f"exceeds your '{name}' resource pool allocation and can never be scheduled."
+            )
+        return OVERSIZE
+
+    def admit_to_pools(self, context: dict[str, Any], entity: Entity, user: GalaxyUser | None) -> None:
+        """Check the job about to be scheduled against every resource pool that applies to it,
+        and either record its usage or refuse it.
+
+        A pool "applies" to a job when the job's scheduling tags match the pool's tags. For each
+        applying pool we add up everything the user is already running in that pool and check
+        whether this job still fits the budget:
+
+        - Fits -> record it and continue.
+        - Would push the user over budget -> defer the job (raise ``JobNotReadyException``, i.e.
+          "not now, try again later").
+        - The job's *own* request is bigger than the whole budget ("oversize") -> allow it only
+          if the pool permits oversize jobs (``oversize.max_concurrent``) and there is a free
+          oversize slot, otherwise defer it; if oversize is not allowed at all, or the request
+          is above the pool's ``hard_max_*`` ceiling, reject it permanently (raise
+          ``JobMappingException``, i.e. "this can never run here").
+
+        The budget is the user's/role's ``max_concurrent_*`` if they set one, otherwise the
+        pool's default. Anonymous (logged-out) jobs are not subject to per-user pools.
+
+        A note on two deliberate choices:
+
+        - We bill the job for what it *requests*, measured here, before a destination gets to
+          shrink it. A destination that caps cores does not reduce what the pool counts.
+        - We record usage as soon as we know a destination exists, before we finish picking one.
+          So a job can briefly hold a slot and then still be deferred (e.g. a second pool defers
+          it, or every candidate destination turns it away). We prefer this: counting a
+          not-yet-running job costs the user a slot for a moment, whereas *not* counting it could
+          let them exceed the limit -- the wrong direction for a safety cap. The overcount is
+          temporary: when the deferred job is retried it replaces its own old entry (see
+          ``AllocationStore.admit``), so nothing leaks permanently. A tighter scheme (reserve all
+          pools first, commit together, and release on a later failure) is possible but not yet
+          built.
+
+        If the allocation store is unreachable we default to deferring the job ("fail-closed" --
+        when we can't check, we say no) so an outage can't silently let users exceed their
+        limits. A pool may set ``fail_open`` to admit instead ("when we can't check, let it
+        through"); see :class:`~tpv.core.entities.PoolEntity`.
+        """
+        manager = self.resource_pools
+        if manager is None or not self.pools or user is None:
+            return
+        # Evaluate the requested resources once, here. evaluate_resources writes cores/mem/gpus
+        # onto the context it is given, so use a shallow copy to avoid polluting live evaluation.
+        evaluated = entity.evaluate_resources(copy.copy(context))
+        req = ResourceUsage(
+            cores=float(evaluated.cores or 0),
+            mem=float(evaluated.mem or 0),
+            gpus=float(evaluated.gpus or 0),
+        )
+        app = context["app"]
+        job = context["job"]
+        for name in sorted(self.pools):
+            pool = self.pools[name]
+            if not pool.matches(entity):
+                continue
+            budget = pool.budget_for(entity)
+            kind = self._classify_pool_request(name, req, budget, pool)
+            try:
+                ledger_ids = set(manager.store.read(name, user.id).keys())
+                drop = terminal_job_ids(app.model.context, ledger_ids)
+                admitted = manager.store.admit(
+                    name,
+                    user.id,
+                    job.id,
+                    req,
+                    kind=kind,
+                    budget=budget,
+                    max_oversize=pool.oversize.max_concurrent,
+                    reserve_pool=pool.oversize.reserve_pool,
+                    drop_job_ids=drop,
+                )
+            except StoreUnavailable:
+                if pool.fail_open:
+                    log.warning("Resource pool '%s' store is unavailable; admitting job (fail_open)", name)
+                    continue
+                log.warning("Resource pool '%s' store is unavailable; deferring job (fail-closed)", name)
+                raise JobNotReadyException()  # type: ignore[no-untyped-call]
+            if not admitted:
+                raise JobNotReadyException()  # type: ignore[no-untyped-call]
+
     def map_to_destination(
         self,
         app: UniverseApplication,
@@ -344,9 +469,6 @@ class EntityToDestinationMapper(object):
                 "mapper": self,
             }
         )
-        # Expose the context dict itself so rule code can hand the full evaluation context to
-        # helpers (e.g. helpers.enforce_resource_pool) that need to evaluate entity resources.
-        context["context"] = context
 
         # Inject the explain collector into the context
         if explain_collector:
@@ -360,7 +482,12 @@ class EntityToDestinationMapper(object):
 
         explain = ExplainCollector.from_context(context)
 
-        # 4. Fully combine entity with matching destinations
+        # 4. Admit the job to any resource pools that govern it, now that we know a destination
+        #    exists (so we never record an allocation for a job with nowhere to run).
+        if ranked_dest_entities:
+            self.admit_to_pools(context, evaluated_entity, user)
+
+        # 5. Fully combine entity with matching destinations
         if ranked_dest_entities:
             wait_exception_raised = False
             for d in ranked_dest_entities:

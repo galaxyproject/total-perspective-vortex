@@ -24,10 +24,10 @@ import importlib
 import logging
 import threading
 from abc import ABC, abstractmethod
-from typing import Any, NamedTuple
+from typing import Any, NamedTuple, cast
 
 from galaxy import model
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session, scoped_session
 
 log = logging.getLogger(__name__)
@@ -75,8 +75,11 @@ class Budget(NamedTuple):
 
 
 # ---------------------------------------------------------------------------
-# Configuration models (declared under ``global.resource_pools`` in TPV config)
+# Configuration models
 # ---------------------------------------------------------------------------
+# Pool *policy* (budgets, oversize, tags) is expressed as first-class ``pools:`` entities in
+# ``tpv.core.entities`` (see :class:`~tpv.core.entities.PoolEntity`). Only the *infrastructure*
+# wiring for the allocation store lives here, declared under ``global.resource_pool_store``.
 class OversizePolicy(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -92,22 +95,26 @@ class OversizePolicy(BaseModel):
     reserve_pool: bool = False
 
 
-class Pool(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+class StoreConfig(BaseModel):
+    """Infrastructure wiring for the allocation store, declared under
+    ``global.resource_pool_store``. Only backend wiring belongs here -- a store class plus its
+    options (url, ttl, key_prefix, ...); pool *policy* is expressed as ``pools:`` entities::
 
-    max_cores: float | None = None
-    max_mem: float | None = None
-    max_gpus: float | None = None
-    oversize: OversizePolicy = OversizePolicy()
+        global:
+          resource_pool_store:
+            class: tpv.core.resource_pool.ValkeyAllocationStore
+            url: valkey://localhost:6379/0
+            ttl: 3600
+    """
 
+    # Extra keys (url, ttl, key_prefix, ...) are collected and passed to the store constructor.
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
 
-class ResourcePoolConfig(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    store_class: str = Field(alias="class", default="tpv.core.resource_pool.ValkeyAllocationStore")
 
-    store: str = "tpv.core.resource_pool.ValkeyAllocationStore"
-    store_options: dict[str, Any] = {}
-    budget_provider: str = "tpv.core.resource_pool.ConfigBudgetProvider"
-    pools: dict[str, Pool] = {}
+    def build_store(self) -> "AllocationStore":
+        options = dict(self.__pydantic_extra__ or {})
+        return cast("AllocationStore", _load_class(self.store_class)(**options))
 
 
 def _load_class(dotted_path: str) -> Any:
@@ -115,30 +122,6 @@ def _load_class(dotted_path: str) -> Any:
     if not module_path:
         raise ValueError(f"Not a dotted class path: {dotted_path!r}")
     return getattr(importlib.import_module(module_path), name)
-
-
-# ---------------------------------------------------------------------------
-# Budget providers
-# ---------------------------------------------------------------------------
-class BudgetProvider(ABC):
-    """Resolves the :class:`Budget` for a ``(user, pool)``. Pluggable so deployments can vary
-    budgets by user/role/group or an external service without changing the helper."""
-
-    @abstractmethod
-    def budget_for(self, user: Any, pool_name: str) -> Budget: ...
-
-
-class ConfigBudgetProvider(BudgetProvider):
-    """Default provider: one flat budget per pool from the TPV config, for every user."""
-
-    def __init__(self, config: ResourcePoolConfig):
-        self.config = config
-
-    def budget_for(self, user: Any, pool_name: str) -> Budget:
-        pool = self.config.pools.get(pool_name)
-        if pool is None:
-            return Budget()
-        return Budget(cores=pool.max_cores, mem=pool.max_mem, gpus=pool.max_gpus)
 
 
 # ---------------------------------------------------------------------------
@@ -367,18 +350,15 @@ class ValkeyAllocationStore(AllocationStore):
 
 
 class ResourcePoolManager:
-    """Instantiates and holds the pluggable store and budget provider for a loaded config.
+    """Instantiates and holds the pluggable allocation store for a loaded config.
 
-    One is created per mapper (see :class:`tpv.core.mapper.EntityToDestinationMapper`).
+    This is pure infrastructure: pool *policy* (budgets, oversize, tags) lives on the
+    first-class ``pools:`` entities and is resolved by the mapper. One manager is created per
+    mapper (see :class:`tpv.core.mapper.EntityToDestinationMapper`).
     """
 
-    def __init__(self, config: ResourcePoolConfig):
-        self.config = config
-        self.store: AllocationStore = _load_class(config.store)(**(config.store_options or {}))
-        self.provider: BudgetProvider = _load_class(config.budget_provider)(config)
-
-    def pool(self, name: str) -> Pool | None:
-        return self.config.pools.get(name)
+    def __init__(self, store_config: StoreConfig):
+        self.store: AllocationStore = store_config.build_store()
 
 
 def terminal_job_ids(sa_session: scoped_session[Session], job_ids: set[int]) -> set[int]:

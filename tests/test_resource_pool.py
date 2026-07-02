@@ -9,10 +9,9 @@ from tpv.core.mapper import EntityToDestinationMapper
 from tpv.core.resource_pool import (
     NORMAL,
     OVERSIZE,
+    AllocationStore,
     Budget,
-    ConfigBudgetProvider,
     InMemoryAllocationStore,
-    ResourcePoolConfig,
     ResourceUsage,
     StoreUnavailable,
     ValkeyAllocationStore,
@@ -160,15 +159,22 @@ class TestAllocationStore(unittest.TestCase):
         self.assertEqual(len(self.store.read("default", 1)), 1)
 
 
-class TestBudgetProvider(unittest.TestCase):
-    def test_flat_per_pool_budget(self):
-        config = ResourcePoolConfig.model_validate(
-            {"pools": {"gpu": {"max_gpus": 2}, "cpu": {"max_cores": 16, "max_mem": 64}}}
+class TestStoreConfig(unittest.TestCase):
+    def test_builds_store_from_class_and_options(self):
+        from tpv.core.resource_pool import StoreConfig
+
+        config = StoreConfig.model_validate(
+            {"class": "tpv.core.resource_pool.InMemoryAllocationStore", "key_prefix": "custom"}
         )
-        provider = ConfigBudgetProvider(config)
-        self.assertEqual(provider.budget_for(None, "gpu"), Budget(cores=None, mem=None, gpus=2))
-        self.assertEqual(provider.budget_for(None, "cpu"), Budget(cores=16, mem=64, gpus=None))
-        self.assertEqual(provider.budget_for(None, "missing"), Budget())
+        store = config.build_store()
+        self.assertIsInstance(store, InMemoryAllocationStore)
+        # The extra option was passed through to the store constructor.
+        self.assertEqual(store.key_prefix, "custom")
+
+    def test_default_store_class_is_valkey(self):
+        from tpv.core.resource_pool import StoreConfig
+
+        self.assertEqual(StoreConfig().store_class, "tpv.core.resource_pool.ValkeyAllocationStore")
 
 
 class TestTerminalJobIds(unittest.TestCase):
@@ -308,6 +314,83 @@ class TestResourcePoolMapping(unittest.TestCase):
         with self.assertRaises(JobNotReadyException):
             mapper.map_to_destination(self._app(), mock_galaxy.Tool("gpu_tool"), user, self._job(16))
 
+    def test_user_budget_override_wins_over_pool_default(self):
+        # trillian's user entity raises max_concurrent_cores to 128; combine resolves it over the
+        # default pool's 32, so two 64-core bigtool jobs are admitted as *normal* (not oversize).
+        mapper = self._mapper()
+        trillian = mock_galaxy.User("trillian", "trillian@vortex.org", id=4)
+        d1 = mapper.map_to_destination(self._app(), mock_galaxy.Tool("bigtool"), trillian, self._job(30))
+        d2 = mapper.map_to_destination(self._app(), mock_galaxy.Tool("bigtool"), trillian, self._job(31))
+        self.assertEqual((d1.id, d2.id), ("local", "local"))
+        ledger = mapper.resource_pools.store.read("default", trillian.id)
+        self.assertEqual({jid: kind for jid, (_, kind) in ledger.items()}, {30: NORMAL, 31: NORMAL})
+
+
+class _RaisingStore(AllocationStore):
+    """A store whose backend is always unreachable, to exercise the fail-closed path."""
+
+    def read(self, pool, user_id):
+        raise StoreUnavailable("backend down")
+
+    def admit(self, *args, **kwargs):
+        raise StoreUnavailable("backend down")
+
+
+class TestResourcePoolBranches(unittest.TestCase):
+    """Covers the enforcement branches that carry the safety story: fail-closed, fail_open,
+    anonymous no-op and pools-disabled no-op."""
+
+    def _mapper(self):
+        return EntityToDestinationMapper(TPVConfigLoader.from_url_or_path(FIXTURE))
+
+    @staticmethod
+    def _job(job_id):
+        job = mock_galaxy.Job()
+        job.id = job_id
+        return job
+
+    def _app(self):
+        return mock_galaxy.App(create_model=True)
+
+    def test_store_unavailable_defers_fail_closed(self):
+        mapper = self._mapper()
+        mapper.resource_pools.store = _RaisingStore()
+        user = mock_galaxy.User("arthur", "arthur@vortex.org", id=1)
+        with self.assertRaises(JobNotReadyException):
+            mapper.map_to_destination(self._app(), mock_galaxy.Tool("default"), user, self._job(40))
+
+    def test_fail_open_pool_admits_when_store_unavailable(self):
+        mapper = self._mapper()
+        mapper.resource_pools.store = _RaisingStore()
+        # A non-security pool marked fail_open lets jobs through during a store outage.
+        mapper.pools["default"].fail_open = True
+        user = mock_galaxy.User("arthur", "arthur@vortex.org", id=1)
+        dest = mapper.map_to_destination(self._app(), mock_galaxy.Tool("default"), user, self._job(41))
+        self.assertEqual(dest.id, "local")
+
+    def test_anonymous_user_is_not_governed(self):
+        mapper = self._mapper()
+        # No user -> per-user pools do not apply; the job maps and nothing is recorded.
+        dest = mapper.map_to_destination(self._app(), mock_galaxy.Tool("default"), None, self._job(42))
+        self.assertEqual(dest.id, "local")
+
+    def test_pools_disabled_is_noop(self):
+        # A config without a resource_pool_store / pools leaves enforcement entirely off.
+        basic = os.path.join(os.path.dirname(__file__), "fixtures/mapping-basic.yml")
+        mapper = EntityToDestinationMapper(TPVConfigLoader.from_url_or_path(basic))
+        self.assertIsNone(mapper.resource_pools)
+        user = mock_galaxy.User("arthur", "arthur@vortex.org", id=1)
+        dest = mapper.map_to_destination(self._app(), mock_galaxy.Tool("bwa"), user, self._job(43))
+        self.assertIsNotNone(dest.id)
+
+    def test_pools_without_store_is_rejected(self):
+        # Declaring pool policy but omitting the store wiring must fail loudly, not silently
+        # disable enforcement (fail-open by omission).
+        loader = TPVConfigLoader.from_url_or_path(FIXTURE)
+        loader.config.global_config.resource_pool_store = None
+        with self.assertRaisesRegex(ValueError, "resource_pool_store"):
+            EntityToDestinationMapper(loader)
+
 
 def _build_valkey_store():
     """A ValkeyAllocationStore backed by fakeredis, or None when fakeredis+Lua is unavailable.
@@ -369,8 +452,14 @@ PARITY_SCENARIOS = {
 
 class TestStoreParity(unittest.TestCase):
     def test_valkey_matches_in_memory(self):
-        if _build_valkey_store() is None:
-            self.skipTest("fakeredis with Lua support not available")
+        # fakeredis[lua] is a declared test dependency (see pyproject.toml). Fail hard if it is
+        # missing rather than skipping, so the production Lua admit path can never drift from
+        # _decide() unverified.
+        self.assertIsNotNone(
+            _build_valkey_store(),
+            "fakeredis[lua] is required to run the store parity contract (install the 'test' "
+            "extra); the Valkey Lua admit path must not go unverified.",
+        )
         for name, ops in PARITY_SCENARIOS.items():
             with self.subTest(scenario=name):
                 in_memory = InMemoryAllocationStore()

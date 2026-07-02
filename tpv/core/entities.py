@@ -25,7 +25,7 @@ from typing_extensions import Self
 
 from .evaluator import TPVCodeEvaluator
 from .explain import ExplainCollector, ExplainPhase
-from .resource_pool import ResourcePoolConfig
+from .resource_pool import Budget, OversizePolicy, StoreConfig
 
 log = logging.getLogger(__name__)
 
@@ -250,6 +250,12 @@ class Entity(BaseModel):
     max_cores: Annotated[int | float | str | None, TPVFieldMetadata()] = None
     max_mem: Annotated[int | float | str | None, TPVFieldMetadata()] = None
     max_gpus: Annotated[int | float | str | None, TPVFieldMetadata()] = None
+    # Per-user resource-pool budgets. Placed on the base entity so a Role/User can set them and
+    # the ordinary inherit+combine precedence (User > Role > Tool) resolves the effective budget;
+    # a PoolEntity supplies the default when no user/role overrides it. See PoolEntity.budget_for.
+    max_concurrent_cores: int | float | None = None
+    max_concurrent_mem: int | float | None = None
+    max_concurrent_gpus: int | float | None = None
     env: Annotated[list[dict[str, str]] | None, TPVFieldMetadata(complex_property=True)] = None
     params: Annotated[dict[str, Any] | None, TPVFieldMetadata(complex_property=True)] = None
     resubmit: Annotated[dict[str, dict[str, str | int | float | None]], TPVFieldMetadata(complex_property=True)] = (
@@ -349,7 +355,9 @@ class Entity(BaseModel):
         self.override_single_property(new_entity, self, entity, "max_cores")
         self.override_single_property(new_entity, self, entity, "max_mem")
         self.override_single_property(new_entity, self, entity, "max_gpus")
-        self.override_single_property(new_entity, self, entity, "max_gpus")
+        self.override_single_property(new_entity, self, entity, "max_concurrent_cores")
+        self.override_single_property(new_entity, self, entity, "max_concurrent_mem")
+        self.override_single_property(new_entity, self, entity, "max_concurrent_gpus")
         self.override_single_property(
             new_entity,
             self,
@@ -718,12 +726,67 @@ class Destination(EntityWithRules):
         return score
 
 
+class PoolEntity(EntityWithRules):
+    """A per-user resource pool as a first-class TPV entity.
+
+    A pool caps the aggregate ``max_concurrent_cores/mem/gpus`` a single user may hold across
+    their concurrently active jobs. It reuses the entity machinery for ``inherits:`` between
+    pools and scheduling tags (which job(s) a pool governs, matched like a Destination). Note
+    that pool ``rules`` are not evaluated during admission -- budgets are resolved from the
+    ``max_concurrent_*`` fields via ``combine`` precedence, not from rule expressions.
+
+    ``merge_order`` sits below Tool/Role/User so a User/Role that sets ``max_concurrent_*``
+    overrides the pool default through the ordinary combine precedence -- combine *is* the
+    budget provider, no bespoke provider needed. Selecting which pools govern a job is the same
+    tag match a Destination uses (``entity.tpv_tags.match(pool.tpv_dest_tags)``).
+    """
+
+    merge_order: ClassVar[int] = 1
+    oversize: OversizePolicy = OversizePolicy()
+    # What to do when the allocation store is down and we cannot check the user's usage.
+    # Default (False) = defer the job ("fail-closed": when unsure, say no). True = let it
+    # through ("fail-open": when unsure, allow), trading enforcement for availability. Keep it
+    # False for UDT/security pools where exceeding the limit is worse than waiting.
+    fail_open: bool = False
+    # Like Destination: tpv_tags is what a job requests, tpv_dest_tags is what this pool governs.
+    tpv_tags: SkipJsonSchema[SchedulingTags] = Field(exclude=True, default_factory=SchedulingTags)
+    tpv_dest_tags: SchedulingTags = Field(alias="scheduling", default_factory=SchedulingTags)
+
+    def override(self, entity: Self) -> Self:
+        new_entity = super().override(entity)
+        self.override_single_property(new_entity, self, entity, "oversize")
+        self.override_single_property(new_entity, self, entity, "fail_open")
+        return new_entity
+
+    def inherit(self, entity: Self) -> Self:
+        new_entity = super().inherit(entity)
+        if entity:
+            new_entity.tpv_dest_tags = self.tpv_dest_tags.inherit(entity.tpv_dest_tags)
+        return new_entity
+
+    def matches(self, entity: Entity) -> bool:
+        """Whether this pool governs ``entity``, using the same tag match as Destination."""
+        return entity.tpv_tags.match(self.tpv_dest_tags)
+
+    def budget_for(self, entity: Entity) -> Budget:
+        """Resolve the effective budget for ``entity``: a per-dimension value it carries (from a
+        User/Role override resolved by combine) wins, else this pool's default."""
+
+        def pick(dim: str) -> float | None:
+            override = getattr(entity, f"max_concurrent_{dim}", None)
+            value = override if override is not None else getattr(self, f"max_concurrent_{dim}")
+            return cast("float | None", value)
+
+        return Budget(cores=pick("cores"), mem=pick("mem"), gpus=pick("gpus"))
+
+
 class GlobalConfig(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     default_inherits: str | None = None
     context: dict[str, Any] = Field(default_factory=lambda: dict())
-    resource_pools: ResourcePoolConfig | None = None
+    # Infrastructure wiring only (store class + options); pool policy lives in ``pools:``.
+    resource_pool_store: StoreConfig | None = None
 
 
 class TPVConfig(BaseModel):
@@ -735,6 +798,7 @@ class TPVConfig(BaseModel):
     users: dict[str, User] = Field(default_factory=lambda: dict())
     roles: dict[str, Role] = Field(default_factory=lambda: dict())
     destinations: dict[str, Destination] = Field(default_factory=lambda: dict())
+    pools: dict[str, PoolEntity] = Field(default_factory=lambda: dict())
 
     @model_validator(mode="after")
     def propagate_parent_properties(self) -> Self:
@@ -747,6 +811,8 @@ class TPVConfig(BaseModel):
                 role.propagate_parent_properties(id=id, evaluator=self.evaluator)
             for id, destination in self.destinations.items():
                 destination.propagate_parent_properties(id=id, evaluator=self.evaluator)
+            for id, pool in self.pools.items():
+                pool.propagate_parent_properties(id=id, evaluator=self.evaluator)
         return self
 
     @model_validator(mode="before")
