@@ -588,10 +588,11 @@ property.
 Per-user resource pools
 -----------------------
 A *resource pool* caps the aggregate cores, memory and GPUs a single user may consume across
-their concurrently active jobs — a general way to stop any one user from monopolising the
-cluster by submitting many jobs at once. It is particularly useful when exposing User Defined
-Tools (UDTs), where untrusted, user-authored tools make such a limit essential, but it applies
-just as well to ordinary tools.
+their concurrently active jobs. This bounds a user's total resource *consumption*, complementing
+Galaxy's existing concurrency limits, which bound the *number* of concurrent jobs — ten small
+jobs and ten large jobs hit the same job-count limit but tie up very different amounts of the
+cluster. Support for User Defined Tools (UDTs) was the motivating use case, but the feature
+applies to any tool.
 
 Pools are a **first-class TPV entity**, declared in a top-level ``pools:`` collection alongside
 ``tools:``, ``users:``, ``roles:`` and ``destinations:``. A pool governs a job when the job's
