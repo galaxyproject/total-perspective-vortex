@@ -583,3 +583,108 @@ property.
      slurm:
        runner: slurm
        destination_name_override: "my-dest-with-{cores}-cores-{mem}-mem"
+
+
+Per-user resource pools
+-----------------------
+A *resource pool* caps the aggregate cores, memory and GPUs a single user may consume across
+their concurrently active jobs. This bounds a user's total resource *consumption*, complementing
+Galaxy's existing concurrency limits, which bound the *number* of concurrent jobs — ten small
+jobs and ten large jobs hit the same job-count limit but tie up very different amounts of the
+cluster. Support for User Defined Tools (UDTs) was the motivating use case, but the feature
+applies to any tool.
+
+Pools are a **first-class TPV entity**, declared in a top-level ``pools:`` collection alongside
+``tools:``, ``users:``, ``roles:`` and ``destinations:``. A pool governs a job when the job's
+requested scheduling tags match the pool's tags — exactly the tag matching a destination uses.
+The only thing that lives under ``global`` is the *infrastructure* wiring for the allocation
+store (a backend URL and TTL); the budget *policy* lives on the pool entities. Enforcement is
+automatic: no rule to attach, no helper to call.
+
+.. code-block:: yaml
+   :linenos:
+
+   global:
+     # Infrastructure only. The default ValkeyAllocationStore keeps allocations in Valkey,
+     # NOT in Galaxy's database. Use InMemoryAllocationStore for a single process / tests.
+     resource_pool_store:
+       class: tpv.core.resource_pool.ValkeyAllocationStore
+       url: valkey://localhost:6379/0
+       ttl: 3600
+
+   pools:
+     # No require tags -> governs every job (that a reject tag does not exclude).
+     default:
+       max_concurrent_cores: 32
+       max_concurrent_mem: 256      # GB, matching the TPV ``mem`` convention
+     # A second, independent pool that governs only jobs tagged ``gpu``.
+     gpu:
+       scheduling:
+         require:
+           - gpu
+       max_concurrent_gpus: 2
+
+The ``max_concurrent_*`` naming is deliberate: it keeps the per-user-aggregate budget distinct
+from a tool's per-job ``cores``/``mem``/``gpus`` request and from a destination's
+``max_accepted_*`` per-job capacity. When admitting a job would push the user over the pool
+budget, the job is **deferred** (re-queued and retried later) rather than failed.
+
+Per-user and per-role budgets fall out of the entity model — no bespoke provider. Because a
+pool sits *below* Tool/Role/User in merge order, a ``max_concurrent_*`` set on a Role or User is
+resolved by the ordinary ``inherit`` + ``combine`` precedence and overrides the pool default:
+
+.. code-block:: yaml
+   :linenos:
+
+   roles:
+     power_users:
+       max_concurrent_cores: 128    # this role gets a bigger budget
+   users:
+     trillian@vortex.org:
+       max_concurrent_gpus: 4       # this user overrides the gpu pool budget
+
+Allowing oversize jobs
+~~~~~~~~~~~~~~~~~~~~~~~~
+Some trusted (non-UDT) tools legitimately need more than the whole pool budget. A pool may
+permit such *oversize* jobs up to a small concurrency limit instead of rejecting them:
+
+.. code-block:: yaml
+   :linenos:
+   :emphasize-lines: 5,6,7,8
+
+   pools:
+     general:
+       max_concurrent_cores: 32
+       oversize:
+         max_concurrent: 1        # at most one over-budget job at a time per user
+         hard_max_cores: 128      # but never more than this — always fail beyond it
+     udt:
+       scheduling:
+         require:
+           - tool_type_user_defined
+       max_concurrent_cores: 16
+       # no `oversize` block (max_concurrent defaults to 0): over-budget UDT jobs fail
+
+A job whose request fits the budget is admitted normally. A job that exceeds the budget is
+*oversize*: it is admitted only while fewer than ``max_concurrent`` oversize jobs are running,
+deferred otherwise, and failed outright when ``max_concurrent`` is ``0`` or the request
+exceeds a ``hard_max_*`` ceiling. Route UDTs through a pool without an oversize allowance (gate
+it on the ``tool_type_user_defined`` tag) and trusted tools through one that permits it.
+
+.. note::
+   **What a pool counts.** A pool counts the resources a job *asks for*, measured before a
+   destination gets to shrink them — so a destination that caps cores does not reduce what the
+   pool charges the user. The check runs once a suitable destination is known to exist (a job
+   with nowhere to run is never counted) but before the destination is finalised, so the count
+   does not depend on which destination is chosen.
+
+.. note::
+   Enforcement is **fail-closed**: if the allocation store cannot be reached, TPV cannot check
+   how much the user is already using, so it plays it safe and **defers** the job rather than
+   admitting one that might blow past the budget (fail-closed = "when unsure, say no"). This
+   means an outage never silently bypasses the limits — but it also means **Valkey is a
+   scheduling dependency**: because the ``default`` pool governs every job, a Valkey outage will
+   defer every governed job on the instance. If that trade-off is too strict for a given pool,
+   set ``fail_open: true`` on it to admit jobs during an outage instead ("when unsure, let it
+   through"). Leave it off (the default) for UDT/security pools, where letting a user exceed the
+   limit is worse than making them wait.

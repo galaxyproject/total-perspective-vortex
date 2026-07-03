@@ -53,6 +53,8 @@ class TPVConfigDumper:
         if config.roles:
             self._render_section(buf, "Roles", config.roles)
         self._render_section(buf, "Destinations", config.destinations)
+        if config.pools:
+            self._render_section(buf, "Pools", config.pools)
 
         buf.write("=" * 72 + "\n")
         return buf.getvalue()

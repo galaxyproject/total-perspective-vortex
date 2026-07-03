@@ -1,0 +1,103 @@
+global:
+  default_inherits: default
+  # Infrastructure wiring only: which allocation store to use. The InMemoryAllocationStore keeps
+  # the ledger in-process so tests need no Valkey. Pool *policy* lives in the pools: block below.
+  resource_pool_store:
+    class: tpv.core.resource_pool.InMemoryAllocationStore
+
+# First-class resource pools, alongside tools/users/roles/destinations. A pool governs a job when
+# the job's requested tags match the pool's scheduling tags (same tag match a destination uses).
+pools:
+  # Governs every non-UDT job (no require tags; rejects the udt tag so UDT jobs are handled solely
+  # by the dedicated udt pool). Trusted big tools may exceed the budget up to one oversize job.
+  default:
+    max_concurrent_cores: 32
+    max_concurrent_mem: 256
+    scheduling:
+      reject:
+        - udt
+    oversize:
+      max_concurrent: 1
+      hard_max_cores: 128
+      hard_max_mem: 512
+  # A second, GPU-dimension pool. Matches jobs that accept the 'gpu' tag.
+  gpu:
+    max_concurrent_gpus: 2
+    scheduling:
+      require:
+        - gpu
+  # UDT pool: no oversize allowance, so an over-budget job always fails. Matches 'udt' jobs only.
+  udt:
+    max_concurrent_cores: 16
+    max_concurrent_mem: 128
+    scheduling:
+      require:
+        - udt
+
+users:
+  # A trusted user with a larger budget. The override is resolved by the ordinary inherit+combine
+  # precedence (User > Role > Tool), so it wins over the pool's default max_concurrent_cores.
+  trillian@vortex.org:
+    max_concurrent_cores: 128
+
+tools:
+  default:
+    cores: 4
+    mem: cores * 2
+    gpus: 0
+    env: {}
+    params: {}
+    scheduling:
+      require: []
+      prefer: []
+      accept: []
+      reject: []
+
+  # 64 cores exceeds the default pool's 32-core budget -> oversize (allowed, throttled).
+  bigtool:
+    cores: 64
+    mem: 64
+
+  # 200 cores exceeds the default pool's hard_max_cores of 128 -> always fails.
+  hugetool:
+    cores: 200
+    mem: 64
+
+  # 600GB mem exceeds the default pool's hard_max_mem of 512 -> always fails (cores fit).
+  bigmem_tool:
+    cores: 4
+    mem: 600
+
+  # Accepts the 'gpu' tag so it is governed by the gpu pool (and the default pool for cpu/mem).
+  gpu_tool:
+    cores: 4
+    gpus: 1
+    scheduling:
+      accept:
+        - gpu
+
+  # Accepts the 'udt' tag, routing it through the 'udt' pool (which has no oversize allowance):
+  # a 64-core request fails. inherits: ~ keeps it out of the default tool's resource defaults.
+  udt_tool:
+    inherits: ~
+    cores: 64
+    mem: 64
+    env: {}
+    params: {}
+    scheduling:
+      accept:
+        - udt
+
+destinations:
+  local:
+    runner: local
+    max_accepted_cores: 256
+    max_accepted_mem: 1024
+    max_accepted_gpus: 8
+    params:
+      native_spec: "--cores {cores} --mem {mem}"
+    scheduling:
+      require: []
+      prefer: []
+      accept: []
+      reject: []

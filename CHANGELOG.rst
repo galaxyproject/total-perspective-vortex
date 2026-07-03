@@ -1,3 +1,14 @@
+Unreleased
+--------------------------------------------------------------------
+* Add per-user resource pools. A ``pools:`` collection makes a resource pool a first-class TPV
+  entity that caps the aggregate ``max_concurrent_cores``/``mem``/``gpus`` a user may consume
+  concurrently, with an optional oversize allowance for big non-UDT tools. Tag matching selects
+  which pool(s) govern a job, and per-user/role budgets are resolved by the existing
+  ``inherit``/``combine`` precedence; enforcement is an automatic step of the mapping pipeline.
+  Allocations are tracked in a pluggable, Valkey-backed store (no data is written to Galaxy's
+  database), wired under ``global.resource_pool_store``. Enforcement is fail-closed, with an
+  optional per-pool ``fail_open``. See the "Per-user resource pools" docs section.
+
 3.2.1 - Apr 13, 2026. (sha c5c317f8613ca66446af38eba4e865c20d62ac45)
 --------------------------------------------------------------------
 * Replace deprecated pydantic class Config with ConfigDict by @mvdbeek (PR #191)
