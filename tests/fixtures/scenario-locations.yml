@@ -1,0 +1,107 @@
+global:
+  default_inherits: default
+
+tools:
+  default:
+    cores: 2
+    mem: 8
+    env: {}
+    scheduling:
+      require: []
+      prefer:
+          general
+      accept:
+      reject:
+          offline
+    rules: []
+    rank: |
+      from tests.closest_location import closest_destination
+      objectstore_loc_path = "tests/fixtures/object_store_locations.yml"
+      selected_object_store = "object_store_australia"
+      final_destinations = closest_destination(candidate_destinations, objectstore_loc_path, selected_object_store)
+      final_destinations
+  trinity:
+    cores: 2
+    mem: cores * 4
+    env: {}
+    scheduling:
+      require: []
+      prefer:
+        - pulsar
+      accept:
+      reject:
+        - offline
+
+
+roles:
+  ga_admins:
+    scheduling:
+      require:
+        []
+
+
+destinations:
+  pulsar_italy:
+    runner: general_pulsar_1
+    max_accepted_cores: 8
+    max_accepted_mem: 32
+    scheduling:
+      accept:
+        - general
+      require:
+        - pulsar
+    context:
+      latitude: 50.0689816
+      longitude: 19.9070188
+  slurm_poland:
+    runner: slurm
+    max_accepted_cores: 16
+    max_accepted_mem: 64
+    scheduling:
+      accept:
+        - slurm
+    context:
+      latitude: 51.9189046
+      longitude: 19.1343786
+  condor_belgium:
+    runner: condor
+    max_accepted_cores: 16
+    max_accepted_mem: 64
+    scheduling:
+      accept:
+        - condor
+    context:
+      latitude: 50.5010789
+      longitude: 4.4764595
+  slurm_germany:
+    runner: slurm
+    max_accepted_cores: 16
+    max_accepted_mem: 64
+    scheduling:
+      accept:
+        - slurm
+    context:
+      latitude: 51.1642292
+      longitude: 10.4541192
+  condor_france:
+    runner: condor
+    max_accepted_cores: 16
+    max_accepted_mem: 64
+    scheduling:
+      accept:
+        - condor
+    context:
+      latitude: 46.71109
+      longitude: 1.7191036
+  pulsar_australia:
+    runner: general_pulsar_1
+    max_accepted_cores: 8
+    max_accepted_mem: 32
+    scheduling:
+      accept:
+        - general
+      require:
+        - pulsar
+    context:
+      latitude: -26.4390917
+      longitude: 133.281323

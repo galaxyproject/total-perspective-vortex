@@ -1,0 +1,33 @@
+runners:
+  local:
+    load: galaxy.jobs.runners.local:LocalJobRunner
+  slurm:
+    load: galaxy.jobs.runners.drmaa:DRMAAJobRunner
+  general_pulsar_1:
+    load: galaxy.jobs.runners.local:LocalJobRunner
+  general_pulsar_2:
+    load: galaxy.jobs.runners.local:LocalJobRunner
+  highmem_pulsar_1:
+    load: galaxy.jobs.runners.local:LocalJobRunner
+  highmem_pulsar_2:
+    load: galaxy.jobs.runners.local:LocalJobRunner
+  training_slurm:
+    load: galaxy.jobs.runners.local:LocalJobRunner
+  training_pulsar:
+    load: galaxy.jobs.runners.local:LocalJobRunner
+  condor:
+    load: galaxy.jobs.runners.local:LocalJobRunner
+
+handling:
+  assign:
+    - db-skip-locked
+
+execution:
+  environments:
+    tpv_dispatcher:
+      runner: dynamic
+      type: python
+      function: map_tool_to_destination
+      rules_module: tpv.rules
+      tpv_config_files:
+        - config/tpv_rules.yml

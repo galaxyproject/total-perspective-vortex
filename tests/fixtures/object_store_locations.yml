@@ -1,0 +1,18 @@
+object_store_italy_S3_01:
+  latitude: 50.0689816
+  longitude: 19.9070188
+object_store_poland:
+  latitude: 51.9189046
+  longitude: 19.1343786
+object_store_belgium:
+  latitude: 50.5010789
+  longitude: 4.4764595
+object_store_germany:
+  latitude: 51.1642292
+  longitude: 10.4541194
+object_store_france:
+  latitude: 46.71109
+  longitude: 1.7191036
+object_store_australia:
+  latitude: -26.4390917
+  longitude: 133.281323
