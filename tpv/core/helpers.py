@@ -10,7 +10,7 @@ import random
 import re
 from collections.abc import Callable
 from functools import reduce
-from typing import Any, TypeVar, TypedDict
+from typing import Any, TypedDict, TypeVar
 
 T = TypeVar("T")
 
