@@ -11,6 +11,7 @@ from tpv.core.helpers import (
     get_input_datasets,
     get_input_size,
     input_size,
+    weighted_choice,
     weighted_random_sampling,
 )
 
@@ -161,3 +162,103 @@ class TestHelpers(unittest.TestCase):
         self.assertEqual(result, sampled_destinations)
         choices_mock.assert_called_once_with(destinations, weights=[5, 1, 1], k=3)
         sample_mock.assert_not_called()
+
+    def test_weighted_choice_without_weights_uses_unweighted_choice(self):
+        """When no item defines weight, use unweighted random choice."""
+        items = [
+            {"value": "/fast/jobs"},
+            {"value": "/slow/jobs"},
+            {"value": "/backup/jobs", "foo": "bar"},
+        ]
+
+        with patch("tpv.core.helpers.random.choice", return_value=items[1]) as choice_mock:
+            with patch("tpv.core.helpers.random.choices") as choices_mock:
+                result = weighted_choice(items)
+
+        self.assertEqual(result, "/slow/jobs")
+        choice_mock.assert_called_once_with(items)
+        choices_mock.assert_not_called()
+
+    def test_weighted_choice_with_weights_uses_weighted_choices(self):
+        """When any item defines weight, use weighted random choices."""
+        items = [
+            {"value": "/fast/jobs", "weight": 3},
+            {"value": "/slow/jobs"},
+            {"value": "/backup/jobs"},
+        ]
+        with patch("tpv.core.helpers.random.choices", return_value=[items[0]]) as choices_mock:
+            with patch("tpv.core.helpers.random.choice") as choice_mock:
+                result = weighted_choice(items)
+
+        self.assertEqual(result, "/fast/jobs")
+        choices_mock.assert_called_once_with(items, weights=[3, 1, 1], k=1)
+        choice_mock.assert_not_called()
+
+    def test_weighted_choice_missing_weight_defaults_to_one(self):
+        """Items without a weight key should default to weight 1."""
+        items = [
+            {"value": "/a", "weight": 5},
+            {"value": "/b"},
+            {"value": "/c"},
+        ]
+        with patch("tpv.core.helpers.random.choices", return_value=[items[1]]) as choices_mock:
+            weighted_choice(items)
+
+        choices_mock.assert_called_once_with(items, weights=[5, 1, 1], k=1)
+
+    def test_weighted_choice_zero_weights_falls_back_to_unweighted(self):
+        """If all weights are zero or negative, fall back to unweighted choice."""
+        items = [
+            {"value": "/drained/jobs", "weight": 0},
+            {"value": "/also-drained/jobs", "weight": -1},
+        ]
+        with patch("tpv.core.helpers.random.choice", return_value=items[0]) as choice_mock:
+            with patch("tpv.core.helpers.random.choices") as choices_mock:
+                result = weighted_choice(items)
+
+        self.assertEqual(result, "/drained/jobs")
+        choice_mock.assert_called_once_with(items)
+        choices_mock.assert_not_called()
+
+    def test_weighted_choice_negative_weight_is_clamped_to_zero(self):
+        """A negative weight is clamped to 0 while positive weights are preserved."""
+        items = [
+            {"value": "/a", "weight": 5},
+            {"value": "/b", "weight": -3},
+        ]
+        with patch("tpv.core.helpers.random.choices", return_value=[items[0]]) as choices_mock:
+            with patch("tpv.core.helpers.random.choice") as choice_mock:
+                weighted_choice(items)
+
+        choices_mock.assert_called_once_with(items, weights=[5, 0], k=1)
+        choice_mock.assert_not_called()
+
+    def test_weighted_choice_default_weight_keys_use_unweighted(self):
+        """If every item has weight: 1 (the default), use unweighted choice."""
+        items = [
+            {"value": "/a", "weight": 1},
+            {"value": "/b", "weight": 1},
+        ]
+        with patch("tpv.core.helpers.random.choice", return_value=items[0]) as choice_mock:
+            with patch("tpv.core.helpers.random.choices") as choices_mock:
+                weighted_choice(items)
+
+        choice_mock.assert_called_once_with(items)
+        choices_mock.assert_not_called()
+
+    def test_weighted_choice_empty_list_raises_value_error(self):
+        """An empty list should raise ValueError."""
+        with self.assertRaises(ValueError):
+            weighted_choice([])
+
+    def test_weighted_choice_returns_value_string(self):
+        """The helper should return the value string, not the whole dict."""
+        items = [
+            {"value": "/primary/jobs", "weight": 10},
+            {"value": "/secondary/jobs", "weight": 1},
+        ]
+        with patch("tpv.core.helpers.random.choices", return_value=[items[1]]):
+            result = weighted_choice(items)
+
+        self.assertIsInstance(result, str)
+        self.assertEqual(result, "/secondary/jobs")
