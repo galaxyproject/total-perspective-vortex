@@ -608,3 +608,47 @@ property.
      slurm:
        runner: slurm
        destination_name_override: "my-dest-with-{cores}-cores-{mem}-mem"
+
+Selecting a job working directory from a weighted pool
+------------------------------------------------------
+The ``helpers.weighted_choice`` helper selects a single value from a weighted
+pool of ``{value, weight}`` dictionaries.  One of the interesting use cases is distributing
+jobs across multiple job working directory roots with configurable weights —
+useful when you have multiple storage paths for job working directories and
+want to steer the majority of jobs to a particular path while keeping a fallback
+available.  The helper is generic over the meaning of ``value``, so any
+string-valued pool (cache paths, runner URLs, etc.) works the same way.
+
+.. code-block:: yaml
+   :linenos:
+   :emphasize-lines: 4-9,14
+
+   global:
+     context:
+       jwd_pool:
+         - value: /fast/jobs
+           weight: 3
+         - value: /slow/jobs
+           weight: 1
+
+   tools:
+     default:
+       cores: 2
+       mem: 4
+       params:
+         job_working_directory: "{helpers.weighted_choice(jwd_pool)}"
+
+In this example, the ``jwd_pool`` context variable is a list of dictionaries,
+each with a ``value`` (the string to use) and an optional ``weight`` (defaults
+to 1).  ``helpers.weighted_choice`` returns the ``value`` of a randomly selected
+item, weighted by the ``weight`` value.  With the weights above, ``/fast/jobs``
+is selected three times as often as ``/slow/jobs``.
+
+To drain a directory, set its weight to ``0``.  If all weights are zero, the
+helper falls back to an unweighted random selection so the configuration always
+resolves.
+
+This recipe requires Galaxy's ``job_working_directory`` job-concern support
+(Galaxy PR :issue:`23133` / :issue:`15616` / :issue:`20062`).  Without that
+change, the param is still set by TPV but Galaxy will use the object-store
+derived path instead.
