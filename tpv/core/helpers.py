@@ -10,7 +10,9 @@ import random
 import re
 from collections.abc import Callable
 from functools import reduce
-from typing import Any
+from typing import Any, TypeVar, TypedDict
+
+T = TypeVar("T")
 
 from galaxy import model
 from galaxy.app import UniverseApplication
@@ -125,14 +127,53 @@ def get_input_size(
     return total / GIGABYTES
 
 
+def _resolve_weights(items: list[T], get_weight: Callable[[T], float]) -> list[float]:
+    """Return clamped, non-negative weights for *items*.
+
+    ``get_weight`` extracts the weight from each item (defaulting to 1).
+    Negative weights are clamped to 0 so they are excluded from selection.
+    """
+    return [max(get_weight(item), 0) for item in items]
+
+
+def _has_weighted_selection(weights: list[float]) -> bool:
+    """True if *weights* warrant weighted selection: at least one non-default
+    weight and at least one positive weight."""
+    return any(w != 1 for w in weights) and any(w > 0 for w in weights)
+
+
 def weighted_random_sampling(destinations: list[Destination]) -> list[Destination]:
     if not destinations:
         return []
-    has_explicit_weight = any(d.params and "weight" in d.params for d in destinations)
-    if not has_explicit_weight:
+    weights = _resolve_weights(destinations, lambda d: d.params.get("weight", 1) if d.params else 1)
+    if not _has_weighted_selection(weights):
         return random.sample(destinations, k=len(destinations))
-    rankings = [(d.params.get("weight", 1) if d.params else 1) for d in destinations]
-    return random.choices(destinations, weights=rankings, k=len(destinations))
+    return random.choices(destinations, weights=weights, k=len(destinations))
+
+
+class WeightedItem(TypedDict, total=False):
+    value: str
+    weight: float
+
+
+def weighted_choice(items: list[WeightedItem]) -> str:
+    """Select a single ``value`` from a weighted pool of ``{value, weight}`` dicts.
+
+    ``weight`` is optional (defaults to 1); a weight of 0 or less excludes the
+    entry.  If no item defines a non-default weight, or all weights are zero,
+    an unweighted random selection is used.  Primary use case: distributing
+    jobs across multiple job working directory roots.
+
+    Raises:
+        ValueError: If *items* is empty.
+    """
+    if not items:
+        raise ValueError("weighted_choice requires a non-empty list of items")
+
+    weights = _resolve_weights(items, lambda item: item.get("weight", 1))
+    if not _has_weighted_selection(weights):
+        return random.choice(items)["value"]
+    return random.choices(items, weights=weights, k=1)[0]["value"]
 
 
 def __get_keys_from_dict(dl: Any, keys_list: list[str]) -> None:
