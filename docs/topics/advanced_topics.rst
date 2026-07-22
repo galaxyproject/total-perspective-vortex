@@ -340,3 +340,43 @@ As this may often be too simplistic, the rank function can be overridden by spec
 rank clause. The rank clause can contain an arbitrary code block, which can do the desired sorting,
 for example by determining destination load by querying the job manager, influx statistics etc.
 The final statement in the rank clause must be the list of sorted destinations.
+
+Helper functions
+================
+TPV exposes a ``helpers`` module in the evaluation context, which provides utility functions
+that can be used in rules, rank functions, params, and other code blocks.
+
++------------------------------------+--------------------------------------------------------------------------+
+| Helper                             | Description                                                              |
++====================================+==========================================================================+
+| ``helpers.job_args_match(``        | Checks whether a dict of argument key/value pairs matches the job's      |
+| ``job, app, args)``                | input parameters. Useful for routing based on specific tool argument     |
+|                                    | values, similar to Galaxy's dynamic tool destination matching.           |
++------------------------------------+--------------------------------------------------------------------------+
+| ``helpers.weighted_random_``       | Returns a shuffled list of all destinations, weighted by each            |
+| ``sampling(destinations)``         | destination's optional ``params.weight`` value. Used in rank functions   |
+|                                    | to break ties or provide a fallback when load-based ranking fails.       |
++------------------------------------+--------------------------------------------------------------------------+
+| ``helpers.weighted_choice(items)`` | Selects a single value from a weighted pool of ``{value, weight}`` dicts |
+|                                    | and returns the chosen ``value`` string. Generic over the meaning of     |
+|                                    | ``value``; primary use case is distributing jobs across multiple job     |
+|                                    | working directory roots. See the recipe in :doc:`tpv_by_example`.        |
++------------------------------------+--------------------------------------------------------------------------+
+| ``helpers.input_size(job)``        | Returns the total input dataset size in GB for the given job.            |
++------------------------------------+--------------------------------------------------------------------------+
+| ``helpers.concurrent_job_count_``  | Returns the number of queued/running jobs for the given tool (and        |
+| ``for_tool(app, tool, user)``      | optional user). Useful for limiting concurrent executions per tool.      |
++------------------------------------+--------------------------------------------------------------------------+
+| ``helpers.tag_values_match(``      | Returns ``True`` if an entity has all ``match_tag_values`` tags and none |
+| ``entity, match_tag_values,``      | of the ``exclude_tag_values`` tags.                                      |
+| ``exclude_tag_values)``            |                                                                          |
++------------------------------------+--------------------------------------------------------------------------+
+| ``helpers.tool_version_eq/lte/``   | Compare the tool's version against a given version string using the      |
+| ``lt/gte/gt(tool, version)``       | specified comparator.                                                    |
++------------------------------------+--------------------------------------------------------------------------+
+| ``helpers.get_tool_resource_``     | Extracts a specific resource field (cores, mem, gpus) from a tool's      |
+| ``field(tool, field_name)``        | resource requirements.                                                   |
++------------------------------------+--------------------------------------------------------------------------+
+| ``helpers.get_dataset_``           | Returns a dict mapping dataset IDs to their object store ID and file     |
+| ``attributes(datasets)``           | size in bytes.                                                           |
++------------------------------------+--------------------------------------------------------------------------+
