@@ -7,13 +7,14 @@ except ImportError:
 
 import operator
 import random
+import re
 from collections.abc import Callable
 from functools import reduce
 from typing import Any
 
 from galaxy import model
 from galaxy.app import UniverseApplication
-from galaxy.model import Dataset, Job, JobToInputDatasetAssociation
+from galaxy.model import Dataset, HistoryDatasetAssociation, Job, JobToInputDatasetAssociation
 from galaxy.model import User as GalaxyUser
 from galaxy.tools import Tool as GalaxyTool
 
@@ -21,6 +22,12 @@ from tpv.core.entities import Destination, Entity
 from tpv.core.resource_requirements import TPVResourceFieldName, extract_resource_requirements_from_tool
 
 GIGABYTES = 1024.0**3
+
+# Datatype extension suffixes that indicate a compressed dataset, e.g. `fastqsanger.gz`
+COMPRESSED_EXTENSION_SUFFIXES = (".gz", ".bz2")
+
+# Default multiplier applied to compressed input sizes to approximate their decompressed size
+DEFAULT_COMPRESSION_FACTOR = 3.4
 
 
 def get_dataset_size(dataset: Dataset) -> float:
@@ -45,6 +52,71 @@ def calculate_dataset_total(
 
 def input_size(job: Job) -> float:
     return calculate_dataset_total(job.input_datasets) / GIGABYTES
+
+
+def __unique_input_datasets(
+    datasets: list[JobToInputDatasetAssociation] | None,
+) -> dict[int, HistoryDatasetAssociation]:
+    # Galaxy records a `multiple="true"` data param under both `name` and `name1`, so the same
+    # dataset can be associated with a job more than once. Key on the underlying dataset to
+    # count each file only once, preserving the order the inputs were recorded in.
+    unique_datasets: dict[int, HistoryDatasetAssociation] = {}
+    for inp_ds in datasets or []:
+        if inp_ds.dataset and inp_ds.dataset.dataset:
+            unique_datasets.setdefault(inp_ds.dataset.dataset.id, inp_ds.dataset)
+    return unique_datasets
+
+
+def get_input_datasets(job: Job, param_name: str | None = None) -> list[HistoryDatasetAssociation]:
+    """
+    Return a job's input datasets, optionally restricted to a single tool parameter.
+
+    Galaxy flattens data params into `job.input_datasets` by name: a single data param is
+    recorded as `name`, a `multiple="true"` data param as `name`, `name1`..`nameN` (where
+    `name` is an alias for `name1`), and a collection param as `name1`..`nameN`, one entry per
+    dataset in the collection. Matching all of those, then deduplicating, yields each dataset
+    of the parameter exactly once regardless of how it was supplied.
+
+    Note that `param_name` is the fully prefixed parameter name, so a data param nested in a
+    conditional is addressed as e.g. `cond|input`.
+    """
+    datasets = job.input_datasets
+    if param_name is not None:
+        pattern = re.compile(rf"^{re.escape(param_name)}\d*$")
+        datasets = [inp_ds for inp_ds in datasets or [] if pattern.match(inp_ds.name or "")]
+    return list(__unique_input_datasets(datasets).values())
+
+
+def get_input_dataset(job: Job, param_name: str) -> HistoryDatasetAssociation | None:
+    """
+    Return the first input dataset recorded for a tool parameter, or None if the parameter has
+    no input dataset (an unset optional param, for example).
+    """
+    datasets = get_input_datasets(job, param_name)
+    return datasets[0] if datasets else None
+
+
+def get_input_size(
+    job: Job,
+    param_name: str | None = None,
+    estimate_uncompressed_size: bool = True,
+    compression_factor: float = DEFAULT_COMPRESSION_FACTOR,
+) -> float:
+    """
+    Return the total size in gigabytes of a job's input datasets.
+
+    If `param_name` is given, only the datasets recorded for that tool parameter are totalled,
+    otherwise all of the job's input datasets are. Compressed inputs are multiplied by
+    `compression_factor` to estimate their uncompressed size, unless
+    `estimate_uncompressed_size` is False.
+    """
+    total = 0.0
+    for dataset in get_input_datasets(job, param_name):
+        multiplier = 1.0
+        if estimate_uncompressed_size and (dataset.extension or "").endswith(COMPRESSED_EXTENSION_SUFFIXES):
+            multiplier = compression_factor
+        total += get_dataset_size(dataset.dataset) * multiplier
+    return total / GIGABYTES
 
 
 def weighted_random_sampling(destinations: list[Destination]) -> list[Destination]:
