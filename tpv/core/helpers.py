@@ -112,6 +112,8 @@ def get_input_size(
     """
     total = 0.0
     for dataset in get_input_datasets(job, param_name):
+        if not dataset.dataset:
+            continue
         multiplier = 1.0
         if estimate_uncompressed_size and (dataset.extension or "").endswith(COMPRESSED_EXTENSION_SUFFIXES):
             multiplier = compression_factor
