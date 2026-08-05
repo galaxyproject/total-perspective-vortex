@@ -44,7 +44,11 @@ def calculate_dataset_total(
     datasets: list[JobToInputDatasetAssociation] | None,
 ) -> float:
     if datasets:
-        unique_datasets = {inp_ds.dataset.dataset.id: inp_ds.dataset.dataset for inp_ds in datasets if inp_ds.dataset}
+        unique_datasets = {
+            inp_ds.dataset.dataset.id: inp_ds.dataset.dataset
+            for inp_ds in datasets
+            if inp_ds.dataset and inp_ds.dataset.dataset
+        }
         return reduce(sum_total, map(get_dataset_size, unique_datasets.values()), 0.0)
     else:
         return 0.0
@@ -241,5 +245,5 @@ def get_dataset_attributes(
             "size": get_dataset_size(i.dataset.dataset),
         }
         for i in datasets or {}
-        if i.dataset
+        if i.dataset and i.dataset.dataset
     }
