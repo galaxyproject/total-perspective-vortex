@@ -357,9 +357,10 @@ that can be used in rules, rank functions, params, and other code blocks.
 | ``sampling(destinations)``         | destination's optional ``params.weight`` value. Used in rank functions   |
 |                                    | to break ties or provide a fallback when load-based ranking fails.       |
 +------------------------------------+--------------------------------------------------------------------------+
-| ``helpers.weighted_choice(items)`` | Selects a single value from a weighted pool of ``{value, weight}`` dicts |
-|                                    | and returns the chosen ``value`` string. Generic over the meaning of     |
-|                                    | ``value``; primary use case is distributing jobs across multiple job     |
+| ``helpers.weighted_choice(items)`` | Selects one item from a weighted pool of ``{value, weight}`` dicts and    |
+|                                    | returns the chosen dict, mirroring ``random.choice``. Use               |
+|                                    | ``helpers.weighted_choice(items)["value"]`` when you need the underlying |
+|                                    | string. Primary use case is distributing jobs across multiple job        |
 |                                    | working directory roots. See the recipe in :doc:`tpv_by_example`.        |
 +------------------------------------+--------------------------------------------------------------------------+
 | ``helpers.input_size(job)``        | Returns the total input dataset size in GB for the given job.            |

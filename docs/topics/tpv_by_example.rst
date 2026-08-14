@@ -636,13 +636,13 @@ string-valued pool (cache paths, runner URLs, etc.) works the same way.
        cores: 2
        mem: 4
        params:
-         job_working_directory: "{helpers.weighted_choice(jwd_pool)}"
+         job_working_directory: "{helpers.weighted_choice(jwd_pool)['value']}"
 
 In this example, the ``jwd_pool`` context variable is a list of dictionaries,
 each with a ``value`` (the string to use) and an optional ``weight`` (defaults
-to 1).  ``helpers.weighted_choice`` returns the ``value`` of a randomly selected
-item, weighted by the ``weight`` value.  With the weights above, ``/fast/jobs``
-is selected three times as often as ``/slow/jobs``.
+to 1).  ``helpers.weighted_choice`` returns the selected dictionary item; the
+``['value']`` field is used to populate the job working directory.  With the
+weights above, ``/fast/jobs`` is selected three times as often as ``/slow/jobs``.
 
 To drain a directory, set its weight to ``0``.  If all weights are zero, the
 helper falls back to an unweighted random selection so the configuration always

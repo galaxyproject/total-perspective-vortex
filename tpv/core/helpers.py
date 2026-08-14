@@ -8,11 +8,12 @@ except ImportError:
 import operator
 import random
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from functools import reduce
-from typing import Any, TypedDict, TypeVar
+from typing import Any, TypeVar
 
 T = TypeVar("T")
+WeightedT = TypeVar("WeightedT", bound=Mapping[str, Any])
 
 from galaxy import model
 from galaxy.app import UniverseApplication
@@ -127,53 +128,38 @@ def get_input_size(
     return total / GIGABYTES
 
 
-def _resolve_weights(items: list[T], get_weight: Callable[[T], float]) -> list[float]:
-    """Return clamped, non-negative weights for *items*.
+def _weighted_draw(items: list[T], weights: list[float], k: int) -> list[T]:
+    """Draw *k* items from *items*, biased by *weights*.
 
-    ``get_weight`` extracts the weight from each item (defaulting to 1).
-    Negative weights are clamped to 0 so they are excluded from selection.
+    Negative weights are clamped to zero. If no weight deviates from the default
+    of 1, or every weight is zero, the draw is unweighted so a fully drained pool
+    still resolves instead of raising.
     """
-    return [max(get_weight(item), 0) for item in items]
-
-
-def _has_weighted_selection(weights: list[float]) -> bool:
-    """True if *weights* warrant weighted selection: at least one non-default
-    weight and at least one positive weight."""
-    return any(w != 1 for w in weights) and any(w > 0 for w in weights)
+    weights = [max(w, 0) for w in weights]
+    if any(w != 1 for w in weights) and any(w > 0 for w in weights):
+        return random.choices(items, weights=weights, k=k)
+    return random.sample(items, k=k)
 
 
 def weighted_random_sampling(destinations: list[Destination]) -> list[Destination]:
     if not destinations:
         return []
-    weights = _resolve_weights(destinations, lambda d: d.params.get("weight", 1) if d.params else 1)
-    if not _has_weighted_selection(weights):
-        return random.sample(destinations, k=len(destinations))
-    return random.choices(destinations, weights=weights, k=len(destinations))
+    weights = [(d.params or {}).get("weight", 1) for d in destinations]
+    return _weighted_draw(destinations, weights, k=len(destinations))
 
 
-class WeightedItem(TypedDict, total=False):
-    value: str
-    weight: float
+def weighted_choice(items: list[WeightedT]) -> WeightedT:
+    """Select one item from *items*, biased by each item's optional ``weight``.
 
-
-def weighted_choice(items: list[WeightedItem]) -> str:
-    """Select a single ``value`` from a weighted pool of ``{value, weight}`` dicts.
-
-    ``weight`` is optional (defaults to 1); a weight of 0 or less excludes the
-    entry.  If no item defines a non-default weight, or all weights are zero,
-    an unweighted random selection is used.  Primary use case: distributing
-    jobs across multiple job working directory roots.
+    Returns the item itself, mirroring ``random.choice``. Subscript it for the
+    field you need, e.g. ``weighted_choice(jwd_pool)["value"]``.
 
     Raises:
         ValueError: If *items* is empty.
     """
     if not items:
         raise ValueError("weighted_choice requires a non-empty list of items")
-
-    weights = _resolve_weights(items, lambda item: item.get("weight", 1))
-    if not _has_weighted_selection(weights):
-        return random.choice(items)["value"]
-    return random.choices(items, weights=weights, k=1)[0]["value"]
+    return _weighted_draw(items, [item.get("weight", 1) for item in items], k=1)[0]
 
 
 def __get_keys_from_dict(dl: Any, keys_list: list[str]) -> None:

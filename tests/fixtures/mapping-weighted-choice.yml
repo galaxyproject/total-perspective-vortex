@@ -12,7 +12,7 @@ tools:
     cores: 2
     mem: cores * 3
     params:
-      job_working_directory: "{helpers.weighted_choice(jwd_pool)}"
+      job_working_directory: "{helpers.weighted_choice(jwd_pool)['value']}"
     scheduling:
       require: []
       prefer:
