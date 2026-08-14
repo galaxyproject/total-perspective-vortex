@@ -8,9 +8,12 @@ except ImportError:
 import operator
 import random
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from functools import reduce
-from typing import Any
+from typing import Any, TypeVar
+
+T = TypeVar("T")
+WeightedT = TypeVar("WeightedT", bound=Mapping[str, Any])
 
 from galaxy import model
 from galaxy.app import UniverseApplication
@@ -125,14 +128,38 @@ def get_input_size(
     return total / GIGABYTES
 
 
+def _weighted_draw(items: list[T], weights: list[float], k: int) -> list[T]:
+    """Draw *k* items from *items*, biased by *weights*.
+
+    Negative weights are clamped to zero. If no weight deviates from the default
+    of 1, or every weight is zero, the draw is unweighted so a fully drained pool
+    still resolves instead of raising.
+    """
+    weights = [max(w, 0) for w in weights]
+    if any(w != 1 for w in weights) and any(w > 0 for w in weights):
+        return random.choices(items, weights=weights, k=k)
+    return random.sample(items, k=k)
+
+
 def weighted_random_sampling(destinations: list[Destination]) -> list[Destination]:
     if not destinations:
         return []
-    has_explicit_weight = any(d.params and "weight" in d.params for d in destinations)
-    if not has_explicit_weight:
-        return random.sample(destinations, k=len(destinations))
-    rankings = [(d.params.get("weight", 1) if d.params else 1) for d in destinations]
-    return random.choices(destinations, weights=rankings, k=len(destinations))
+    weights = [(d.params or {}).get("weight", 1) for d in destinations]
+    return _weighted_draw(destinations, weights, k=len(destinations))
+
+
+def weighted_choice(items: list[WeightedT]) -> WeightedT:
+    """Select one item from *items*, biased by each item's optional ``weight``.
+
+    Returns the item itself, mirroring ``random.choice``. Subscript it for the
+    field you need, e.g. ``weighted_choice(jwd_pool)["value"]``.
+
+    Raises:
+        ValueError: If *items* is empty.
+    """
+    if not items:
+        raise ValueError("weighted_choice requires a non-empty list of items")
+    return _weighted_draw(items, [item.get("weight", 1) for item in items], k=1)[0]
 
 
 def __get_keys_from_dict(dl: Any, keys_list: list[str]) -> None:
