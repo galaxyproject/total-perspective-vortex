@@ -1,4 +1,5 @@
 import hashlib
+import itertools
 from typing import Any, cast
 
 from galaxy.job_metrics import JobMetrics
@@ -64,11 +65,10 @@ class User:
 
 # Job mock and helpers=======================================
 class Dataset:
-    counter = 0
+    counter = itertools.count()
 
     def __init__(self, file_name: str, file_size: int, object_store_id: str | None = None):
-        self.id = self.counter
-        self.counter += 1
+        self.id = next(Dataset.counter)
         self.file_name = file_name
         self.file_size = file_size
         self.object_store_id = object_store_id
@@ -78,9 +78,10 @@ class Dataset:
 
 
 class DatasetAssociation:
-    def __init__(self, name: str, dataset: Dataset):
+    def __init__(self, name: str, dataset: Dataset, extension: str = "txt"):
         self.name = name
         self.dataset = dataset
+        self.extension = extension
 
 
 class JobToInputDatasetAssociation:
@@ -97,8 +98,10 @@ class Job:
         self.parameters: dict[str, Any] = {}
         self.history: History | None = None
 
-    def add_input_dataset(self, dataset_association: DatasetAssociation) -> None:
-        self.input_datasets.append(JobToInputDatasetAssociation(dataset_association.name, dataset_association))
+    def add_input_dataset(self, dataset_association: DatasetAssociation, name: str | None = None) -> None:
+        # `name` allows the association to be recorded under a different name than the dataset's,
+        # mirroring how Galaxy records e.g. a collection param as `name1`..`nameN`
+        self.input_datasets.append(JobToInputDatasetAssociation(name or dataset_association.name, dataset_association))
 
     def get_param_values(self, app: App) -> dict[str, Any]:
         return self.param_values

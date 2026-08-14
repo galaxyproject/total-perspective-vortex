@@ -124,6 +124,69 @@ be used)
 +--------------------+---------------+----------------------+
 
 
+Input sizes
+===========
+
+Resource requirements are commonly calculated from the size of a job's inputs. The `input_size` context variable
+provides the total size in gigabytes of all of a job's inputs, and the `helpers.get_input_size` function provides
+more control over how that total is arrived at, as introduced in :doc:`tpv_by_example`.
+
+Arguments
+---------
+
+`get_input_size` returns a size in gigabytes, and accepts the following arguments:
+
++----------------------------+----------------------------------------------------------------------------+
+| Argument                   | Description                                                                |
++============================+============================================================================+
+| job                        | the job being mapped, available as a context variable in all expressions   |
++----------------------------+----------------------------------------------------------------------------+
+| param_name                 | the tool parameter to size. If omitted, all inputs are totalled            |
++----------------------------+----------------------------------------------------------------------------+
+| estimate_uncompressed_size | whether to scale compressed inputs by compression_factor. True by default  |
++----------------------------+----------------------------------------------------------------------------+
+| compression_factor         | the multiplier applied to compressed inputs. 3.4 by default                |
++----------------------------+----------------------------------------------------------------------------+
+
+An input is considered compressed if its datatype extension ends in `.gz` or `.bz2`, as `fastqsanger.gz` does.
+Since a compressed dataset's recorded size is its size on disk, and resource estimates generally need to be based
+on the size the tool will actually process, compressed inputs are scaled up by `compression_factor` unless
+`estimate_uncompressed_size` is set to False.
+
+Naming and matching parameters
+------------------------------
+
+`param_name` is the fully prefixed parameter name, so a parameter named `input_1` within a conditional named
+`library` is addressed as `library|input_1`.
+
+Galaxy does not record data parameters against a job as a single value per parameter. A parameter that accepts
+multiple datasets, and a dataset collection parameter, are both flattened into one entry per dataset, named
+`library|input_11`, `library|input_12` and so on. `get_input_size` matches all of the entries belonging to the
+named parameter, and counts each dataset only once, so the same expression can be used whether the datasets were
+selected individually or supplied as a collection.
+
+A parameter that has no datasets recorded against it, such as an unset optional parameter, or one belonging to a
+branch of a conditional that was not selected, contributes a size of zero rather than raising an error. Several
+parameters can therefore be totalled without testing which of them are in use. For example, the hisat2 tool holds
+its reads in a conditional with separate branches for single end, paired end and paired collection inputs, all of
+which can be accommodated with a single expression:
+
+.. code-block:: yaml
+   :linenos:
+
+   tools:
+     toolshed.g2.bx.psu.edu/repos/iuc/hisat2/hisat2/.*:
+       cores: 4
+       mem: |
+         reads = helpers.get_input_size(job, "library|input_1") + helpers.get_input_size(job, "library|input_2")
+         min(max(int(reads * 4), 8), 128)
+
+Here, `library|input_2` is only present for paired end inputs, and contributes nothing otherwise, while
+`library|input_1` covers the reads of all three branches, including both members of a paired collection.
+
+Note that a tool with parameters named such that one is the other followed by a number, `input` and `input1` for
+example, cannot be addressed unambiguously, as a request for `input` will also match the datasets of `input1`.
+
 Scheduling
 ==========
 

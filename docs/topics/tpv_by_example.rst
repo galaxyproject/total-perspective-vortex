@@ -260,6 +260,31 @@ are evaluated as python code blocks, while string variables are evaluated as pyt
 The execute block can be used to create arbitrary side-effects if a rule matches. The return value of an execute
 block is ignored.
 
+Input sizes
+-----------
+
+The automatically available `input_size` variable totals the sizes of all of a job's inputs, but rules often need
+finer control, such as the size of one particular input. Resource estimates that depend on input size, memory in
+particular, also typically need to be calculated from the uncompressed size of the input, whereas the size
+recorded for a compressed dataset is its size on disk. The `helpers.get_input_size` function provides both.
+
+.. code-block:: yaml
+   :linenos:
+
+   tools:
+     toolshed.g2.bx.psu.edu/repos/iuc/hisat2/hisat2/.*:
+       cores: 4
+       mem: min(max(int(helpers.get_input_size(job, "library|input_1") * 4), 8), 128)
+
+In this example, only the reads input of the hisat2 tool is sized, ignoring any other inputs the job may have, and
+the tool is allocated 4GB of memory per gigabyte of reads, clamped to between 8GB and 128GB. Since the reads are
+typically compressed, and the estimate must be based on their uncompressed size, their recorded size is first
+multiplied by 3.4.
+
+Omitting the parameter name totals all of the job's inputs instead, exactly as the `input_size` variable does.
+The compression factor and the remaining arguments, along with the rules for naming and matching parameters, are
+described in :doc:`advanced_topics`.
+
 User and Role Handling
 ------------------------
 
