@@ -134,6 +134,24 @@ class TestEntity(unittest.TestCase):
         # tag should not match if either tag_type or tag_value mismatches
         assert not list(destination.tpv_dest_tags.filter(tag_type=[TagType.ACCEPT], tag_value="pulsar"))
 
+    def test_tag_filter_with_scalar_accept_tag_type(self):
+        tags = SchedulingTags(require=["req"], accept=["acc"])
+
+        matched = list(tags.filter(tag_type=TagType.ACCEPT))
+
+        assert len(matched) == 1
+        assert matched[0].tag_type == TagType.ACCEPT
+        assert matched[0].value == "acc"
+
+    def test_tag_filter_with_empty_string_tag_value(self):
+        tags = SchedulingTags(accept=["", "acc"])
+
+        matched = list(tags.filter(tag_value=""))
+
+        assert len(matched) == 1
+        assert matched[0].tag_type == TagType.ACCEPT
+        assert matched[0].value == ""
+
     def test_scheduling_score_explicit_accept_outscores_implicit_default_reject(self):
         entity_tags = SchedulingTags(accept=["tool_type_expression"])
         local_tags = SchedulingTags(reject=["tool_type_user_defined"])
@@ -147,3 +165,39 @@ class TestEntity(unittest.TestCase):
         prefer_tags = SchedulingTags(prefer=["x"])
 
         assert prefer_tags.score(entity_tags) > accept_tags.score(entity_tags)
+
+    def test_scheduling_score_symmetric_empty_tags(self):
+        assert SchedulingTags().score(SchedulingTags()) == 0
+
+    def test_scheduling_score_penalizes_entity_tags_missing_from_dest(self):
+        dest_tags = SchedulingTags()
+        entity_tags = SchedulingTags(prefer=["x"])
+
+        assert dest_tags.score(entity_tags) < 0
+
+    def test_scheduling_score_mutual_coverage_beats_partial(self):
+        entity_tags = SchedulingTags(prefer=["gpu", "fast"])
+        full_dest = SchedulingTags(prefer=["gpu", "fast"])
+        partial_dest = SchedulingTags(prefer=["gpu"])
+
+        assert full_dest.score(entity_tags) > partial_dest.score(entity_tags)
+
+    def test_scheduling_score_require_equals_accept_weight(self):
+        entity_tags = SchedulingTags(accept=["x"])
+        dest_require = SchedulingTags(require=["x"])
+        dest_accept = SchedulingTags(accept=["x"])
+
+        assert dest_require.score(entity_tags) == dest_accept.score(entity_tags)
+
+    def test_scheduling_score_symmetric_require_treatment(self):
+        # entity require + dest accept should score same as dest require + entity accept
+        assert SchedulingTags(accept=["x"]).score(SchedulingTags(require=["x"])) == SchedulingTags(require=["x"]).score(
+            SchedulingTags(accept=["x"])
+        )
+
+    def test_scheduling_score_prefer_differentiates_over_require(self):
+        entity_tags = SchedulingTags(accept=["x"])
+        dest_prefer = SchedulingTags(prefer=["x"])
+        dest_require = SchedulingTags(require=["x"])
+
+        assert dest_prefer.score(entity_tags) > dest_require.score(entity_tags)
