@@ -6,7 +6,7 @@ from typing import Any, TypeVar, cast
 
 from cachetools import Cache, cached
 from galaxy.app import UniverseApplication
-from galaxy.jobs import JobDestination, JobWrapper
+from galaxy.jobs import JobDestination, JobWrapper, ResubmitConfigDict
 from galaxy.jobs.mapper import JobNotReadyException
 from galaxy.model import Job
 from galaxy.model import User as GalaxyUser
@@ -206,6 +206,17 @@ class EntityToDestinationMapper(object):
                 )
         return ranked
 
+    @staticmethod
+    def _to_galaxy_resubmit(resubmit_def: dict[str, Any]) -> ResubmitConfigDict:
+        # TPV's resubmit definitions mirror Galaxy's user-facing job_conf and
+        # use the "destination" key. Galaxy's resubmit state handler, however,
+        # reads the target from "environment" (job_conf parsing performs the
+        # same rename), so translate it when building the JobDestination.
+        resubmit = dict(resubmit_def)
+        if "destination" in resubmit:
+            resubmit["environment"] = resubmit.pop("destination")
+        return cast(ResubmitConfigDict, resubmit)
+
     def to_galaxy_destination(self, destination: Destination) -> JobDestination:
         return JobDestination(
             id=destination.dest_name,
@@ -213,7 +224,7 @@ class EntityToDestinationMapper(object):
             runner=destination.runner,
             params=destination.params or {},
             env=destination.env or [],
-            resubmit=list(destination.resubmit.values()),  # type: ignore[arg-type]
+            resubmit=[self._to_galaxy_resubmit(r) for r in destination.resubmit.values()],
         )
 
     def _find_matching_entities(

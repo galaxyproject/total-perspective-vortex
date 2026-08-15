@@ -61,12 +61,15 @@ class TestParamsSpecific(unittest.TestCase):
         user = mock_galaxy.User("trillian", "panic@vortex.org")
 
         destination = self._map_to_destination(tool, user)
+        # Galaxy's resubmit state handler reads the target destination from the
+        # "environment" key, so TPV's user-facing "destination" key must be
+        # translated when building the Galaxy JobDestination.
         self.assertEqual(
             destination.resubmit,
             [
                 {
                     "condition": "memory_limit_reached and attempt <= 3",
-                    "destination": "tpv_dispatcher",
+                    "environment": "tpv_dispatcher",
                     "delay": "attempt * 30",
                 }
             ],
