@@ -97,6 +97,7 @@ class Job:
         self.param_values: dict[str, Any] = dict()
         self.parameters: dict[str, Any] = {}
         self.history: History | None = None
+        self.state: str = "new"
 
     def add_input_dataset(self, dataset_association: DatasetAssociation, name: str | None = None) -> None:
         # `name` allows the association to be recorded under a different name than the dataset's,
