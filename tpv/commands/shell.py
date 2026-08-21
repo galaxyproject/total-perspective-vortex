@@ -66,6 +66,7 @@ def tpv_dry_run_config_files(args: Any) -> None:
         roles=args.roles,
         history_tags=args.history_tags,
         input_size=args.input_size,
+        job_state=args.job_state,
     )
     explain = getattr(args, "explain", False)
     output_format = getattr(args, "output_format", "text")
@@ -169,6 +170,12 @@ def create_parser() -> argparse.ArgumentParser:
         type=str,
         nargs="+",
         help="Add one or more history tag names to user's history",
+    )
+    dry_run_parser.add_argument(
+        "--job-state",
+        type=str,
+        default="new",
+        help="Set the mock job's state (e.g. 'new', 'resubmitted') to test state-dependent rules",
     )
     dry_run_parser.add_argument(
         "--explain",

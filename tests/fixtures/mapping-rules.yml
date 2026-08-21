@@ -38,6 +38,14 @@ tools:
       - if: helpers.tool_version_gte(tool, '42')
         env:
           bwameth_is_great: yes
+  stress_ng:
+    rules:
+      - id: resubmit_increase_memory
+        if: job is not None and job.state == "resubmitted"
+        mem: cores * 8
+    scheduling:
+      require:
+        - stress-ng-host
 users:
   default:
     rules:
@@ -111,3 +119,10 @@ destinations:
     scheduling:
       require:
         - training
+  stress_ng_host:
+    runner: local
+    max_accepted_cores: 4
+    max_accepted_mem: 64
+    scheduling:
+      accept:
+        - stress-ng-host

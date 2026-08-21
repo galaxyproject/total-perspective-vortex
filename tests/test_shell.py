@@ -661,6 +661,43 @@ class TPVShellTestCase(unittest.TestCase):
             f"Expected 'id: magrathea' destination\n{output}",
         )
 
+    def test_dry_run_with_job_state(self):
+        job_config = os.path.join(os.path.dirname(__file__), "fixtures/job_conf_dry_run.yml")
+        tpv_config = os.path.join(os.path.dirname(__file__), "fixtures/mapping-rules.yml")
+        output = self.call_shell_command(
+            "tpv",
+            "dry-run",
+            "--job-conf",
+            job_config,
+            "--tool",
+            "stress_ng",
+            "--job-state",
+            "resubmitted",
+            tpv_config,
+        )
+        self.assertTrue(
+            "id: stress_ng_host" in output,
+            f"Expected 'id: stress_ng_host' destination\n{output}",
+        )
+
+    def test_dry_run_with_default_job_state(self):
+        # A rule referencing job.state should not crash when --job-state is not passed.
+        job_config = os.path.join(os.path.dirname(__file__), "fixtures/job_conf_dry_run.yml")
+        tpv_config = os.path.join(os.path.dirname(__file__), "fixtures/mapping-rules.yml")
+        output = self.call_shell_command(
+            "tpv",
+            "dry-run",
+            "--job-conf",
+            job_config,
+            "--tool",
+            "stress_ng",
+            tpv_config,
+        )
+        self.assertTrue(
+            "id: stress_ng_host" in output,
+            f"Expected 'id: stress_ng_host' destination\n{output}",
+        )
+
     def test_dry_run_with_explain_flag(self):
         job_config = os.path.join(os.path.dirname(__file__), "fixtures/job_conf_dry_run.yml")
         tpv_config = os.path.join(os.path.dirname(__file__), "fixtures/mapping-rules.yml")

@@ -69,6 +69,7 @@ class TPVDryRunner:
         history_tags: list[str] | None = None,
         tpv_confs: list[str] | None = None,
         input_size: int | None = None,
+        job_state: str | None = None,
     ) -> "TPVDryRunner":
         if user_email is not None:
             user = mock_galaxy.User(username="gargravarr", email=user_email)
@@ -89,6 +90,8 @@ class TPVDryRunner:
             tool = None
 
         job = mock_galaxy.Job()
+        if job_state is not None:
+            job.state = job_state
         if input_size:
             dataset = mock_galaxy.DatasetAssociation(
                 "test", mock_galaxy.Dataset("test.txt", file_size=input_size * 1024**3)
