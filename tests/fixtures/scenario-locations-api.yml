@@ -1,0 +1,159 @@
+global:
+  default_inherits: default
+
+tools:
+  default:
+    cores: 2
+    mem: 8
+    env: {}
+    scheduling:
+      require: []
+      prefer:
+          general
+      accept:
+      reject:
+          offline
+    rules: []
+    rank: |
+      import requests
+      import json
+      import pathlib
+      from ruamel.yaml import YAML
+      from tpv.commands.test import mock_galaxy
+      from tpv.core.helpers import get_dataset_attributes, concurrent_job_count_for_tool
+      from galaxy import model
+
+      request_data = {}
+
+      # static objectstore info 
+      # NOTE: currently object store info is stored in a yaml 
+      objectstore_loc_path = "tests/fixtures/object_store_locations.yml"
+      yaml=YAML(typ='safe')
+      objectstore_file = pathlib.Path(objectstore_loc_path)
+      objectstore_dict = yaml.load(objectstore_file)
+      request_data["static_objectstores_info"] = objectstore_dict
+
+      # dataset info
+      request_data["static_dataset_info"] = helpers.get_dataset_attributes(job.input_datasets)
+
+      # static job info
+      if not entity.gpus:
+        gpus = 0
+      request_data["static_job_info"] = {"tool_id": tool.id, "mem": mem, "cores": cores, "gpus": gpus,}
+
+      # current destination info
+      dest_info = []
+      for dest in candidate_destinations:
+        dest_dict = {"id": dest.id}
+        dest_dict.update(dest.context)
+        dest_dict["queued_job_count"] = 5 #model.Query(model.Job).filter(model.Job.state == "queued", model.Job.destination_id == dest.dest_name).count()
+        dest_dict["running_job_count"] = 5 #model.Query(model.Job).filter(model.Job.state == "running", model.Job.destination_id == dest.dest_name).count()
+        dest_info.append(dest_dict)
+
+      request_data["current_dest_info"] = dest_info
+
+      print("REQUEST:")
+      print(request_data)
+
+      # Define the URL of your FastAPI application
+      api_url = "http://localhost:8000/process_data"
+
+      # Send a POST request to the API endpoint
+      response = requests.post(api_url, json=request_data)
+      print(response.json())
+
+      # Check if the request was successful (status code 200)
+      if response.status_code == 200:
+          result = response.json()
+          sorted_destination_ids = result["sorted_destinations"]
+      else:
+          print(f"Request failed with status code {response.status_code}: {response.text}")
+
+      sorted_candidate_destinations = sorted(candidate_destinations, key=lambda x: sorted_destination_ids.index(x.id))
+      sorted_candidate_destinations
+  trinity:
+    cores: 2
+    mem: cores * 4
+    gpus: 0
+    env: {}
+    scheduling:
+      require: []
+      prefer:
+        - pulsar
+      accept:
+      reject:
+        - offline
+
+
+roles:
+  ga_admins:
+    scheduling:
+      require:
+        []
+
+
+destinations:
+  pulsar_italy:
+    runner: general_pulsar_1
+    max_accepted_cores: 8
+    max_accepted_mem: 32
+    scheduling:
+      accept:
+        - general
+      require:
+        - pulsar
+    context:
+      latitude: 50.0689816
+      longitude: 19.9070188
+  slurm_poland:
+    runner: slurm
+    max_accepted_cores: 16
+    max_accepted_mem: 64
+    scheduling:
+      accept:
+        - slurm
+    context:
+      latitude: 51.9189046
+      longitude: 19.1343786
+  condor_belgium:
+    runner: condor
+    max_accepted_cores: 16
+    max_accepted_mem: 64
+    scheduling:
+      accept:
+        - condor
+    context:
+      latitude: 50.5010789
+      longitude: 4.4764595
+  slurm_germany:
+    runner: slurm
+    max_accepted_cores: 16
+    max_accepted_mem: 64
+    scheduling:
+      accept:
+        - slurm
+    context:
+      latitude: 51.1642292
+      longitude: 10.4541192
+  condor_france:
+    runner: condor
+    max_accepted_cores: 16
+    max_accepted_mem: 64
+    scheduling:
+      accept:
+        - condor
+    context:
+      latitude: 46.71109
+      longitude: 1.7191036
+  pulsar_australia:
+    runner: general_pulsar_1
+    max_accepted_cores: 8
+    max_accepted_mem: 32
+    scheduling:
+      accept:
+        - general
+      require:
+        - pulsar
+    context:
+      latitude: -26.4390917
+      longitude: 133.281323
