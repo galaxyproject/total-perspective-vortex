@@ -1,6 +1,6 @@
 import hashlib
 import itertools
-from typing import Any, cast
+from typing import Any, ClassVar, cast
 
 from galaxy.job_metrics import JobMetrics
 from galaxy.jobs import JobConfiguration
@@ -91,7 +91,14 @@ class JobToInputDatasetAssociation:
 
 
 class Job:
-    def __init__(self) -> None:
+    _next_id: ClassVar[int] = 1
+
+    def __init__(self, id: int | None = None) -> None:
+        # Resource pool admission keys a user's ledger by job id, so every job needs one.
+        if id is None:
+            id = Job._next_id
+            Job._next_id += 1
+        self.id = id
         self.input_datasets: list[JobToInputDatasetAssociation] = []
         self.input_library_datasets: list[JobToInputDatasetAssociation] = []
         self.param_values: dict[str, Any] = dict()

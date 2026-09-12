@@ -1,0 +1,6 @@
+# Overlay for mapping-resource-pool.yml: point the store at a Valkey nothing is listening on.
+# A dry run must still map, because a dry run never touches the configured store.
+global:
+  resource_pool_store:
+    class: tpv.core.resource_pool.ValkeyAllocationStore
+    url: valkey://127.0.0.1:1/0

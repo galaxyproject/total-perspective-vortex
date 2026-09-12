@@ -654,3 +654,142 @@ This recipe requires Galaxy's ``job_working_directory`` job-concern support
 `20062 <https://github.com/galaxyproject/galaxy/pull/20062>`_).  Without that
 change, the param is still set by TPV but Galaxy will use the object-store
 derived path instead.
+
+
+Per-user resource pools
+-----------------------
+A *resource pool* caps the aggregate cores, memory and GPUs a single user may consume across
+their concurrently active jobs. This bounds a user's total resource *consumption*, complementing
+Galaxy's existing concurrency limits, which bound the *number* of concurrent jobs — ten small
+jobs and ten large jobs hit the same job-count limit but tie up very different amounts of the
+cluster. Support for User Defined Tools (UDTs) was the motivating use case, but the feature
+applies to any tool.
+
+Pools are a **first-class TPV entity**, declared in a top-level ``pools:`` collection alongside
+``tools:``, ``users:``, ``roles:`` and ``destinations:``. A pool governs a job when the job's
+positive scheduling tags (``require``, ``prefer``, or ``accept``) contain all the pool's
+``require`` tags and none of its ``reject`` tags. A job's unrelated routing requirements do
+not exclude it from a pool; an untagged pool governs every job. Tags that the job rejects do
+not describe its requested capabilities and do not participate in pool selection. Because
+there is no ranking among pools, ``prefer`` and ``accept`` have no meaning on a pool and are
+rejected when the config is loaded.
+The only thing that lives under ``global`` is the *infrastructure* wiring for the allocation
+store (a backend URL and connection options); the budget *policy* lives on the pool entities. Enforcement is
+automatic: no rule to attach, no helper to call.
+
+.. code-block:: yaml
+   :linenos:
+
+   global:
+     # Infrastructure only. The default ValkeyAllocationStore keeps allocations in Valkey,
+     # NOT in Galaxy's database. Use InMemoryAllocationStore for a single process / tests.
+     resource_pool_store:
+       class: tpv.core.resource_pool.ValkeyAllocationStore
+       url: valkey://localhost:6379/0
+
+   pools:
+     # No require tags -> governs every job (that a reject tag does not exclude).
+     default:
+       max_concurrent_cores: 32
+       max_concurrent_mem: 256      # GB, matching the TPV ``mem`` convention
+     # A second, independent pool that governs only jobs tagged ``gpu``.
+     gpu:
+       scheduling:
+         require:
+           - gpu
+       max_concurrent_gpus: 2
+
+The ``max_concurrent_*`` naming is deliberate: it keeps the per-user-aggregate budget distinct
+from a tool's per-job ``cores``/``mem``/``gpus`` request and from a destination's
+``max_accepted_*`` per-job capacity. When admitting a job would push the user over the pool
+budget, the job is **deferred** (re-queued and retried later) rather than failed.
+
+Per-user and per-role budgets fall out of the entity model — no bespoke provider. Because a
+pool sits *below* Tool/Role/User in merge order, a ``max_concurrent_*`` set on a Role or User is
+resolved by the ordinary ``inherit`` + ``combine`` precedence and overrides the pool default:
+
+.. code-block:: yaml
+   :linenos:
+
+   roles:
+     power_users:
+       max_concurrent_cores: 128    # this role gets a bigger budget
+   users:
+     trillian@vortex.org:
+       max_concurrent_gpus: 4       # this user overrides the gpu pool budget
+
+Pools support ``inherits:`` for reusable policy. Mark templates ``abstract: true`` so only
+concrete pools enforce budgets. Children inherit omitted ``oversize`` fields and ``fail_open``;
+explicit values override the parent, including ``max_concurrent: 0``, ``fail_open: false``,
+and ``hard_max_cores: null`` to remove an inherited ceiling.
+
+Allowing oversize jobs
+^^^^^^^^^^^^^^^^^^^^^^
+Some trusted (non-UDT) tools legitimately need more than the whole pool budget. A pool may
+permit such *oversize* jobs up to a small concurrency limit instead of rejecting them:
+
+.. code-block:: yaml
+   :linenos:
+   :emphasize-lines: 5,6,7,8
+
+   pools:
+     general:
+       max_concurrent_cores: 32
+       oversize:
+         max_concurrent: 1        # at most one over-budget job at a time per user
+         hard_max_cores: 128      # maximum cores requested by one oversize job
+     udt:
+       scheduling:
+         require:
+           - tool_type_user_defined
+       max_concurrent_cores: 16
+       # no `oversize` block (max_concurrent defaults to 0): over-budget UDT jobs fail
+
+A job whose request fits the budget is admitted normally. A job that exceeds the budget is
+*oversize*: it is admitted only while fewer than ``max_concurrent`` oversize jobs are running,
+deferred otherwise, and failed outright when ``max_concurrent`` is ``0`` or the request
+exceeds a ``hard_max_*`` ceiling. Route UDTs through a pool without an oversize allowance (gate
+it on the ``tool_type_user_defined`` tag) and trusted tools through one that permits it.
+
+``oversize.max_concurrent`` counts oversize jobs, while ``oversize.hard_max_*`` limits each
+oversize job's request. These are not aggregate hard limits. Normal jobs share the
+``max_concurrent_*`` budget, and oversize jobs are counted separately: the example permits
+32 cores of normal jobs plus one 128-core oversize job, totalling 160 cores. Set
+``oversize.reserve_pool: true`` to prevent normal and oversize resource usage from sharing
+the pool; ``oversize.max_concurrent`` still limits the number of oversize jobs.
+
+.. note::
+   **What a pool counts.** A pool counts the resources a job *asks for*, measured before a
+   destination gets to shrink them — so a destination that caps cores does not reduce what the
+   pool charges the user. The request is captured before destination evaluation; allocations
+   are committed only after a destination has successfully evaluated. All matching pools admit
+   the job atomically, so a rejected or deferred mapping does not leave partial reservations.
+   Accounting begins when TPV returns a destination; Galaxy may still defer dispatch afterwards
+   for its own concurrency limits or quota checks.
+
+.. note::
+   Enforcement is **fail-closed**: if the allocation store cannot be reached, TPV cannot check
+   how much the user is already using, so it plays it safe and **defers** the job rather than
+   admitting one that might blow past the budget (fail-closed = "when unsure, say no"). This
+   means an outage never silently bypasses the limits — but it also means **Valkey is a
+   scheduling dependency**: because the ``default`` pool governs every job, a Valkey outage will
+   defer every governed job on the instance. If that trade-off is too strict for a given pool,
+   set ``fail_open: true`` on it to admit jobs during an outage instead ("when unsure, let it
+   through"). Leave it off (the default) for UDT/security pools, where letting a user exceed the
+   limit is worse than making them wait.
+
+.. note::
+   Allocation ledgers do not expire: jobs can remain queued or running for longer than any
+   idle timeout. Entries are removed when reconciliation observes completion. Nonzero ``ttl``
+   settings are rejected. Configure Valkey persistence and disable key eviction so a restart
+   or memory pressure does not discard live allocations. Completed entries for inactive
+   users remain until their next admission attempt reconciles them.
+
+.. note::
+   **Galaxy's ready window.** Galaxy selects a bounded number of the oldest ready ``new``
+   jobs per user and handler before calling TPV. A backlog of jobs deferred by one pool can
+   therefore hide later jobs that would fit another pool. Increasing ``ready_window_size``
+   can mitigate a finite backlog, but does not solve starvation for an arbitrary backlog.
+   A general solution requires Galaxy's ready-job selection to account for these deferrals;
+   resource pools do not change that query. See the `Galaxy Australia issue
+   <https://github.com/usegalaxy-au/infrastructure/issues/2254>`_.

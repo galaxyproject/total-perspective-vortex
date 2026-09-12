@@ -16,6 +16,7 @@ from galaxy.util.watcher import get_watcher
 from tpv.core.explain import ExplainCollector, ExplainPhase
 from tpv.core.loader import TPVConfigLoader
 from tpv.core.mapper import EntityToDestinationMapper
+from tpv.core.resource_pool import AllocationStore
 
 log = logging.getLogger(__name__)
 
@@ -27,7 +28,9 @@ WATCHERS_BY_CONFIG_FILE: dict[str, Any] = {}
 REFERRERS_BY_CONFIG_FILE: dict[str, dict[str, JOB_YAML_CONFIG_TYPE]] = defaultdict(dict)
 
 
-def load_destination_mapper(tpv_configs: JOB_YAML_CONFIG_TYPE, reload: bool = False) -> EntityToDestinationMapper:
+def load_destination_mapper(
+    tpv_configs: JOB_YAML_CONFIG_TYPE, reload: bool = False, resource_pool_store: AllocationStore | None = None
+) -> EntityToDestinationMapper:
     tpv_config_list: list[Any] = listify(tpv_configs)
     log.info(f"{'re' if reload else ''}loading tpv rules from: {tpv_configs}")
     loader = None
@@ -38,7 +41,7 @@ def load_destination_mapper(tpv_configs: JOB_YAML_CONFIG_TYPE, reload: bool = Fa
             # it is a raw config already
             current_loader = TPVConfigLoader(tpv_config, parent=loader)
         loader = current_loader
-    return EntityToDestinationMapper(loader)  # type: ignore
+    return EntityToDestinationMapper(loader, resource_pool_store=resource_pool_store)  # type: ignore
 
 
 def setup_destination_mapper(

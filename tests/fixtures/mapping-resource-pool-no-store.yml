@@ -1,0 +1,16 @@
+# Declares pool policy but no global.resource_pool_store. The mapper rejects this so that
+# enforcement can never be silently disabled by omission; a dry run must surface the same error.
+pools:
+  default:
+    max_concurrent_cores: 32
+
+tools:
+  bigtool:
+    cores: 64
+    mem: 64
+
+destinations:
+  local:
+    runner: local
+    max_accepted_cores: 256
+    max_accepted_mem: 1024

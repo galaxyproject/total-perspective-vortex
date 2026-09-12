@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<toolbox tool_path="${tool_conf_dir}" is_shed_conf="false">
+  <tool file="pool_sleep.xml" />
+  <tool file="pool_sleep_oversize.xml" />
+  <tool file="pool_sleep_huge.xml" />
+  <tool file="pool_sleep_gpu.xml" />
+  <tool file="pool_sleep_exclusive.xml" />
+  <tool file="pool_sleep_exclusive_oversize.xml" />
+</toolbox>

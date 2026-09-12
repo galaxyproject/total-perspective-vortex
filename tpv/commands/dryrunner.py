@@ -3,6 +3,7 @@ import os
 from galaxy.jobs import JobDestination
 
 from tpv.core.explain import ExplainCollector
+from tpv.core.resource_pool import InMemoryAllocationStore
 from tpv.rules import gateway
 
 from .test import mock_galaxy
@@ -43,7 +44,17 @@ class TPVDryRunner:
         return resolved
 
     def run(self, explain: bool = False) -> tuple[JobDestination | None, ExplainCollector | None]:
-        gateway.ACTIVE_DESTINATION_MAPPERS = {}
+        # A dry run must never read from or write to the deployment's resource pool accounting:
+        # an admin checking a config change must not defer or admit real jobs, nor leave ledger
+        # entries behind. Build the mapper with a private in-memory store and pre-seed the
+        # gateway's registry so map_tool_to_destination uses it. (Deferral is a runtime question
+        # about live usage; a dry run answers the config questions: which pools govern the job,
+        # what budget applies, and whether the request is normal, oversize, or unschedulable.)
+        gateway.ACTIVE_DESTINATION_MAPPERS = {
+            "tpv_dispatcher": gateway.load_destination_mapper(
+                self.tpv_config_files, resource_pool_store=InMemoryAllocationStore()
+            )
+        }
         collector = ExplainCollector() if explain else None
         try:
             destination = gateway.map_tool_to_destination(

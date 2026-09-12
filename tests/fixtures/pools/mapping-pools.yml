@@ -1,0 +1,75 @@
+# Integration fixture: per-user pools exercised against a real Galaxy AND a real Valkey.
+#
+# The store is the production one on purpose: the Lua admit script only runs for real against a
+# real server (the parity test pins its logic against fakeredis; nothing else touches a socket),
+# and a real store lets the tests read the ledger directly and assert exact accounting.
+#
+# Each pool below reaches a distinct branch of the Lua decision:
+#   default   -- budget fit/defer, an oversize slot, hard_max rejection, terminal reconciliation
+#   gpu       -- a second key on the same job, so admission is a multi-key batch: one full pool
+#                must veto the write to every pool (check-all-then-write-all)
+#   exclusive -- reserve_pool: normal and oversize usage may not coexist, in either order
+#
+# The tests skip when nothing listens on localhost:6379, or fail in CI (TPV_TEST_REQUIRE_VALKEY).
+global:
+  default_inherits: default
+  resource_pool_store:
+    class: tpv.core.resource_pool.ValkeyAllocationStore
+    url: valkey://localhost:6379/0
+    key_prefix: tpv-integration-test:pool
+
+pools:
+  default:
+    max_concurrent_cores: 8      # exactly two 4-core jobs at once
+    oversize:
+      max_concurrent: 1          # one over-budget job at a time...
+      hard_max_cores: 16         # ...and never one above this
+    scheduling:
+      reject: [exclusive]        # keep the exclusive pool's jobs out of this ledger
+
+  gpu:
+    max_concurrent_gpus: 1
+    scheduling:
+      require: [gpu]
+
+  exclusive:
+    max_concurrent_cores: 8
+    oversize:
+      max_concurrent: 1
+      hard_max_cores: 16
+      reserve_pool: true         # an oversize job holds the pool alone
+    scheduling:
+      require: [exclusive]
+
+tools:
+  default:
+    cores: 1
+    mem: 1
+  pool_sleep:                    # fits the default budget: two at once
+    cores: 4
+  pool_sleep_oversize:           # exceeds the default budget, within its ceiling: one at a time
+    cores: 12
+  pool_sleep_huge:               # exceeds the ceiling: can never be scheduled
+    cores: 200
+  pool_sleep_gpu:                # governed by default AND gpu
+    cores: 4
+    gpus: 1
+    scheduling:
+      accept: [gpu]
+  pool_sleep_exclusive:          # a normal job in the exclusive pool
+    cores: 4
+    scheduling:
+      accept: [exclusive]
+  pool_sleep_exclusive_oversize: # an oversize job in the exclusive pool
+    cores: 12
+    scheduling:
+      accept: [exclusive]
+
+destinations:
+  local:
+    runner: local
+    max_accepted_cores: 256      # large enough that the 200-core job reaches pool admission
+    max_accepted_mem: 64
+    max_accepted_gpus: 4
+    scheduling:
+      accept: [gpu, exclusive]

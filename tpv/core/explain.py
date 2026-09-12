@@ -20,6 +20,7 @@ class ExplainPhase(Enum):
     DESTINATION_MATCHING = "Destination Matching"
     DESTINATION_RANKING = "Destination Ranking"
     DESTINATION_EVALUATION = "Destination Evaluation"
+    RESOURCE_POOLS = "Resource Pools"
     FINAL_RESULT = "Final Result"
 
 

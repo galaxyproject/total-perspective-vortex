@@ -92,6 +92,18 @@ jobs:
       matrix:
         python-version: ['3.10']
 
+    services:
+      # Real Valkey for the resource pool integration tests (tests/test_mapper_resource_pool_integration.py).
+      valkey:
+        image: valkey/valkey:8
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "valkey-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -120,6 +132,8 @@ jobs:
         run: uvx --with tox-uv tox -e py${{ matrix.python-version }} -- --runslow
         env:
           PYTHONUNBUFFERED: "True"
+          # The pool integration tests skip without a Valkey locally; in CI that must be a failure.
+          TPV_TEST_REQUIRE_VALKEY: "1"
 
       - name: Coveralls
         uses: AndreMiras/coveralls-python-action@develop

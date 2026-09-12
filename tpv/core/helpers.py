@@ -5,6 +5,7 @@ except ImportError:
     # If Galaxy is < 23.1 you need to have `packaging` in <= 21.3
     from packaging.version import parse as parse_version
 
+import logging
 import operator
 import random
 import re
@@ -23,6 +24,8 @@ from galaxy.tools import Tool as GalaxyTool
 
 from tpv.core.entities import Destination, Entity
 from tpv.core.resource_requirements import TPVResourceFieldName, extract_resource_requirements_from_tool
+
+log = logging.getLogger(__name__)
 
 # Bytes per GiB; retain the historical name for existing TPV rules.
 GIGABYTES = 1024.0**3

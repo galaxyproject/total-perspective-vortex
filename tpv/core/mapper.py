@@ -1,3 +1,4 @@
+import copy
 import functools
 import logging
 import re
@@ -7,7 +8,7 @@ from typing import Any, TypeVar, cast
 from cachetools import Cache, cached
 from galaxy.app import UniverseApplication
 from galaxy.jobs import JobDestination, JobWrapper, ResubmitConfigDict
-from galaxy.jobs.mapper import JobNotReadyException
+from galaxy.jobs.mapper import JobMappingException, JobNotReadyException
 from galaxy.model import Job
 from galaxy.model import User as GalaxyUser
 from galaxy.tools import Tool as GalaxyTool
@@ -16,6 +17,7 @@ from .entities import (
     Destination,
     Entity,
     EntityWithRules,
+    PoolEntity,
     Role,
     SchedulingTags,
     Tool,
@@ -25,6 +27,17 @@ from .entities import (
 )
 from .explain import ExplainCollector, ExplainPhase
 from .loader import TPVConfigLoader
+from .resource_pool import (
+    NORMAL,
+    OVERSIZE,
+    AllocationStore,
+    Budget,
+    PoolAdmission,
+    ResourcePoolManager,
+    ResourceUsage,
+    StoreUnavailable,
+    terminal_job_ids,
+)
 from .resource_requirements import extract_resource_requirements_from_tool
 
 log = logging.getLogger(__name__)
@@ -34,12 +47,28 @@ EntityType = TypeVar("EntityType", bound=Entity)
 
 class EntityToDestinationMapper(object):
 
-    def __init__(self, loader: TPVConfigLoader):
+    def __init__(self, loader: TPVConfigLoader, resource_pool_store: AllocationStore | None = None):
         self.loader = loader
         self.config = loader.config
         self.destinations = self.config.destinations
         self.default_inherits = self.config.global_config.default_inherits
         self.global_context = self.config.global_config.context
+        self.pools = self.config.pools
+        store_config = self.config.global_config.resource_pool_store
+        if self.pools and store_config is None:
+            # Fail loudly rather than silently disabling enforcement: a config that declares pool
+            # policy but omits the store wiring would otherwise be fail-open by omission.
+            raise ValueError(
+                "Resource pools are configured under 'pools:' but 'global.resource_pool_store' is "
+                "not set. Add the store wiring (e.g. a ValkeyAllocationStore) so enforcement is "
+                "active, or remove the pools."
+            )
+        if resource_pool_store is not None:
+            # Caller-supplied store (a dry run passes an in-memory one so it never reads from or
+            # writes to the deployment's accounting). The config check above still applies.
+            self.resource_pools: ResourcePoolManager | None = ResourcePoolManager(resource_pool_store)
+        else:
+            self.resource_pools = ResourcePoolManager(store_config.build_store()) if store_config else None
         self.lookup_tool_regex = functools.lru_cache(maxsize=None)(self.__compile_tool_regex)
         self._cache_inherit_matching_entities: Any = Cache(maxsize=0)
 
@@ -325,6 +354,147 @@ class EntityToDestinationMapper(object):
 
         return evaluated_entity
 
+    @staticmethod
+    def _exceeds(req: ResourceUsage, budget: Budget) -> bool:
+        return (
+            (budget.cores is not None and req.cores > budget.cores)
+            or (budget.mem is not None and req.mem > budget.mem)
+            or (budget.gpus is not None and req.gpus > budget.gpus)
+        )
+
+    def _classify_pool_request(self, name: str, req: ResourceUsage, budget: Budget, pool: PoolEntity) -> str:
+        """Return NORMAL or OVERSIZE for a request, or raise JobMappingException if the request
+        can never be scheduled in this pool (oversize not allowed, or beyond a hard_max ceiling)."""
+        if not self._exceeds(req, budget):
+            return NORMAL
+        ceiling = Budget(
+            cores=pool.oversize.hard_max_cores,
+            mem=pool.oversize.hard_max_mem,
+            gpus=pool.oversize.hard_max_gpus,
+        )
+        if pool.oversize.max_concurrent <= 0 or self._exceeds(req, ceiling):
+            raise JobMappingException(  # type: ignore[no-untyped-call]
+                f"This job requests cores={req.cores}, mem={req.mem}, gpus={req.gpus}, which "
+                f"exceeds your '{name}' resource pool allocation and can never be scheduled."
+            )
+        return OVERSIZE
+
+    def admit_to_pools(self, context: dict[str, Any], entity: Entity, user: GalaxyUser | None) -> None:
+        """Check the job about to be scheduled against every resource pool that applies to it,
+        and either record its usage or refuse it.
+
+        A pool "applies" to a job when the job's scheduling tags match the pool's tags. For each
+        applying pool we add up everything the user is already running in that pool and check
+        whether this job still fits the budget:
+
+        - Fits -> record it and continue.
+        - Would push the user over budget -> defer the job (raise ``JobNotReadyException``, i.e.
+          "not now, try again later").
+        - The job's *own* request is bigger than the whole budget ("oversize") -> allow it only
+          if the pool permits oversize jobs (``oversize.max_concurrent``) and there is a free
+          oversize slot, otherwise defer it; if oversize is not allowed at all, or the request
+          is above the pool's ``hard_max_*`` ceiling, reject it permanently (raise
+          ``JobMappingException``, i.e. "this can never run here").
+
+        The budget is the user's/role's ``max_concurrent_*`` if they set one, otherwise the
+        pool's default. Anonymous (logged-out) jobs are not subject to per-user pools.
+
+        The entity carries the request evaluated before destination rules or clamping. Admission
+        runs only after a destination has evaluated and converted successfully. All matching
+        pools are checked and recorded atomically so deferral cannot leave partial reservations.
+
+        If the allocation store is unreachable we default to deferring the job ("fail-closed" --
+        when we can't check, we say no) so an outage can't silently let users exceed their
+        limits. A pool may set ``fail_open`` to admit instead ("when we can't check, let it
+        through"); see :class:`~tpv.core.entities.PoolEntity`.
+        """
+        manager = self.resource_pools
+        if manager is None or not self.pools or user is None:
+            return
+        req = ResourceUsage(
+            cores=float(entity.cores or 0),
+            mem=float(entity.mem or 0),
+            gpus=float(entity.gpus or 0),
+        )
+        app = context["app"]
+        job = context["job"]
+        explain = ExplainCollector.from_context(context)
+        admissions = []
+        # Resolve every matching pool before the single admission transaction.
+        for name, pool in sorted(self.pools.items()):
+            if not pool.matches(entity):
+                continue
+            budget = pool.budget_for(entity)
+            try:
+                kind = self._classify_pool_request(name, req, budget, pool)
+            except JobMappingException as e:
+                if explain:
+                    explain.add_step(ExplainPhase.RESOURCE_POOLS, f"Pool '{name}': REJECTED", str(e))
+                raise
+            if explain:
+                explain.add_step(
+                    ExplainPhase.RESOURCE_POOLS,
+                    f"Pool '{name}' governs this job: request is {kind}",
+                    f"request: cores={req.cores}, mem={req.mem}, gpus={req.gpus}\n"
+                    f"budget:  cores={budget.cores}, mem={budget.mem}, gpus={budget.gpus}"
+                    + (
+                        f"\noversize: max_jobs={pool.oversize.max_concurrent}, "
+                        f"hard_max cores={pool.oversize.hard_max_cores}, mem={pool.oversize.hard_max_mem}, "
+                        f"gpus={pool.oversize.hard_max_gpus}"
+                        if kind == OVERSIZE
+                        else ""
+                    ),
+                )
+            try:
+                ledger_ids = set(manager.store.read(name, user.id))
+            except StoreUnavailable:
+                if pool.fail_open:
+                    log.warning("Resource pool '%s' store is unavailable; admitting job (fail_open)", name)
+                    if explain:
+                        explain.add_step(
+                            ExplainPhase.RESOURCE_POOLS, f"Pool '{name}': store unavailable, fail_open -> admitted"
+                        )
+                    continue
+                log.warning("Resource pool '%s' store is unavailable; deferring job (fail-closed)", name)
+                if explain:
+                    explain.add_step(
+                        ExplainPhase.RESOURCE_POOLS, f"Pool '{name}': store unavailable, fail-closed -> deferred"
+                    )
+                raise JobNotReadyException()  # type: ignore[no-untyped-call]
+            drop = terminal_job_ids(app.model.context, ledger_ids)
+            admissions.append(
+                PoolAdmission(name, req, kind, budget, pool.oversize.max_concurrent, pool.oversize.reserve_pool, drop)
+            )
+        if not admissions:
+            if explain:
+                explain.add_step(ExplainPhase.RESOURCE_POOLS, "No resource pools govern this job")
+            return
+        try:
+            admitted = manager.store.admit_many(user.id, job.id, admissions)
+        except StoreUnavailable:
+            # A batch write failure affects every included pool, so bypass it only if every
+            # one opted into fail-open. A permissive pool cannot weaken a strict pool.
+            if all(self.pools[a.pool].fail_open for a in admissions):
+                log.warning("Resource pool store is unavailable; admitting job (all pools fail_open)")
+                if explain:
+                    explain.add_step(
+                        ExplainPhase.RESOURCE_POOLS, "Store unavailable; every pool is fail_open -> admitted"
+                    )
+                return
+            log.warning("Resource pool store is unavailable; deferring job (fail-closed)")
+            if explain:
+                explain.add_step(ExplainPhase.RESOURCE_POOLS, "Store unavailable; fail-closed -> deferred")
+            raise JobNotReadyException()  # type: ignore[no-untyped-call]
+        pool_names = ", ".join(a.pool for a in admissions)
+        if not admitted:
+            if explain:
+                explain.add_step(
+                    ExplainPhase.RESOURCE_POOLS, f"DEFERRED: user's current usage leaves no room in: {pool_names}"
+                )
+            raise JobNotReadyException()  # type: ignore[no-untyped-call]
+        if explain:
+            explain.add_step(ExplainPhase.RESOURCE_POOLS, f"Admitted and recorded in: {pool_names}")
+
     def map_to_destination(
         self,
         app: UniverseApplication,
@@ -365,6 +535,11 @@ class EntityToDestinationMapper(object):
 
         explain = ExplainCollector.from_context(context)
 
+        # Capture the requested resources before destination evaluation changes the context.
+        pool_entity = evaluated_entity
+        if ranked_dest_entities and self.pools and user is not None:
+            pool_entity = evaluated_entity.evaluate_resources(copy.copy(context))
+
         # 4. Fully combine entity with matching destinations
         if ranked_dest_entities:
             wait_exception_raised = False
@@ -377,7 +552,9 @@ class EntityToDestinationMapper(object):
                         )
                     dest_combined_entity = d.combine(cast(Destination, evaluated_entity))
                     evaluated_destination = dest_combined_entity.evaluate(context)
-                    # 5. Return the top-ranked destination that evaluates successfully
+                    destination = self.to_galaxy_destination(evaluated_destination)
+                    # 5. Commit all pool allocations only when this mapping can be returned.
+                    self.admit_to_pools(context, pool_entity, user)
                     if explain:
                         explain.add_step(
                             ExplainPhase.FINAL_RESULT,
@@ -388,7 +565,7 @@ class EntityToDestinationMapper(object):
                             f"params: {evaluated_destination.params}\n"
                             f"env: {evaluated_destination.env}",
                         )
-                    return self.to_galaxy_destination(evaluated_destination)
+                    return destination
                 except TryNextDestinationOrFail as ef:
                     if explain:
                         explain.add_step(

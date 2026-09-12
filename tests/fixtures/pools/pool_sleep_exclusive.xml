@@ -1,0 +1,11 @@
+<tool id="pool_sleep_exclusive" name="pool_sleep_exclusive" version="0.1.0" profile="16.04">
+    <!-- Holds its resource-pool allocation for a controllable time. TPV assigns the resources
+         by tool id (see mapping-pools.yml); the tool itself is identical for every id. -->
+    <command><![CDATA[sleep '$seconds' && echo done > '$out']]></command>
+    <inputs>
+        <param name="seconds" type="integer" value="1" label="Seconds to sleep" />
+    </inputs>
+    <outputs>
+        <data name="out" format="txt" />
+    </outputs>
+</tool>
