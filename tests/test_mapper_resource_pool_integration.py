@@ -119,6 +119,17 @@ class TestResourcePoolIntegration(IntegrationTestCase):
     def _state(self, job_id):
         return self.dataset_populator.get_job_details(job_id).json()["state"]
 
+    def _states(self, history_id, job_ids):
+        """States of several jobs from ONE request, so they describe a single instant.
+
+        Reading them one call at a time is not a snapshot: a job can finish and the next be
+        admitted between two reads, and the sample then shows more jobs active than the pool
+        ever allowed at once. The jobs index is a single query."""
+        by_id = {
+            j["id"]: j["state"] for j in self.dataset_populator._get("jobs", data={"history_id": history_id}).json()
+        }
+        return [by_id[job_id] for job_id in job_ids]
+
     def _wait_for_state(self, job_id, states, timeout=60):
         deadline = time.time() + timeout
         state = None
@@ -165,7 +176,7 @@ class TestResourcePoolIntegration(IntegrationTestCase):
             saw_full_pool = False
             deadline = time.time() + 120
             while time.time() < deadline:
-                states = [self._state(j) for j in jobs]
+                states = self._states(history_id, jobs)
                 ledger = self._ledger(user_id)
                 active = sum(s in ACTIVE for s in states)
                 recorded = sum(e["cores"] for e in ledger.values())
