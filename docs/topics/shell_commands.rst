@@ -261,6 +261,33 @@ To get the trace as YAML instead of text, use ``--output-format yaml``:
 
     $ tpv dry-run --job-conf /srv/galaxy/config/job_conf.yml --tool bwa --explain --output-format yaml
 
+Explaining failures in production
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The same trace can be captured from a running Galaxy. Set ``tpv_explain_on_failure`` on the TPV dispatcher
+destination in your job configuration:
+
+.. code-block:: yaml
+
+   execution:
+     environments:
+       tpv_dispatcher:
+         runner: dynamic
+         type: python
+         function: map_tool_to_destination
+         rules_module: tpv.rules
+         tpv_config_files:
+           - /srv/galaxy/config/tpv_rules.yml
+         tpv_explain_on_failure: true
+
+Whenever a job cannot be mapped -- no destination accepts it, a rule fails it, or a resource pool rejects it
+outright -- TPV logs the full scheduling trace at ``WARNING`` level in the job handler log before the job is
+failed, so you can see which entities matched, how resources were resolved, and why each destination was ruled
+out, without having to reproduce the job with ``tpv dry-run``. Jobs that are merely deferred (waiting for a
+resource pool or a destination to become ready) are not failures and do not produce a trace. The option is off
+by default; leave it off on busy instances where mapping failures are routine, as each trace is several dozen
+lines.
+
 dump
 ----
 
