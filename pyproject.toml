@@ -14,7 +14,7 @@ authors = [
 maintainers = [
     {name = "Galaxy Committers", email = "galaxy-committers@lists.galaxyproject.org"}
 ]
-version = "3.2.1"
+version = "3.3.0"
 dependencies = [
     "pydantic>=2",
     "cachetools>=3.1.0",

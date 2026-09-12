@@ -1,4 +1,4 @@
-Unreleased
+3.3.0 - Sep 12, 2026. (sha 1bfb4d3e5edbf68f1cdfe62a6530ad8da6a62010)
 --------------------------------------------------------------------
 * Add per-user resource pools. A ``pools:`` collection makes a resource pool a first-class TPV
   entity that caps the aggregate ``max_concurrent_cores``/``mem``/``gpus`` a user may consume
@@ -9,7 +9,31 @@ Unreleased
   database), wired under ``global.resource_pool_store``. Enforcement is fail-closed, with an
   optional per-pool ``fail_open``. Pool allocations persist until job-state reconciliation
   releases them, and matching pools admit a job atomically after destination evaluation.
-  See the "Per-user resource pools" docs section, including Galaxy ready-window limitations.
+  ``tpv dry-run`` evaluates pools against a private in-memory store, never the configured one,
+  and reports pool decisions under ``--explain``. See the "Per-user resource pools" docs
+  section, including Galaxy ready-window limitations. By @mvdbeek (PR #197)
+* Add ``helpers.weighted_choice`` for weighted random selection in TPV configs by @davelopez (PR #202)
+* Add ``helpers.get_input_size`` and related helpers for per-parameter and compression-adjusted
+  input sizes by @natefoo (PR #203)
+* Add ``tpv_explain_on_failure`` destination option to log the scheduling trace when job mapping
+  fails by @pauldg (PR #198)
+* Fix injected Galaxy tool ``ram_min``/``ram_max`` requirements, which are in MiB, being read as
+  GB -- a tool declaring ``ram_min: 8192`` asked for 8192 GB instead of 8 GB and could never be
+  scheduled. By @mvdbeek (PR #205)
+* Keep TPV importable on Galaxy releases before 26.0: ``ResubmitConfigDict`` is now a type-only
+  import. Without this, 3.3.0 failed at handler start-up on Galaxy 25.x, which 3.2.1 supported.
+  By @nuwang (PR #207)
+* Fix resubmission mapping to chain through dynamic destinations, and re-enable the resubmit
+  integration tests in CI by @nuwang (PR #195)
+* Wire ``job.state`` into the mock Galaxy and ``tpv dry-run`` (``--job-state``) by @bgruening (PR #204)
+* Tighten PyPI trusted publishing: split build and publish jobs with a dedicated environment
+  by @nuwang (PR #196)
+* Add a high-level website about TPV by @afgane (PR #199)
+* Add a code of conduct by @afgane (PR #200)
+* Add a contributing section about governance and maintainership by @afgane (PR #201)
+* Fix Sphinx documentation errors and warnings by @mvdbeek (PR #206)
+* Update sphinx requirement from >=2 to >=8.1.3 by @dependabot[bot] (PR #193)
+* Update sphinx-rtd-theme requirement from >=0.5.2 to >=3.1.0 by @dependabot[bot] (PR #192)
 
 3.2.1 - Apr 13, 2026. (sha c5c317f8613ca66446af38eba4e865c20d62ac45)
 --------------------------------------------------------------------
