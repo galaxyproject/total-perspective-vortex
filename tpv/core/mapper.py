@@ -3,11 +3,11 @@ import functools
 import logging
 import re
 from collections.abc import Mapping
-from typing import Any, TypeVar, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from cachetools import Cache, cached
 from galaxy.app import UniverseApplication
-from galaxy.jobs import JobDestination, JobWrapper, ResubmitConfigDict
+from galaxy.jobs import JobDestination, JobWrapper
 from galaxy.jobs.mapper import JobMappingException, JobNotReadyException
 from galaxy.model import Job
 from galaxy.model import User as GalaxyUser
@@ -39,6 +39,11 @@ from .resource_pool import (
     terminal_job_ids,
 )
 from .resource_requirements import extract_resource_requirements_from_tool
+
+if TYPE_CHECKING:
+    # Only used in annotations. Exists from Galaxy 26.0; a runtime import would break TPV on
+    # older Galaxy releases at handler start-up.
+    from galaxy.jobs import ResubmitConfigDict
 
 log = logging.getLogger(__name__)
 
@@ -236,7 +241,7 @@ class EntityToDestinationMapper(object):
         return ranked
 
     @staticmethod
-    def _to_galaxy_resubmit(resubmit_def: dict[str, Any]) -> ResubmitConfigDict:
+    def _to_galaxy_resubmit(resubmit_def: dict[str, Any]) -> "ResubmitConfigDict":
         # TPV's resubmit definitions mirror Galaxy's user-facing job_conf and
         # use the "destination" key. Galaxy's resubmit state handler, however,
         # reads the target from "environment" (job_conf parsing performs the
@@ -244,7 +249,7 @@ class EntityToDestinationMapper(object):
         resubmit = dict(resubmit_def)
         if "destination" in resubmit:
             resubmit["environment"] = resubmit.pop("destination")
-        return cast(ResubmitConfigDict, resubmit)
+        return cast("ResubmitConfigDict", resubmit)
 
     def to_galaxy_destination(self, destination: Destination) -> JobDestination:
         return JobDestination(
