@@ -171,10 +171,10 @@ class EntityToDestinationMapper(object):
     def __apply_default_destination_inheritance(
         self, entity_list: dict[str, Destination], context: Mapping[str, Any]
     ) -> list[Destination]:
+        # Never empty: _get_common_inherits always contributes the tool_type_secure_defaults
+        # destination, so every destination inherits at least that.
         inherited_defaults = self._get_common_inherits(context, entity_list, Destination)
-        if inherited_defaults:
-            return [self.inherit_entities([*inherited_defaults, entity]) for entity in entity_list.values()]
-        return list(entity_list.values())
+        return [self.inherit_entities([*inherited_defaults, entity]) for entity in entity_list.values()]
 
     def inherit_entities(self, entities: list[EntityType]) -> EntityType:
         return functools.reduce(lambda a, b: b.inherit(a), entities)
@@ -270,21 +270,15 @@ class EntityToDestinationMapper(object):
             tool_id = f"{tool.tool_type}-{tool.dynamic_tool.uuid}"
         else:
             tool_id = tool.id or "unknown_tool_id"
+        # Never None: _get_common_inherits always contributes the tool_provided_resources entity
+        # built from the Galaxy tool itself, so an unconfigured tool still resolves to an entity.
         tool_entity = self.inherit_matching_entities(context, Tool, "tools", tool_id)
-
-        if not tool_entity:
-            tool_entity = Tool(evaluator=self.loader, id=tool_id)
-            if explain:
-                explain.add_step(
-                    ExplainPhase.ENTITY_MATCHING,
-                    f"Tool '{tool_id}': no explicit match, using default",
-                )
-        else:
-            if explain:
-                explain.add_step(
-                    ExplainPhase.ENTITY_MATCHING,
-                    f"Tool '{tool_id}': matched entity '{tool_entity.id}'",
-                )
+        assert tool_entity is not None
+        if explain:
+            explain.add_step(
+                ExplainPhase.ENTITY_MATCHING,
+                f"Tool '{tool_id}': matched entity '{tool_entity.id}'",
+            )
 
         entity_list: list[EntityWithRules] = [tool_entity]
 

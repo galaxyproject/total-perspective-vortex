@@ -6,11 +6,15 @@ from unittest.mock import patch
 
 from tpv.commands.test import mock_galaxy
 from tpv.core.helpers import (
+    concurrent_job_count_for_tool,
     get_dataset_attributes,
     get_input_dataset,
     get_input_datasets,
     get_input_size,
     input_size,
+    job_args_match,
+    tool_version_eq,
+    tool_version_gte,
     weighted_choice,
     weighted_random_sampling,
 )
@@ -270,3 +274,77 @@ class TestHelpers(unittest.TestCase):
 
         self.assertIsInstance(result, dict)
         self.assertEqual(result, items[1])
+
+
+class TestJobArgsMatch(unittest.TestCase):
+    """job_args_match decides whether a rule fires on a job's parameters. Its only test so far is
+    the positive case, which a helper that always returned True would pass."""
+
+    def setUp(self):
+        self.app = mock_galaxy.App(create_model=True)
+        self.job = mock_galaxy.Job()
+        self.job.param_values = {
+            "input_opts": {"db_selector": "db", "tabs_to_spaces": False},
+            "files": [{"name": "reads.fq"}],
+        }
+
+    def test_matches_only_when_every_given_value_matches(self):
+        self.assertTrue(job_args_match(self.job, self.app, {"input_opts": {"db_selector": "db"}}))
+        self.assertFalse(job_args_match(self.job, self.app, {"input_opts": {"db_selector": "other"}}))
+        # one matching and one differing value is not a match
+        self.assertFalse(
+            job_args_match(self.job, self.app, {"input_opts": {"db_selector": "db", "tabs_to_spaces": True}})
+        )
+
+    def test_a_parameter_the_job_does_not_have_does_not_match(self):
+        self.assertFalse(job_args_match(self.job, self.app, {"input_opts": {"no_such_option": 1}}))
+        self.assertFalse(job_args_match(self.job, self.app, {"no_such_section": {"x": 1}}))
+        # a nested dict in args where the job's parameter is a scalar is a mismatch, not an error
+        self.assertFalse(job_args_match(self.job, self.app, {"files": {"name": "reads.fq"}}))
+
+    def test_nothing_to_match_against_never_matches(self):
+        for args in (None, {}, "input_opts", ["input_opts"]):
+            with self.subTest(args=args):
+                self.assertFalse(job_args_match(self.job, self.app, args))
+
+    def test_a_list_valued_parameter_is_compared_as_a_whole(self):
+        # Repeats and multi-selects are lists. The list is the value; keys inside its items are
+        # not a path into it.
+        self.assertTrue(job_args_match(self.job, self.app, {"files": [{"name": "reads.fq"}]}))
+        self.assertFalse(job_args_match(self.job, self.app, {"files": [{"name": "other.fq"}]}))
+
+
+class TestConcurrentJobCount(unittest.TestCase):
+    def test_plain_tool_ids_match_exactly_and_do_not_count_prefix_collisions(self):
+        # Tool Shed ids are matched by prefix so every installed version is counted together.
+        # A plain id must not get that treatment: "bwa" must not count "bwa_mem" jobs.
+        app = mock_galaxy.App(create_model=True)
+        session = app.model.context
+        user = app.model.User(username="arthur", email="arthur@vortex.org", password="x")
+        session.add(user)
+        session.flush()
+        for tool_id in ("bwa", "bwa", "bwa_mem"):
+            job = app.model.Job()
+            job.user = user
+            job.tool_id = tool_id
+            job.state = "running"
+            session.add(job)
+        session.flush()
+
+        self.assertEqual(concurrent_job_count_for_tool(app, mock_galaxy.Tool("bwa")), 2)
+        self.assertEqual(concurrent_job_count_for_tool(app, mock_galaxy.Tool("bwa_mem")), 1)
+
+
+class TestToolVersionComparison(unittest.TestCase):
+    def test_versions_are_compared_as_versions_not_strings(self):
+        tool = mock_galaxy.Tool("t", version="1.2.0")
+        self.assertTrue(tool_version_eq(tool, "1.2"))  # PEP 440: 1.2.0 == 1.2
+        self.assertTrue(tool_version_eq(tool, "1.2.0"))
+        self.assertFalse(tool_version_eq(tool, "1.3"))
+        self.assertTrue(tool_version_gte(tool, "1.10") is False)  # not a string compare: "1.2" < "1.10"
+
+    def test_comparison_is_unknown_not_false_when_a_version_is_missing(self):
+        # A rule can tell "no version to compare" (None) from "compared and did not match" (False).
+        unversioned = mock_galaxy.Tool("t")
+        self.assertIsNone(tool_version_eq(unversioned, "1.0"))
+        self.assertIsNone(tool_version_gte(mock_galaxy.Tool("t", version="1.0"), None))

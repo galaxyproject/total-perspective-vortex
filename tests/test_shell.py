@@ -152,6 +152,13 @@ class TPVShellTestCase(unittest.TestCase):
             f"Expected Name 'mem2' is not defined but output was: {output}",
         )
 
+    def test_lint_types_checks_role_rules(self):
+        # Every other type-check test puts the bad expression on a tool. A regression that skipped
+        # roles when gathering code blocks would leave role rules unchecked and pass those tests.
+        tpv_config = os.path.join(os.path.dirname(__file__), "fixtures/linter/linter-types-role-rule.yml")
+        output = self.call_shell_command("tpv", "-vv", "lint", tpv_config)
+        self.assertIn('error: Name "training_quota_exceeded" is not defined', output, output)
+
     def test_lint_types_legacy_tagset_reference(self):
         tpv_config = os.path.join(
             os.path.dirname(__file__),
@@ -772,6 +779,14 @@ class TPVShellTestCase(unittest.TestCase):
         self.assertIn("--- Destinations ---", output)
         self.assertIn("bwa:", output)
         self.assertIn("local:", output)
+
+    def test_dump_includes_resource_pools(self):
+        # dump is how an admin inspects the merged config; pools are a top-level section like tools.
+        tpv_config = os.path.join(os.path.dirname(__file__), "fixtures/mapping-resource-pool.yml")
+        output = self.call_shell_command("tpv", "dump", tpv_config)
+        self.assertIn("--- Pools ---", output, output)
+        self.assertIn("gpu:", output)
+        self.assertIn("max_concurrent_gpus", output)
 
     def test_dump_multiple_configs(self):
         remote = os.path.join(os.path.dirname(__file__), "fixtures/mapping-merge-multiple-remote.yml")

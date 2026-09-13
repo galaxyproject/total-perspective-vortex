@@ -128,6 +128,31 @@ class TestMapperRules(unittest.TestCase):
                 ["8"],
             )
 
+    def test_invalid_edit_keeps_the_previous_rules_active(self):
+        """Hot reload must not take scheduling down on a bad edit: if the rewritten file fails to
+        load, the previously loaded rules stay in force and the failure is logged."""
+        with tempfile.NamedTemporaryFile("w+t") as tmp_file:
+            shutil.copy2(os.path.join(os.path.dirname(__file__), "fixtures/mapping-rules.yml"), tmp_file.name)
+            tool = mock_galaxy.Tool("bwa")
+            user = mock_galaxy.User("gargravarr", "fairycake@vortex.org")
+            datasets = [mock_galaxy.DatasetAssociation("test", mock_galaxy.Dataset("test.txt", file_size=5 * 1024**3))]
+
+            destination = self._map_to_destination(
+                tool, user, datasets, tpv_config_files=[tmp_file.name], reset_mappers=True
+            )
+            self.assertEqual([e["value"] for e in destination.env if e["name"] == "TEST_JOB_SLOTS_USER"], ["4"])
+
+            with open(tmp_file.name, "w") as f:
+                f.write("tools:\n  default:\n    cores: [this is not valid config\n")
+            with self.assertLogs("tpv.rules.gateway", level="WARNING") as logs:
+                time.sleep(2)  # wait for the watcher to attempt the reload
+            self.assertTrue(any("Failed to reload" in line for line in logs.output), logs.output)
+
+            destination = self._map_to_destination(
+                tool, user, datasets, tpv_config_files=[tmp_file.name], reset_mappers=False
+            )
+            self.assertEqual([e["value"] for e in destination.env if e["name"] == "TEST_JOB_SLOTS_USER"], ["4"])
+
     def test_multiple_files_automatically_reload_on_update(self):
         with tempfile.NamedTemporaryFile("w+t") as tmp_file1, tempfile.NamedTemporaryFile("w+t") as tmp_file2:
             rule_file = os.path.join(os.path.dirname(__file__), "fixtures/mapping-rules.yml")
