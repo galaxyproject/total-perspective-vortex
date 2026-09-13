@@ -786,10 +786,11 @@ the pool; ``oversize.max_concurrent`` still limits the number of oversize jobs.
    users remain until their next admission attempt reconciles them.
 
 .. note::
-   **Galaxy's ready window.** Galaxy selects a bounded number of the oldest ready ``new``
-   jobs per user and handler before calling TPV. A backlog of jobs deferred by one pool can
-   therefore hide later jobs that would fit another pool. Increasing ``ready_window_size``
-   can mitigate a finite backlog, but does not solve starvation for an arbitrary backlog.
-   A general solution requires Galaxy's ready-job selection to account for these deferrals;
-   resource pools do not change that query. See the `Galaxy Australia issue
-   <https://github.com/usegalaxy-au/infrastructure/issues/2254>`_.
+   **Galaxy's ready window.** Galaxy selects a bounded number (``ready_window_size``) of the
+   oldest ready ``new`` jobs per user and handler before calling TPV, and a deferred job stays
+   ``new``. Before Galaxy 26.2, a backlog of jobs deferred by one pool could hide later jobs
+   that would fit another pool (see the `Galaxy Australia issue
+   <https://github.com/usegalaxy-au/infrastructure/issues/2254>`_). Galaxy 26.2 fixes this
+   (Galaxy PR `23512 <https://github.com/galaxyproject/galaxy/pull/23512>`_): after a
+   deferral the handler continues through the user's later ready jobs on subsequent passes
+   before retrying the deferred ones. PostgreSQL only.
