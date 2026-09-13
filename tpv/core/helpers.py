@@ -123,7 +123,9 @@ def get_input_size(
     """
     total = 0.0
     for dataset in get_input_datasets(job, param_name):
-        if not dataset.dataset:
+        # get_input_datasets already drops associations without a dataset; this narrows the
+        # Optional type for mypy and cannot run.
+        if not dataset.dataset:  # pragma: no cover
             continue
         multiplier = 1.0
         if estimate_uncompressed_size and (dataset.extension or "").endswith(COMPRESSED_EXTENSION_SUFFIXES):

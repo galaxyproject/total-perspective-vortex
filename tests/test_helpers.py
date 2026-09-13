@@ -97,6 +97,13 @@ class TestHelpers(unittest.TestCase):
         # the existing input_size helper deduplicates the same way
         self.assertEqual(input_size(job), 8)
 
+    def test_get_input_size_skips_inputs_whose_dataset_is_gone(self):
+        # An input association can outlive its dataset (deleted or purged). It must contribute
+        # nothing rather than raise mid-scheduling.
+        job = self._job_with_multiple_data_param()
+        job.add_input_dataset(mock_galaxy.DatasetAssociation("gone", None))
+        self.assertEqual(get_input_size(job), 8)
+
     def test_get_input_size_by_param_name(self):
         job = self._job_with_multiple_data_param()
         job.add_input_dataset(

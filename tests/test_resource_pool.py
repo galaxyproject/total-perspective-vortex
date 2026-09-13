@@ -182,6 +182,16 @@ class TestStoreConfig(unittest.TestCase):
         self.assertEqual(StoreConfig().store_class, "tpv.core.resource_pool.ValkeyAllocationStore")
 
 
+class TestStoreConfigErrors(unittest.TestCase):
+    def test_bare_class_name_is_rejected_with_a_clear_message(self):
+        from tpv.core.resource_pool import StoreConfig
+
+        # `class: InMemoryAllocationStore` (no module) is the likely typo; it must fail loudly at
+        # load, naming the problem, rather than with an AttributeError deep in importlib.
+        with self.assertRaisesRegex(ValueError, "dotted class path"):
+            StoreConfig.model_validate({"class": "InMemoryAllocationStore"}).build_store()
+
+
 class TestTerminalJobIds(unittest.TestCase):
     def test_returns_only_terminal_jobs(self):
         app = mock_galaxy.App(create_model=True)
@@ -589,6 +599,131 @@ class TestResourcePoolBranches(unittest.TestCase):
             EntityToDestinationMapper(loader)
 
 
+class TestValkeyStoreBackendErrors(unittest.TestCase):
+    """Fail-closed rests on the adapter turning backend errors into StoreUnavailable, which the
+    mapper turns into deferral. Every other fail-closed test raises StoreUnavailable directly;
+    this one drives real redis exceptions through the adapter, so the translation itself is
+    what is under test."""
+
+    @staticmethod
+    def _store_whose_backend_raises(error):
+        class Client:
+            def hgetall(self, key):
+                raise error
+
+            def register_script(self, script):
+                def run(keys, args):
+                    raise error
+
+                return run
+
+        return ValkeyAllocationStore(client=Client())
+
+    @staticmethod
+    def _admission():
+        return PoolAdmission("p", ResourceUsage(1, 0, 0), NORMAL, Budget(), 0, False, set())
+
+    def test_redis_errors_become_store_unavailable(self):
+        import redis
+
+        for error in (redis.exceptions.ConnectionError("refused"), redis.exceptions.TimeoutError("slow")):
+            with self.subTest(error=type(error).__name__):
+                store = self._store_whose_backend_raises(error)
+                with self.assertRaises(StoreUnavailable):
+                    store.read("p", 1)
+                with self.assertRaises(StoreUnavailable):
+                    store.admit_many(1, 1, [self._admission()])
+
+    def test_other_errors_are_not_reported_as_an_outage(self):
+        # A bug in our own code must surface as itself. Reporting it as "store unavailable" would
+        # silently defer every governed job with a misleading warning.
+        store = self._store_whose_backend_raises(TypeError("bug"))
+        with self.assertRaises(TypeError):
+            store.read("p", 1)
+        with self.assertRaises(TypeError):
+            store.admit_many(1, 1, [self._admission()])
+
+    def test_valkey_url_schemes_map_to_the_redis_schemes_redis_py_understands(self):
+        import redis
+
+        cases = [
+            ("valkey://host:6379/0", "redis://host:6379/0"),
+            ("valkeys://host:6379/0", "rediss://host:6379/0"),  # TLS
+            ("redis://host:6379/0", "redis://host:6379/0"),
+        ]
+        for given, expected in cases:
+            with self.subTest(url=given), patch.object(redis, "from_url") as from_url:
+                ValkeyAllocationStore(url=given)
+                self.assertEqual(from_url.call_args.args[0], expected)
+
+
+class TestResourcePoolExplain(unittest.TestCase):
+    """The explain trace is how an operator finds out why a job is stuck. The happy path and
+    permanent rejection are covered by the dry-run tests; these pin the messages for the
+    outcomes that actually leave a job waiting -- a full pool and a store outage -- and that the
+    fail_open variant says so rather than looking like a normal admission."""
+
+    def _mapper(self):
+        return EntityToDestinationMapper(TPVConfigLoader.from_url_or_path(FIXTURE))
+
+    @staticmethod
+    def _job(job_id):
+        job = mock_galaxy.Job()
+        job.id = job_id
+        return job
+
+    def _trace(self, mapper, tool, expect=None):
+        from tpv.core.explain import ExplainCollector
+
+        collector = ExplainCollector()
+        user = mock_galaxy.User("arthur", "arthur@vortex.org", id=1)
+        call = lambda: mapper.map_to_destination(  # noqa: E731
+            mock_galaxy.App(create_model=True), mock_galaxy.Tool(tool), user, self._job(1), explain_collector=collector
+        )
+        if expect is None:
+            call()
+        else:
+            with self.assertRaises(expect):
+                call()
+        return collector.render()
+
+    def test_deferral_names_the_full_pool(self):
+        mapper = self._mapper()
+        _seed(mapper.resource_pools.store, "default", 1, 900, ResourceUsage(30, 0, 0))
+        trace = self._trace(mapper, "default", expect=JobNotReadyException)
+        self.assertIn("DEFERRED", trace)
+        self.assertIn("default", trace)
+
+    def test_store_outage_is_reported_with_the_policy_that_decided_it(self):
+        for fail_open, expect, message in (
+            (False, JobNotReadyException, "fail-closed -> deferred"),
+            (True, None, "fail_open -> admitted"),
+        ):
+            with self.subTest(fail_open=fail_open):
+                mapper = self._mapper()
+                mapper.resource_pools.store = _RaisingStore()
+                mapper.pools["default"].fail_open = fail_open
+                trace = self._trace(mapper, "default", expect=expect)
+                self.assertIn("store unavailable", trace)
+                self.assertIn(message, trace)
+
+    def test_outage_during_the_batch_write_is_reported(self):
+        # The read succeeded and every pool resolved; the single atomic write then failed. The
+        # trace must say the store was the problem, not that the pool was full.
+        for all_fail_open, expect, message in (
+            (False, JobNotReadyException, "fail-closed -> deferred"),
+            (True, None, "every pool is fail_open -> admitted"),
+        ):
+            with self.subTest(all_fail_open=all_fail_open):
+                mapper = self._mapper()
+                mapper.pools["default"].fail_open = all_fail_open
+                with patch.object(mapper.resource_pools.store, "admit_many", side_effect=StoreUnavailable("down")):
+                    trace = self._trace(mapper, "default", expect=expect)
+                self.assertIn("Store unavailable", trace)
+                self.assertIn(message, trace)
+                self.assertNotIn("DEFERRED: user", trace)
+
+
 def _build_valkey_store():
     """A ValkeyAllocationStore backed by fakeredis, or None when fakeredis+Lua is unavailable.
 
@@ -668,6 +803,10 @@ PARITY_SCENARIOS = {
     "reserve_pool": [
         _op(1, ResourceUsage(64, 0, 0), kind=OVERSIZE, max_oversize=1, reserve_pool=True),
         _op(2, ResourceUsage(1, 0, 0), kind=NORMAL, max_oversize=1, reserve_pool=True),
+    ],
+    "reserve_pool_blocks_oversize_while_normal_runs": [
+        _op(1, ResourceUsage(1, 0, 0), kind=NORMAL, max_oversize=1, reserve_pool=True),
+        _op(2, ResourceUsage(64, 0, 0), kind=OVERSIZE, max_oversize=1, reserve_pool=True),
     ],
     "drop_releases": [_op(1, ResourceUsage(30, 0, 0)), _op(2, ResourceUsage(8, 0, 0), drop=(1,))],
 }
