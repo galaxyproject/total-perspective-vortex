@@ -123,7 +123,9 @@ def get_input_size(
     """
     total = 0.0
     for dataset in get_input_datasets(job, param_name):
-        if not dataset.dataset:
+        # get_input_datasets already drops associations without a dataset; this narrows the
+        # Optional type for mypy and cannot run.
+        if not dataset.dataset:  # pragma: no cover
             continue
         multiplier = 1.0
         if estimate_uncompressed_size and (dataset.extension or "").endswith(COMPRESSED_EXTENSION_SUFFIXES):
@@ -166,38 +168,24 @@ def weighted_choice(items: list[WeightedT]) -> WeightedT:
     return _weighted_draw(items, [item.get("weight", 1) for item in items], k=1)[0]
 
 
-def __get_keys_from_dict(dl: Any, keys_list: list[str]) -> None:
-    # This function builds a list using the keys from nested dictionaries
-    # (copied from galaxyproject/galaxy lib/galaxy/jobs/dynamic_tool_destination.py)
-    if isinstance(dl, dict):
-        keys_list.extend(dl.keys())
-        for x in dl.values():
-            __get_keys_from_dict(x, keys_list)
-    elif isinstance(dl, list):
-        for x in dl:
-            __get_keys_from_dict(x, keys_list)
+def __args_match(args: Any, params: Any) -> bool:
+    # Every key in `args` must be present in `params`, recursing through nested dicts. Anything
+    # that is not a dict -- scalars and lists alike -- is a leaf and must compare equal, so a
+    # list-valued parameter (a repeat or multi-select) is matched as a whole.
+    if isinstance(args, dict):
+        if not isinstance(params, dict):
+            return False
+        return all(key in params and __args_match(value, params[key]) for key, value in args.items())
+    return bool(args == params)
 
 
 def job_args_match(job: Job, app: UniverseApplication, args: dict[str, Any] | None) -> bool:
-    # Check whether a dictionary of arguments matches a job's parameters.  This code is
-    # from galaxyproject/galaxy lib/galaxy/jobs/dynamic_tool_destination.py
+    """Whether every argument in ``args`` matches the job's parameters, e.g.
+    ``{'input_opts': {'db_selector': 'db'}}`` matches a job whose ``input_opts|db_selector`` is
+    ``db``. Nested dicts are matched key by key; lists and scalars must be equal."""
     if not args or not isinstance(args, dict):
         return False
-    options = job.get_param_values(app)  # type: ignore[no-untyped-call]
-    matched = True
-    # check if the args in the config file are available
-    for arg in args:
-        arg_dict = {arg: args[arg]}
-        arg_keys_list: list[str] = []
-        __get_keys_from_dict(arg_dict, arg_keys_list)
-        try:
-            options_value = reduce(dict.__getitem__, arg_keys_list, options)
-            arg_value = reduce(dict.__getitem__, arg_keys_list, arg_dict)
-            if arg_value != options_value:
-                matched = False
-        except KeyError:
-            matched = False
-    return matched
+    return __args_match(args, job.get_param_values(app))  # type: ignore[no-untyped-call]
 
 
 def concurrent_job_count_for_tool(

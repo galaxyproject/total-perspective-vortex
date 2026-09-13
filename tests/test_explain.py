@@ -242,6 +242,20 @@ class TestDryRunExplain(unittest.TestCase):
         self.assertIn("Destination Ranking", trace)
         self.assertIn("Final Result", trace)
 
+    def test_dry_run_explain_unconfigured_tool_without_a_default(self):
+        """A tool with no entity in a config that sets no default_inherits still maps, via the
+        entity TPV builds from the Galaxy tool itself -- and the trace names that entity, which is
+        how an admin learns the tool got injected defaults rather than configured ones."""
+        dry_runner = TPVDryRunner.from_params(
+            job_conf=self._fixture_path("job_conf_dry_run.yml"),
+            tool_id="a_tool_nobody_configured",
+            user_email="fairycake@vortex.org",
+            tpv_confs=[self._fixture_path("mapping-inheritance-no-default.yml")],
+        )
+        destination, collector = dry_runner.run(explain=True)
+        self.assertIsNotNone(destination)
+        self.assertIn("matched entity 'tool_provided_resources_a_tool_nobody_configured'", collector.render())
+
     def test_dry_run_explain_shows_matched_entities(self):
         """The trace should show which tool and user entities matched."""
         dry_runner = TPVDryRunner.from_params(
@@ -501,7 +515,6 @@ class TestDryRunExplain(unittest.TestCase):
         self.assertIsNone(runner.tool)
 
 
-
 class TestGatewayExplainOnFailure(unittest.TestCase):
     """Tests for the tpv_explain_on_failure gateway config option."""
 
@@ -516,7 +529,10 @@ class TestGatewayExplainOnFailure(unittest.TestCase):
         job = mock_galaxy.Job()
         user = mock_galaxy.User("gargravarr", "fairycake@vortex.org")
         return gateway.map_tool_to_destination(
-            app, job, tool, user,
+            app,
+            job,
+            tool,
+            user,
             referrer=referrer,
             tpv_config_files=[self._fixture_path("mapping-basic.yml")],
             explain_collector=explain_collector,
