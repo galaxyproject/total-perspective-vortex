@@ -40,6 +40,13 @@ class TestMapperResourceRequirements(unittest.TestCase):
         result = extract_resource_requirements_from_tool(tool)
         self.assertEqual(result, {})
 
+    def test_requirement_types_tpv_does_not_map_are_ignored(self):
+        # Tools may declare tmpdir_min, outdir_min etc. TPV maps only cores and RAM; the rest must
+        # be skipped, not fail the tool.
+        reqs = [ResourceRequirement("4", "cores_min"), ResourceRequirement("10", "tmpdir_min")]
+        tool = mock_galaxy.Tool("test_tool", resource_requirements=reqs)
+        self.assertEqual(extract_resource_requirements_from_tool(tool), {"cores": 4})
+
     def test_extract_resource_requirements_from_tool_cores(self):
         cores_req = ResourceRequirement("4", "cores_min")
 
