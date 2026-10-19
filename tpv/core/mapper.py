@@ -94,6 +94,35 @@ class EntityToDestinationMapper(object):
             log.error(f"Failed to compile regex: {key}")
             raise
 
+    def get_destination_tags(self) -> dict[str, set[str]]:
+        """Map each tag to the names of the destinations carrying it, so that Galaxy's tag-based concurrency limits
+        can count jobs in TPV destinations.
+
+        Templated destination names and tags are only known once a job is mapped, so they are skipped.
+        """
+        destination_tags: dict[str, set[str]] = {}
+        for destination in self.__apply_default_destination_inheritance(self.destinations, {}):
+            if destination.abstract or not destination.handler_tags:
+                continue
+            dest_name = destination.dest_name or destination.id
+            if "{" in dest_name:
+                log.info(
+                    "Destination '%s' has a templated name, its tags will not count toward Galaxy's tag-based "
+                    "concurrency limits",
+                    destination.id,
+                )
+                continue
+            tags = [tag for tag in destination.handler_tags if "{" not in tag]
+            if len(tags) < len(destination.handler_tags):
+                log.info(
+                    "Destination '%s' has templated tags, they will not count toward Galaxy's tag-based concurrency "
+                    "limits",
+                    destination.id,
+                )
+            for tag in tags:
+                destination_tags.setdefault(tag, set()).add(dest_name)
+        return destination_tags
+
     def _get_common_inherits(
         self, context: Mapping[str, Any], entity_list: dict[str, EntityType], entity_type: type[EntityType]
     ) -> list[EntityType]:
