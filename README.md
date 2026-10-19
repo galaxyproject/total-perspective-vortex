@@ -23,12 +23,12 @@ GTN](https://training.galaxyproject.org/training-material/topics/admin/tutorials
 ### Installing latest released version
 
 Once configured in the Galaxy application, TPV will be automatically installed
-in the Galaxy environment. If you would like to manually install it instead, you
-can do so from [PyPI](https://pypi.org/project/total-perspective-vortex/) with
+in the Galaxy environment. If you would like to manually install it for independent
+CLI use instead, you can do so from [PyPI](https://pypi.org/project/total-perspective-vortex/) with
 the following command:
 
 ```python
-pip install total-perspective-vortex
+pip install "total-perspective-vortex[cli]"
 ```
 
 
