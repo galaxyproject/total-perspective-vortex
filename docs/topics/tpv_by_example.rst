@@ -174,6 +174,40 @@ These TPV defined scheduling tags should be contrasted with Galaxy's destination
 https://github.com/galaxyproject/galaxy/blob/0a0d68b7feed5e303ed762f6586ea9757219c6f7/lib/galaxy/config/sample/job_conf.sample.yml#L1037
 Galaxy handler tags can be defined as simply `tags` at the destination.
 
+With Galaxy 27.0 or later, these tags also apply to Galaxy's tag-based concurrency limits
+(``environment_user_concurrent_jobs`` and ``environment_total_concurrent_jobs`` with a ``tag``), alongside any
+destinations in Galaxy's job configuration that carry the same tag:
+
+.. code-block:: yaml
+   :linenos:
+
+   destinations:
+     slurm_normal:
+       runner: slurm
+       tags:
+         - slurm
+     slurm_long:
+       runner: slurm
+       tags:
+         - slurm
+         - long
+
+.. code-block:: yaml
+   :linenos:
+
+   # Galaxy job_conf.yml
+   limits:
+     - type: environment_total_concurrent_jobs
+       tag: slurm
+       value: 500
+     - type: environment_user_concurrent_jobs
+       tag: long
+       value: 4
+
+Only destinations with literal names and tags count. A destination whose name
+(`destination_name_override`) is templated is not counted, nor is any templated tag, since their values are only
+known once a job is mapped.
+
 Tool type tags
 ^^^^^^^^^^^^^^
 

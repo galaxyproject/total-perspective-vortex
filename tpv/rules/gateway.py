@@ -44,10 +44,19 @@ def load_destination_mapper(
     return EntityToDestinationMapper(loader, resource_pool_store=resource_pool_store)  # type: ignore
 
 
+def register_destination_tags(app: UniverseApplication, referrer: str, mapper: EntityToDestinationMapper) -> None:
+    # Galaxy's tag-based concurrency limits only see the tags of destinations in its job config unless TPV's are
+    # registered. Galaxy < 27.0 has no way to register them.
+    set_dynamic_destination_tags = getattr(app.job_config, "set_dynamic_destination_tags", None)
+    if set_dynamic_destination_tags:
+        set_dynamic_destination_tags(referrer, mapper.get_destination_tags())
+
+
 def setup_destination_mapper(
     app: UniverseApplication, referrer: str, tpv_configs: JOB_YAML_CONFIG_TYPE
 ) -> EntityToDestinationMapper:
     mapper = load_destination_mapper(tpv_configs)
+    register_destination_tags(app, referrer, mapper)
 
     for tpv_config in tpv_configs:
         if isinstance(tpv_config, str) and os.path.isfile(tpv_config):
@@ -66,7 +75,9 @@ def setup_destination_mapper(
                 # watchdog on darwin notifies only once per file, so reload all mappers that refer to this file
                 for referrer, config_files in REFERRERS_BY_CONFIG_FILE[tpv_config_real_path].items():
                     try:
-                        ACTIVE_DESTINATION_MAPPERS[referrer] = load_destination_mapper(config_files, reload=True)
+                        reloaded_mapper = load_destination_mapper(config_files, reload=True)
+                        ACTIVE_DESTINATION_MAPPERS[referrer] = reloaded_mapper
+                        register_destination_tags(app, referrer, reloaded_mapper)
                     except Exception:
                         log.warning(
                             "Failed to reload mapper for referrer '%s' after file change at '%s' (event path: '%s')",
