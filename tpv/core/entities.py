@@ -565,6 +565,8 @@ class EntityWithRules(Entity):
     def evaluate_rules(self, context: dict[str, Any]) -> Self:
         new_entity = copy.deepcopy(self)
         context.update(new_entity.context or {})
+        # Conditions and execute blocks must see the local entity, including for each destination candidate.
+        context.update({"entity": new_entity, "self": new_entity})
         explain = ExplainCollector.from_context(context)
         for rule in self.rules.values():
             if rule.is_matching(context):
@@ -590,7 +592,7 @@ class EntityWithRules(Entity):
                 new_entity.cores = rule.cores or new_entity.cores
                 new_entity.mem = rule.mem or new_entity.mem
                 new_entity.id = f"{new_entity.id}, Rule: {rule.id}"
-                context.update({"entity": new_entity})
+                context.update({"entity": new_entity, "self": new_entity})
             else:
                 if explain:
                     explain.add_step(

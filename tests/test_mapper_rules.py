@@ -8,10 +8,44 @@ from galaxy.jobs import JobDestination
 from galaxy.jobs.mapper import JobMappingException, JobNotReadyException
 
 from tpv.commands.test import mock_galaxy
+from tpv.core.entities import TryNextDestinationOrFail, TryNextDestinationOrWait
+from tpv.core.loader import TPVConfigLoader
+from tpv.core.mapper import EntityToDestinationMapper
 from tpv.rules import gateway
 
 
 class TestMapperRules(unittest.TestCase):
+
+    def _destination_context_mapper(self):
+        config = os.path.join(os.path.dirname(__file__), "fixtures/mapping-destination-context.yml")
+        return EntityToDestinationMapper(TPVConfigLoader.from_url_or_path(config))
+
+    def _map_destination_context(self, mapper):
+        app = mock_galaxy.App(job_conf=os.path.join(os.path.dirname(__file__), "fixtures/job_conf.yml"))
+        return mapper.map_to_destination(app, mock_galaxy.Tool("test"), None, mock_galaxy.Job())
+
+    def test_first_destination_rule_condition_sees_combined_destination(self):
+        mapper = self._destination_context_mapper()
+        destination = self._map_destination_context(mapper)
+        self.assertEqual(destination.id, "condor")
+        self.assertEqual(destination.params["inspected_destination"], "condor")
+        self.assertEqual(mapper.global_context["attempts"], ["condor"])
+
+    def test_first_destination_rule_execute_sees_combined_destination(self):
+        mapper = self._destination_context_mapper()
+        mapper.destinations["condor"].rules["inspect_destination"].if_condition = True
+        destination = self._map_destination_context(mapper)
+        self.assertEqual(destination.params["inspected_destination"], "condor")
+
+    def test_destination_fallback_refreshes_rule_context(self):
+        for rejection in (TryNextDestinationOrFail, TryNextDestinationOrWait):
+            with self.subTest(rejection=rejection.__name__):
+                mapper = self._destination_context_mapper()
+                mapper.global_context["rejection"] = rejection
+                destination = self._map_destination_context(mapper)
+                self.assertEqual(destination.id, "fallback")
+                self.assertEqual(destination.params["inspected_destination"], "fallback")
+                self.assertEqual(mapper.global_context["attempts"], ["condor", "fallback"])
 
     @staticmethod
     def _map_to_destination(

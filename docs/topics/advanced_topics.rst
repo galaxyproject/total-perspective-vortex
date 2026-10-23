@@ -34,6 +34,12 @@ Default evaluation context
 | self     | an alias for the current TPV entity.                                        |
 +----------+-----------------------------------------------------------------------------+
 
+During rule evaluation, ``entity`` and ``self`` refer to the local evaluation copy and are
+updated as matching rules modify it. For destination rules, this is the destination combined
+with the tool, user, and role requirements, available before the first ``if`` condition is
+evaluated. Each fallback candidate receives its own combined destination in these variables;
+no unconditional initialization rule is needed.
+
 Custom evaluation contexts
 ---------------------------
 These are user defined context values that can be defined globally, or locally at the level of each

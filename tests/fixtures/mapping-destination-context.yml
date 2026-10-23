@@ -1,0 +1,44 @@
+global:
+  default_inherits: default
+  context:
+    rejection: null
+    attempts: []
+
+tools:
+  default:
+    abstract: true
+    cores: 1
+    mem: 7.6
+    rank: |
+      sorted(candidate_destinations, key=lambda d: d.dest_name)
+
+destinations:
+  condor:
+    runner: htcondor
+    max_accepted_mem: 16
+    rules:
+      - id: inspect_destination
+        if: entity.dest_name == 'condor' and entity.max_accepted_mem == 16
+        execute: |
+          assert self is entity
+          assert entity.dest_name == 'condor'
+          assert entity.max_accepted_mem == 16
+          assert entity.cores == 1 and entity.mem == 7.6
+          attempts.append(entity.dest_name)
+          entity.params['inspected_destination'] = entity.dest_name
+          if rejection:
+              entity.mem = 15
+              raise rejection()
+  fallback:
+    runner: local
+    max_accepted_mem: 32
+    rules:
+      - id: inspect_fallback
+        if: entity.dest_name == 'fallback' and entity.max_accepted_mem == 32
+        execute: |
+          assert self is entity
+          assert entity.dest_name == 'fallback'
+          assert entity.max_accepted_mem == 32
+          assert entity.cores == 1 and entity.mem == 7.6
+          attempts.append(entity.dest_name)
+          entity.params['inspected_destination'] = entity.dest_name

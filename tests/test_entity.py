@@ -11,6 +11,53 @@ from tpv.rules import gateway
 
 class TestEntity(unittest.TestCase):
 
+    def test_rule_context_uses_local_copy_and_keeps_self_alias(self):
+        loader = TPVConfigLoader(
+            {
+                "tools": {
+                    "test": {
+                        "cores": 1,
+                        "params": {},
+                        "rules": [
+                            {
+                                "if": "self is entity and entity.cores == 1",
+                                "execute": "entity.params['local_change'] = 'preserved'",
+                            },
+                            {"if": True, "cores": 4},
+                            {
+                                "if": "self is entity and entity.cores == 4",
+                                "execute": "entity.mem = 8",
+                            },
+                        ],
+                    }
+                }
+            }
+        )
+        original = loader.config.tools["test"]
+        context = {"entity": original, "self": original}
+        evaluated = original.evaluate_rules(context)
+        self.assertEqual(evaluated.cores, 4)
+        self.assertEqual(evaluated.mem, 8)
+        self.assertEqual(evaluated.params, {"local_change": "preserved"})
+        self.assertEqual(original.cores, 1)
+        self.assertIsNone(original.mem)
+        self.assertEqual(original.params, {})
+        self.assertIs(context["entity"], evaluated)
+        self.assertIs(context["self"], evaluated)
+        self.assertIsNot(evaluated, original)
+
+    def test_rule_context_initialized_when_no_rules_match(self):
+        for rules in ([], [{"if": False, "cores": 4}]):
+            with self.subTest(rules=rules):
+                loader = TPVConfigLoader({"tools": {"test": {"cores": 1, "rules": rules}}})
+                original = loader.config.tools["test"]
+                context = {}
+                evaluated = original.evaluate_rules(context)
+                self.assertIs(context["entity"], evaluated)
+                self.assertIs(context["self"], evaluated)
+                self.assertIsNot(evaluated, original)
+                self.assertEqual(evaluated.cores, 1)
+
     @staticmethod
     def _map_to_destination(app, job, tool, user, referrer=None):
         tpv_config = os.path.join(os.path.dirname(__file__), "fixtures/mapping-rule-argument-based.yml")
