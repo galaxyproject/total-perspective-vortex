@@ -1,3 +1,16 @@
+3.3.1 - Oct 27, 2026. (sha e8955d3a97e4562714661fc9dc3a84327b38f6d6)
+--------------------------------------------------------------------
+* Initialize the entity context before evaluating destination rules: ``entity`` and ``self`` now
+  refer to the destination combined with the tool, user and role requirements from the first
+  ``if`` condition onwards, separately for each fallback candidate, so destination attributes
+  such as ``max_accepted_mem`` no longer need an unconditional seed rule by @gsaudade99 (PR #213)
+* Fix ``helpers.job_args_match`` raising ``TypeError`` on list-valued parameters (repeats and
+  multi-selects) and on nested argument dicts with more than one key; both now return ``False``.
+  Also raises test coverage to 97% by @nuwang (PR #210)
+* Document that Galaxy 26.2 fixes ready-window starvation for deferred resource-pool jobs
+  by @mvdbeek (PR #209)
+* Add instructions on CLI installation by @nuwang (PR #211)
+
 3.3.0 - Sep 12, 2026. (sha 1bfb4d3e5edbf68f1cdfe62a6530ad8da6a62010)
 --------------------------------------------------------------------
 * Add per-user resource pools. A ``pools:`` collection makes a resource pool a first-class TPV
